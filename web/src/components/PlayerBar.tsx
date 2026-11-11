@@ -1,4 +1,4 @@
-import { EqualizerIcon, KeyboardIcon, MicrophoneStageIcon, QueueIcon, SidebarSimpleIcon } from "@phosphor-icons/react";
+import { EqualizerIcon, KeyboardIcon, MicrophoneStageIcon, SidebarSimpleIcon } from "@phosphor-icons/react";
 import { cn } from "../lib/format";
 import { useT } from "../i18n";
 import { useEqualizer } from "../player/equalizer";
@@ -71,7 +71,7 @@ export function PlayerBar() {
             active={panelOpen && panelTab === "lyrics"}
             onClick={() => togglePanel("lyrics")}
           >
-            <MicrophoneStageIcon size={18} />
+            <MicrophoneStageIcon size={18} weight={panelOpen && panelTab === "lyrics" ? "fill" : "regular"} />
           </IconButton>
           <IconButton
             label={`${t.nowPlaying.tabPlaying} & ${t.player.queue}`}
@@ -79,15 +79,7 @@ export function PlayerBar() {
             active={panelOpen && panelTab === "playing"}
             onClick={() => togglePanel("playing")}
           >
-            <QueueIcon size={18} />
-          </IconButton>
-          <IconButton
-            label={t.player.nowPlayingPanel}
-            size="sm"
-            active={panelOpen && panelTab === "playing"}
-            onClick={() => togglePanel("playing")}
-          >
-            <SidebarSimpleIcon size={18} mirrored />
+            <SidebarSimpleIcon size={18} mirrored weight={panelOpen && panelTab === "playing" ? "fill" : "regular"} />
           </IconButton>
           <Volume className="max-lg:hidden" />
           <IconButton label={t.player.shortcuts} size="sm" onClick={() => setShortcutsOpen(true)} className="max-xl:hidden">

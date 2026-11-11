@@ -1,9 +1,5 @@
 import {
-  ArrowsInLineHorizontalIcon,
-  ArrowsOutLineHorizontalIcon,
   BooksIcon,
-  CaretLeftIcon,
-  CaretRightIcon,
   ClockCounterClockwiseIcon,
   DownloadSimpleIcon,
   GearSixIcon,
@@ -147,10 +143,6 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
     : 78;
 
   const toggleExpand = () => setAppearance({ compactSidebar: !compactSidebar });
-  const toggleWideSize = () => {
-    const target = effectiveWidth > 320 ? 256 : 420;
-    setAppearance({ compactSidebar: false, sidebarWidth: target });
-  };
 
   return (
     <aside
@@ -161,11 +153,11 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
       )}
     >
       <div className="island-core flex w-full flex-col overflow-hidden">
-        {/* Header with Brand + Expand/Collapse + Width Toggle */}
+        {/* Header with Brand + Stage Toggle + Sidebar Collapse */}
         <div
           className={cn(
-            "flex h-15 items-center border-b border-line/60 px-3 [@media(max-height:540px)]:h-12",
-            isExpanded ? "justify-between" : "flex-col justify-center gap-1 py-2 h-auto",
+            "flex h-14 items-center border-b border-line/60 px-3 [@media(max-height:540px)]:h-12",
+            isExpanded ? "justify-between" : "h-auto flex-col justify-center gap-1.5 py-2.5",
           )}
         >
           {isExpanded ? (
@@ -186,34 +178,22 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
                       : "Switch to Stage & Lyrics Layout (Home in Sidebar)"
                   }
                   className={cn(
-                    "grid size-7 place-items-center rounded-full transition-colors",
+                    "grid size-8 place-items-center rounded-lg transition-colors",
                     layoutTemplate === "center-lyrics"
-                      ? "bg-accent text-accent-ink"
-                      : "text-fg-3 hover:bg-surface-3 hover:text-fg",
+                      ? "bg-surface-4 text-accent-text"
+                      : "text-fg-2 hover:bg-surface-3 hover:text-fg",
                   )}
                 >
-                  <MicrophoneStageIcon size={15} weight="bold" />
-                </button>
-                <button
-                  type="button"
-                  onClick={toggleWideSize}
-                  title={effectiveWidth > 320 ? "Standard sidebar width" : "Expand sidebar wider"}
-                  className="grid size-7 place-items-center rounded-full text-fg-3 transition-colors hover:bg-surface-3 hover:text-fg"
-                >
-                  {effectiveWidth > 320 ? (
-                    <ArrowsInLineHorizontalIcon size={15} weight="bold" />
-                  ) : (
-                    <ArrowsOutLineHorizontalIcon size={15} weight="bold" />
-                  )}
+                  <MicrophoneStageIcon size={17} weight={layoutTemplate === "center-lyrics" ? "fill" : "regular"} />
                 </button>
                 <button
                   type="button"
                   onClick={toggleExpand}
                   aria-label="Collapse sidebar"
-                  title="Collapse sidebar to icon rail"
-                  className="grid size-7 place-items-center rounded-full bg-surface-3/70 text-fg-2 transition-colors hover:bg-surface-4 hover:text-fg"
+                  title="Collapse sidebar"
+                  className="grid size-8 place-items-center rounded-lg text-fg-2 transition-colors hover:bg-surface-3 hover:text-fg"
                 >
-                  <CaretLeftIcon size={15} weight="bold" />
+                  <SidebarSimpleIcon size={17} weight="regular" />
                 </button>
               </div>
             </>
@@ -225,83 +205,89 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
                 onClick={toggleExpand}
                 aria-label="Expand sidebar"
                 title="Expand sidebar"
-                className="mt-1 grid size-8 place-items-center rounded-full bg-surface-3 text-fg transition-colors hover:bg-accent hover:text-accent-ink"
+                className="mt-0.5 grid size-8 place-items-center rounded-lg text-fg-2 transition-colors hover:bg-surface-3 hover:text-fg"
               >
-                <CaretRightIcon size={16} weight="bold" />
+                <SidebarSimpleIcon size={17} weight="regular" />
               </button>
             </>
           )}
         </div>
 
         {/* Top Navigation Links */}
-        <nav
-          aria-label={t.nav.main}
-          className={cn(
-            "px-2 pt-2",
-            isExpanded && isStageLayout ? "grid grid-cols-3 gap-1" : "flex flex-col gap-1",
-          )}
-        >
-          {nav.map(({ to, key, Icon, end }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={end}
-              onClick={() => {
-                if (isStageLayout) setDockTab("browse");
-              }}
-              title={t.nav[key]}
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-2.5 rounded-full transition-colors duration-200",
-                  isExpanded && isStageLayout
-                    ? "h-9 justify-center px-2 text-xs"
-                    : isExpanded
-                      ? "h-10 justify-start px-3.5 text-sm"
-                      : "h-11 justify-center",
-                  isActive ? "bg-surface-4 text-fg font-semibold" : "text-fg-2 hover:bg-surface-3 hover:text-fg",
-                )
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  <Icon size={isExpanded && isStageLayout ? 17 : 20} weight={isActive ? "fill" : "regular"} />
-                  {isExpanded && <span className="truncate font-medium">{t.nav[key]}</span>}
-                </>
-              )}
-            </NavLink>
-          ))}
-        </nav>
-
-        {/* Stage Layout Mode: Embedded Home / Search / Library Browser right inside the Expandable Sidebar! */}
         {isExpanded && isStageLayout ? (
-          <>
-            <div className="mx-3 mt-2 flex items-center justify-between gap-1 rounded-full bg-surface-1 p-1 ring-1 ring-line">
-              <button
-                type="button"
-                onClick={() => setDockTab("browse")}
-                className={cn(
-                  "flex h-7 flex-1 items-center justify-center gap-1.5 rounded-full text-xs font-semibold transition-colors",
-                  dockTab === "browse" ? "bg-accent text-accent-ink" : "text-fg-2 hover:text-fg",
-                )}
-              >
-                <SidebarSimpleIcon size={13} weight="bold" />
-                <span>Home & Catalog</span>
-              </button>
+          <div className="px-3 pt-2.5 pb-1.5">
+            <nav
+              aria-label={t.nav.main}
+              className="grid grid-cols-4 gap-0.5 rounded-[10px] bg-surface-1/90 p-1 ring-1 ring-line"
+            >
+              {nav.map(({ to, key, Icon, end }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={end}
+                  onClick={() => setDockTab("browse")}
+                  title={t.nav[key]}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex h-7 items-center justify-center gap-1.5 rounded-[7px] px-2 text-xs font-medium transition-colors",
+                      isActive && dockTab === "browse"
+                        ? "bg-surface-4 text-fg shadow-2xs"
+                        : "text-fg-2 hover:text-fg",
+                    )
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <Icon size={14} weight={isActive && dockTab === "browse" ? "fill" : "regular"} />
+                      <span className="truncate">{t.nav[key]}</span>
+                    </>
+                  )}
+                </NavLink>
+              ))}
               <button
                 type="button"
                 onClick={() => setDockTab("collection")}
                 className={cn(
-                  "flex h-7 flex-1 items-center justify-center gap-1.5 rounded-full text-xs font-semibold transition-colors",
-                  dockTab === "collection" ? "bg-accent text-accent-ink" : "text-fg-2 hover:text-fg",
+                  "flex h-7 items-center justify-center gap-1 rounded-[7px] px-2 text-xs font-medium transition-colors",
+                  dockTab === "collection" ? "bg-surface-4 text-fg shadow-2xs" : "text-fg-2 hover:text-fg",
                 )}
               >
-                <BooksIcon size={13} weight="bold" />
-                <span>Playlists ({playlists.length})</span>
+                <span>Playlists</span>
               </button>
-            </div>
+            </nav>
+          </div>
+        ) : (
+          <nav aria-label={t.nav.main} className="flex flex-col gap-0.5 px-2 pt-2">
+            {nav.map(({ to, key, Icon, end }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={end}
+                title={t.nav[key]}
+                className={({ isActive }) =>
+                  cn(
+                    "flex items-center gap-2.5 rounded-[10px] transition-colors duration-150",
+                    isExpanded ? "h-9 justify-start px-3 text-[13.5px]" : "h-10 justify-center",
+                    isActive ? "bg-surface-3 text-fg font-semibold" : "text-fg-2 hover:bg-surface-3/60 hover:text-fg",
+                  )
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <Icon size={19} weight={isActive ? "fill" : "regular"} className={cn(isActive && "text-accent-text")} />
+                    {isExpanded && <span className="truncate">{t.nav[key]}</span>}
+                  </>
+                )}
+              </NavLink>
+            ))}
+          </nav>
+        )}
 
+        {/* Stage Layout Mode: Embedded Home / Search / Library Browser right inside the Expandable Sidebar! */}
+        {isExpanded && isStageLayout ? (
+          <>
             {dockTab === "browse" ? (
-              <div className="scroll-area mt-1.5 min-h-0 flex-1 overflow-y-auto border-t border-line/60 bg-surface-1/50">
+              <div className="scroll-area mt-1 min-h-0 flex-1 overflow-y-auto border-t border-line/60 bg-surface-1/40">
                 {embeddedRoutes}
               </div>
             ) : (

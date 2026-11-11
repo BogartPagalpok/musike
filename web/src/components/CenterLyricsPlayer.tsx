@@ -56,35 +56,43 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
   }
 
   return (
-    <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden p-3 md:p-4">
-      {/* Ambient background glow */}
-      <img
-        src={track.thumb}
-        alt=""
-        aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 left-1/2 -z-10 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 scale-150 rounded-full object-cover opacity-20 blur-3xl"
-      />
+    <div className="relative flex h-full min-h-0 w-full flex-col overflow-hidden px-4 py-4 md:px-8 md:py-6">
+      {/* Apple Music atmospheric album-art mesh backdrop */}
+      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <img
+          src={track.art || track.thumb}
+          alt=""
+          aria-hidden="true"
+          className="absolute top-1/2 left-1/3 h-[65%] w-[65%] -translate-x-1/2 -translate-y-1/2 scale-150 rounded-full object-cover opacity-28 blur-[100px]"
+        />
+        <img
+          src={track.thumb}
+          alt=""
+          aria-hidden="true"
+          className="absolute right-1/4 bottom-1/4 h-[55%] w-[55%] scale-150 rounded-full object-cover opacity-20 blur-[110px]"
+        />
+      </div>
 
-      <div className="flex h-full min-h-0 w-full flex-1 flex-col gap-3 overflow-hidden lg:flex-row lg:items-stretch lg:gap-4">
-        {/* Left Stage Card: Compact 720p HD Video / Artwork + Track Info + Quick Actions (Always 100% on-screen) */}
+      <div className="flex h-full min-h-0 w-full flex-1 flex-col gap-6 overflow-hidden lg:flex-row lg:items-center lg:gap-10">
+        {/* Left Stage: Floating 720p HD Video / Artwork + Apple Music Track Header */}
         <div
           className={cn(
-            "flex shrink-0 flex-col justify-center gap-3 overflow-hidden rounded-[18px] bg-surface-2/55 p-3.5 ring-1 ring-line backdrop-blur-md",
-            mode === "cinema" ? "lg:w-[48%]" : "lg:w-[44%] xl:w-[42%]",
+            "flex shrink-0 flex-col justify-center gap-4 overflow-hidden",
+            mode === "cinema" ? "lg:w-[50%]" : "lg:w-[46%] xl:w-[45%]",
           )}
         >
-          <div className="flex min-h-0 w-full items-center justify-center overflow-hidden">
+          <div className="flex min-h-0 w-full items-center justify-center">
             {showsVideo ? (
-              <div className="w-full overflow-hidden rounded-[14px] bg-black shadow-[0_14px_36px_rgba(0,0,0,0.45)] ring-1 ring-white/15">
+              <div className="w-full overflow-hidden rounded-[16px] bg-black shadow-[0_24px_60px_rgba(0,0,0,0.55)] ring-1 ring-white/12">
                 <VideoSlot
                   priority={SLOT.center}
                   expandable
-                  className="mx-auto aspect-video max-h-[34dvh] w-full"
+                  className="mx-auto aspect-video max-h-[44dvh] w-full"
                   style={{ aspectRatio: Math.min(16 / 9, Math.max(9 / 16, aspect)) }}
                 />
               </div>
             ) : (
-              <div className="relative aspect-square max-h-[30dvh] w-auto overflow-hidden rounded-[18px] shadow-[0_16px_40px_rgba(0,0,0,0.5)] ring-1 ring-white/15">
+              <div className="relative aspect-square max-h-[40dvh] w-auto overflow-hidden rounded-[18px] shadow-[0_24px_60px_rgba(0,0,0,0.55)] ring-1 ring-white/12">
                 <Artwork
                   src={track.art}
                   fallback={track.thumb}
@@ -95,12 +103,12 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
             )}
           </div>
 
-          <div className="flex shrink-0 flex-col gap-2.5">
-            <div className="flex items-start justify-between gap-2">
+          <div className="flex shrink-0 flex-col gap-3 px-1">
+            <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <h1 className="truncate text-lg font-bold tracking-tight text-fg md:text-xl">{track.title}</h1>
-                <p className={cn("truncate text-xs font-medium md:text-sm", status === "error" ? "text-danger" : "text-fg-2")}>
-                  {statusText ?? [track.artist, track.album].filter(Boolean).join(" · ")}
+                <h1 className="truncate text-xl font-bold tracking-tight text-fg md:text-2xl">{track.title}</h1>
+                <p className={cn("mt-0.5 truncate text-sm font-medium", status === "error" ? "text-danger" : "text-fg-2")}>
+                  {statusText ?? [track.artist, track.album].filter(Boolean).join(" — ")}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-1">
@@ -109,42 +117,35 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-2">
               <ModeSwitch />
               <button
                 type="button"
                 onClick={() => void startRadio(track)}
-                className="flex h-8 items-center gap-1.5 rounded-full bg-surface-3 px-3 text-xs font-semibold ring-1 ring-line transition-colors hover:bg-surface-4 hover:text-fg"
+                className="flex h-8 items-center gap-1.5 rounded-full bg-surface-3/80 px-3.5 text-xs font-medium text-fg-2 ring-1 ring-line backdrop-blur-md transition-colors hover:bg-surface-4 hover:text-fg"
               >
-                <RadioIcon size={15} />
+                <RadioIcon size={14} />
                 <span>{t.trackMenu.startRadio}</span>
               </button>
               <button
                 type="button"
                 onClick={() => setEqualizerOpen(true)}
                 className={cn(
-                  "flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-semibold ring-1 transition-colors",
+                  "flex h-8 items-center gap-1.5 rounded-full px-3.5 text-xs font-medium ring-1 backdrop-blur-md transition-colors",
                   eqEnabled
                     ? "bg-accent-soft text-accent-text ring-accent/35"
-                    : "bg-surface-3 text-fg-2 ring-line hover:bg-surface-4 hover:text-fg",
+                    : "bg-surface-3/80 text-fg-2 ring-line hover:bg-surface-4 hover:text-fg",
                 )}
               >
-                <EqualizerIcon size={15} weight={eqEnabled ? "fill" : "regular"} />
+                <EqualizerIcon size={14} weight={eqEnabled ? "fill" : "regular"} />
                 <span>{eqEnabled ? t.equalizer.presetNames[eqPreset] : t.dialogs.shortcuts.equalizer}</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* Right Karaoke Stage: Strictly bounded height so LyricsView auto-scrolls the active line to the exact center */}
-        <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden rounded-[18px] bg-surface-2/50 ring-1 ring-line backdrop-blur-md">
-          <div className="flex shrink-0 items-center justify-between border-b border-line/60 px-4 py-2.5">
-            <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-accent-text uppercase">
-              <MicrophoneStageIcon size={16} weight="fill" />
-              <span>Centered Karaoke Lyrics</span>
-            </div>
-            <span className="truncate text-xs font-medium text-fg-3">Auto-centered active line</span>
-          </div>
+        {/* Right Stage: Seamless Apple Music Live Lyrics with top/bottom gradient fade */}
+        <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
           <LyricsView className="h-full min-h-0 flex-1" />
         </div>
       </div>

@@ -1,19 +1,30 @@
-import { CaretDownIcon, CaretUpIcon, ClockCounterClockwiseIcon, DownloadSimpleIcon, HeartIcon, PlayIcon, TrendUpIcon } from "@phosphor-icons/react";
-import { useEffect, useState, type ReactNode } from "react";
+import {
+  CaretDownIcon,
+  CaretUpIcon,
+  CheckCircleIcon,
+  ClockCounterClockwiseIcon,
+  DotsThreeIcon,
+  DownloadSimpleIcon,
+  HeartIcon,
+  PlayIcon,
+} from "@phosphor-icons/react";
+import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Artwork } from "../components/Artwork";
+import { Equalizer } from "../components/Brand";
 import { BrowseAllGrid, MoodCollections } from "../components/GenrePanel";
 import { PageHeader, Section } from "../components/Page";
 import { TrackList, TrackListSkeleton } from "../components/TrackList";
 import { useI18n, useT } from "../i18n";
 import { api } from "../lib/api";
-import { cn } from "../lib/format";
+import { cn, formatTime } from "../lib/format";
 import { paths } from "../lib/routes";
 import type { ChartsData, Track } from "../lib/types";
-import { usePlayer } from "../player/player";
+import { selectCurrent, usePlayer } from "../player/player";
 import { useAppearance } from "../stores/appearance";
 import { useLibrary } from "../stores/library";
 import { useOffline } from "../stores/offline";
+import { useUi } from "../stores/ui";
 
 let chartsMemo: { lang: string; data: ChartsData } | null = null;
 
@@ -21,18 +32,18 @@ function Shortcut({ to, label, tracks, cover }: { to: string; label: string; tra
   const playList = usePlayer((s) => s.playList);
   const t = useT();
   return (
-    <div className="group relative flex h-14 items-center gap-3 overflow-hidden rounded-[12px] bg-surface-2 pr-2 transition-colors hover:bg-surface-3 md:h-16">
+    <div className="group relative flex h-14 items-center gap-3 overflow-hidden rounded-[12px] bg-surface-2/90 pr-2.5 ring-1 ring-line transition-colors hover:bg-surface-3">
       <Link to={to} className="absolute inset-0" aria-label={label} />
-      <span className="pointer-events-none size-14 shrink-0 overflow-hidden md:size-16">{cover}</span>
-      <span className="pointer-events-none min-w-0 flex-1 truncate text-[13px] font-semibold md:text-sm">{label}</span>
+      <span className="pointer-events-none size-14 shrink-0 overflow-hidden">{cover}</span>
+      <span className="pointer-events-none min-w-0 flex-1 truncate text-[13px] font-semibold tracking-tight">{label}</span>
       {tracks.length > 0 && (
         <button
           type="button"
           onClick={() => playList(tracks, 0)}
           aria-label={t.common.playX(label)}
-          className="relative z-10 hidden size-10 shrink-0 place-items-center rounded-full bg-accent text-accent-ink opacity-0 shadow-[0_6px_18px_rgb(0_0_0/0.35)] transition-[opacity,transform] duration-200 ease-out-expo group-hover:opacity-100 hover:scale-105 active:scale-95 md:grid"
+          className="relative z-10 grid size-8 shrink-0 place-items-center rounded-full bg-accent text-accent-ink opacity-0 shadow-sm transition-all duration-150 group-hover:opacity-100 hover:scale-105 active:scale-95"
         >
-          <PlayIcon size={18} weight="fill" />
+          <PlayIcon size={14} weight="fill" />
         </button>
       )}
     </div>
@@ -41,18 +52,125 @@ function Shortcut({ to, label, tracks, cover }: { to: string; label: string; tra
 
 function RecentCard({ track, onPlay }: { track: Track; onPlay: () => void }) {
   return (
-    <button type="button" onClick={onPlay} className="group flex w-36 shrink-0 snap-start flex-col gap-2 text-left md:w-44">
-      <span className="relative block">
-        <Artwork src={track.art} fallback={track.thumb} className="aspect-square w-full rounded-[14px]" />
-        <span className="absolute right-2 bottom-2 grid size-11 translate-y-1 place-items-center rounded-full bg-accent text-accent-ink opacity-0 shadow-[0_8px_20px_rgb(0_0_0/0.4)] transition-[opacity,transform] duration-200 ease-out-expo group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:opacity-100">
-          <PlayIcon size={20} weight="fill" />
+    <button type="button" onClick={onPlay} className="group flex w-36 shrink-0 snap-start flex-col gap-2 text-left md:w-42">
+      <span className="relative block overflow-hidden rounded-[12px] shadow-sm ring-1 ring-line">
+        <Artwork src={track.art} fallback={track.thumb} className="aspect-square w-full transition-transform duration-300 group-hover:scale-[1.03]" />
+        <span className="absolute right-2 bottom-2 grid size-9 translate-y-1 place-items-center rounded-full bg-black/65 text-white opacity-0 backdrop-blur-md transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:opacity-100">
+          <PlayIcon size={16} weight="fill" />
         </span>
       </span>
-      <span className="min-w-0">
-        <span className="block truncate text-sm font-medium">{track.title}</span>
+      <span className="min-w-0 px-0.5">
+        <span className="block truncate text-[13px] font-medium tracking-tight text-fg">{track.title}</span>
         <span className="block truncate text-xs text-fg-2">{track.artist}</span>
       </span>
     </button>
+  );
+}
+
+function ChartTrackCell({
+  track,
+  rank,
+  onPlay,
+}: {
+  track: Track;
+  rank: number;
+  onPlay: () => void;
+}) {
+  const isCurrent = usePlayer((s) => selectCurrent(s)?.id === track.id);
+  const isPlaying = usePlayer((s) => s.status === "playing" || s.status === "loading");
+  const isFavorite = useLibrary((s) => s.favorites.some((t) => t.id === track.id));
+  const isOffline = useOffline((s) => s.tracks.some((t) => t.id === track.id));
+  const toggleFavorite = useLibrary((s) => s.toggleFavorite);
+  const openMenu = useUi((s) => s.openMenu);
+  const t = useT();
+
+  const menuAt = (e: MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const fromButton = e.type === "click";
+    openMenu({
+      track,
+      x: fromButton ? Math.max(12, r.right - 220) : e.clientX,
+      y: fromButton ? r.bottom + 6 : e.clientY,
+    });
+  };
+
+  return (
+    <li
+      onContextMenu={menuAt}
+      className={cn(
+        "group relative flex items-center gap-2.5 rounded-[10px] px-2 py-1.5 transition-colors duration-150 hover:bg-surface-2/90",
+        isCurrent && "bg-surface-2/80",
+      )}
+    >
+      <button
+        type="button"
+        onClick={onPlay}
+        aria-label={t.common.playX(track.title)}
+        className="absolute inset-0 rounded-[10px] focus-visible:outline-offset-[-2px]"
+      />
+
+      {/* Artwork with Apple Music hover play overlay */}
+      <div className="pointer-events-none relative size-11 shrink-0 overflow-hidden rounded-[8px] shadow-xs ring-1 ring-line">
+        <Artwork src={track.thumb} className="size-full object-cover" />
+        <span
+          className={cn(
+            "absolute inset-0 grid place-items-center bg-black/45 text-white transition-opacity duration-150",
+            isCurrent ? "opacity-100" : "opacity-0 group-hover:opacity-100",
+          )}
+        >
+          {isCurrent ? <Equalizer live={isPlaying} /> : <PlayIcon size={16} weight="fill" />}
+        </span>
+      </div>
+
+      {/* Rank Number (Apple Music tabular chart numeral) */}
+      <span
+        className={cn(
+          "pointer-events-none w-5 shrink-0 text-center text-[13px] font-semibold tabular-nums",
+          isCurrent ? "text-accent-text" : "text-fg-3",
+        )}
+      >
+        {rank}
+      </span>
+
+      {/* Title & Artist */}
+      <div className="pointer-events-none min-w-0 flex-1 border-b border-line/50 py-1.5 group-hover:border-transparent">
+        <p className={cn("truncate text-[13.5px] leading-snug font-medium tracking-tight", isCurrent ? "text-accent-text" : "text-fg")}>
+          {track.title}
+        </p>
+        <p className="mt-0.5 flex items-center gap-1 truncate text-[12px] text-fg-2">
+          {isOffline && <CheckCircleIcon size={12} weight="fill" className="shrink-0 text-accent-text" />}
+          <span className="truncate">{track.artist || t.common.youtube}</span>
+        </p>
+      </div>
+
+      {/* Right metadata / hover actions */}
+      <div className="relative z-10 flex shrink-0 items-center gap-0.5">
+        <span className="pointer-events-none pr-1 font-mono text-[11.5px] text-fg-3 tabular-nums group-hover:hidden">
+          {track.duration ? formatTime(track.duration) : ""}
+        </span>
+        <button
+          type="button"
+          onClick={() => void toggleFavorite(track)}
+          aria-label={isFavorite ? t.common.removeFromFavorites : t.common.addToFavorites}
+          className={cn(
+            "hidden size-7 place-items-center rounded-full transition-colors group-hover:grid",
+            isFavorite ? "text-accent-text" : "text-fg-2 hover:bg-surface-3 hover:text-fg",
+          )}
+        >
+          <HeartIcon size={15} weight={isFavorite ? "fill" : "regular"} />
+        </button>
+        <button
+          type="button"
+          onClick={menuAt}
+          aria-label={t.trackList.moreFor(track.title)}
+          className="hidden size-7 place-items-center rounded-full text-fg-2 transition-colors group-hover:grid hover:bg-surface-3 hover:text-fg"
+        >
+          <DotsThreeIcon size={18} weight="bold" />
+        </button>
+      </div>
+    </li>
   );
 }
 
@@ -87,39 +205,29 @@ function Top50Section() {
   }, [lang]);
 
   const activeTracks = (tab === "global" ? charts?.global : charts?.trending) ?? [];
-  const visibleTracks = expanded ? activeTracks : activeTracks.slice(0, 10);
-  const albumColumn = useAppearance((s) => s.albumColumn);
-  const layoutTemplate = useAppearance((s) => s.layoutTemplate);
+  const defaultCount = 20;
+  const visibleTracks = expanded ? activeTracks : activeTracks.slice(0, defaultCount);
 
   return (
     <Section
       title={t.home.top50Title}
       action={
-        activeTracks.length > 0 ? (
-          <button
-            type="button"
-            onClick={() => playList(activeTracks, 0)}
-            className="flex h-9 items-center gap-1.5 rounded-full bg-accent px-4 text-xs font-semibold text-accent-ink transition-transform hover:scale-[1.02] active:scale-[0.98]"
+        <div className="flex items-center gap-2">
+          <div
+            role="tablist"
+            aria-label={t.home.top50Title}
+            className="flex items-center rounded-lg bg-surface-2 p-0.5 ring-1 ring-line"
           >
-            <PlayIcon size={14} weight="fill" /> {t.home.playTop50}
-          </button>
-        ) : undefined
-      }
-    >
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center justify-between gap-2 px-4 md:px-6">
-          <div role="tablist" aria-label={t.home.top50Title} className="flex gap-2">
             <button
               type="button"
               role="tab"
               aria-selected={tab === "global"}
               onClick={() => setTab("global")}
               className={cn(
-                "flex h-9 items-center gap-1.5 rounded-full px-4 text-xs font-semibold transition-colors",
-                tab === "global" ? "bg-fg text-bg" : "bg-surface-2 text-fg-2 ring-1 ring-line hover:bg-surface-3 hover:text-fg",
+                "h-7 rounded-[6px] px-2.5 text-xs font-medium transition-colors",
+                tab === "global" ? "bg-surface-4 text-fg shadow-2xs" : "text-fg-2 hover:text-fg",
               )}
             >
-              <TrendUpIcon size={15} weight="bold" />
               {t.home.top50Global}
             </button>
             <button
@@ -128,37 +236,59 @@ function Top50Section() {
               aria-selected={tab === "trending"}
               onClick={() => setTab("trending")}
               className={cn(
-                "flex h-9 items-center gap-1.5 rounded-full px-4 text-xs font-semibold transition-colors",
-                tab === "trending" ? "bg-fg text-bg" : "bg-surface-2 text-fg-2 ring-1 ring-line hover:bg-surface-3 hover:text-fg",
+                "h-7 rounded-[6px] px-2.5 text-xs font-medium transition-colors",
+                tab === "trending" ? "bg-surface-4 text-fg shadow-2xs" : "text-fg-2 hover:text-fg",
               )}
             >
-              <TrendUpIcon size={15} weight="bold" />
               {t.home.top50Trending(charts?.region)}
             </button>
           </div>
+          {activeTracks.length > 0 && (
+            <button
+              type="button"
+              onClick={() => playList(activeTracks, 0)}
+              className="flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3 text-xs font-semibold text-accent-ink transition-transform hover:opacity-95 active:scale-[0.98]"
+            >
+              <PlayIcon size={12} weight="fill" />
+              <span>{t.home.playTop50}</span>
+            </button>
+          )}
         </div>
-
+      }
+    >
+      <div className="flex flex-col gap-3">
         {loading ? (
           <TrackListSkeleton rows={8} />
         ) : activeTracks.length > 0 ? (
-          <div className="px-2 md:px-3">
-            <TrackList tracks={visibleTracks} context={activeTracks} header={layoutTemplate === "default" && albumColumn} showAlbum={layoutTemplate === "default" && albumColumn} />
-            {activeTracks.length > 10 && (
-              <div className="mt-2 flex justify-center px-2">
+          <div className="px-3 md:px-5">
+            {/* Responsive 1 to 5 Column Apple Music Chart Grid adapting to container width */}
+            <ol className="grid grid-cols-1 gap-x-5 gap-y-0.5 @[500px]/home:grid-cols-2 @[780px]/home:grid-cols-3 @[1060px]/home:grid-cols-4 @[1360px]/home:grid-cols-5">
+              {visibleTracks.map((tr, i) => (
+                <ChartTrackCell
+                  key={tr.id}
+                  track={tr}
+                  rank={i + 1}
+                  onPlay={() => playList(activeTracks, i)}
+                />
+              ))}
+            </ol>
+
+            {activeTracks.length > defaultCount && (
+              <div className="mt-3 flex justify-center">
                 <button
                   type="button"
                   onClick={() => setExpanded((e) => !e)}
-                  className="flex h-10 items-center gap-1.5 rounded-full bg-surface-2 px-5 text-xs font-semibold text-fg-2 ring-1 ring-line transition-colors hover:bg-surface-3 hover:text-fg"
+                  className="flex h-8 items-center gap-1.5 rounded-lg bg-surface-2 px-4 text-xs font-medium text-fg-2 ring-1 ring-line transition-colors hover:bg-surface-3 hover:text-fg"
                 >
                   {expanded ? (
                     <>
-                      <CaretUpIcon size={14} weight="bold" />
-                      {t.home.showTop10}
+                      <CaretUpIcon size={13} />
+                      <span>{t.home.showTop10}</span>
                     </>
                   ) : (
                     <>
-                      <CaretDownIcon size={14} weight="bold" />
-                      {t.home.showAll50(activeTracks.length)}
+                      <CaretDownIcon size={13} />
+                      <span>{t.home.showAll50(activeTracks.length)}</span>
                     </>
                   )}
                 </button>
@@ -180,26 +310,28 @@ export default function Home() {
   const empty = status === "ready" && !favorites.length && !playlists.length && !history.length && !offlineTracks.length;
 
   return (
-    <div className="pb-8">
+    <div className="@container/home pb-8">
       <PageHeader />
 
-      <div className="px-4 pt-2 pb-4 md:px-6 md:pt-5">
-        <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-3xl">{t.time.greeting(new Date().getHours())}</h1>
+      <div className="px-4 pt-2 pb-4 md:px-6 md:pt-4">
+        <h1 className="text-2xl leading-tight font-bold tracking-tight md:text-[28px]">
+          {t.time.greeting(new Date().getHours())}
+        </h1>
       </div>
 
       {status === "loading" && <TrackListSkeleton rows={6} />}
 
       {status === "ready" && (
-        <div className="flex flex-col gap-10">
+        <div className="flex flex-col gap-8">
           {!empty && show.homeShortcuts && (
-            <div className="grid grid-cols-2 gap-2 px-4 md:px-6 lg:grid-cols-3 2xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-2.5 px-4 @[420px]/home:grid-cols-2 @[720px]/home:grid-cols-3 @[1040px]/home:grid-cols-4 md:px-6">
               <Shortcut
                 to={paths.favorites}
                 label={t.nav.favorites}
                 tracks={favorites}
                 cover={
                   <span className="grid size-full place-items-center bg-accent-soft text-accent-text">
-                    <HeartIcon size={24} weight="fill" />
+                    <HeartIcon size={22} weight="fill" />
                   </span>
                 }
               />
@@ -209,7 +341,7 @@ export default function Home() {
                 tracks={offlineTracks}
                 cover={
                   <span className="grid size-full place-items-center bg-surface-3 text-accent-text">
-                    <DownloadSimpleIcon size={24} weight="bold" />
+                    <DownloadSimpleIcon size={22} />
                   </span>
                 }
               />
@@ -219,11 +351,11 @@ export default function Home() {
                 tracks={history}
                 cover={
                   <span className="grid size-full place-items-center bg-surface-3 text-fg-2">
-                    <ClockCounterClockwiseIcon size={24} />
+                    <ClockCounterClockwiseIcon size={22} />
                   </span>
                 }
               />
-              {playlists.slice(0, 6).map((p) => (
+              {playlists.slice(0, 5).map((p) => (
                 <Shortcut
                   key={p.id}
                   to={paths.playlist(p.id)}
@@ -240,7 +372,7 @@ export default function Home() {
           <Section
             title={t.home.curatedCollections}
             action={
-              <Link to={paths.search} className="text-sm font-medium text-fg-2 hover:text-fg">
+              <Link to={paths.search} className="text-xs font-medium text-fg-2 hover:text-fg">
                 {t.home.seeAll}
               </Link>
             }
@@ -252,14 +384,14 @@ export default function Home() {
             <Section
               title={t.nav.recentlyPlayed}
               action={
-                <Link to={paths.history} className="text-sm font-medium text-fg-2 hover:text-fg">
+                <Link to={paths.history} className="text-xs font-medium text-fg-2 hover:text-fg">
                   {t.home.seeAll}
                 </Link>
               }
             >
-              <div className="no-scrollbar flex snap-x snap-mandatory scroll-px-4 gap-4 overflow-x-auto px-4 md:scroll-px-6 md:px-6">
-                {history.slice(0, 16).map((t, i) => (
-                  <RecentCard key={t.id} track={t} onPlay={() => playList(history, i)} />
+              <div className="no-scrollbar flex snap-x snap-mandatory scroll-px-4 gap-3.5 overflow-x-auto px-4 md:scroll-px-6 md:px-6">
+                {history.slice(0, 16).map((tr, i) => (
+                  <RecentCard key={tr.id} track={tr} onPlay={() => playList(history, i)} />
                 ))}
               </div>
             </Section>
@@ -269,7 +401,7 @@ export default function Home() {
             <Section
               title={t.home.yourFavorites}
               action={
-                <Link to={paths.favorites} className="text-sm font-medium text-fg-2 hover:text-fg">
+                <Link to={paths.favorites} className="text-xs font-medium text-fg-2 hover:text-fg">
                   {t.home.seeAll}
                 </Link>
               }
@@ -283,7 +415,7 @@ export default function Home() {
           <Section
             title={t.home.exploreGenres}
             action={
-              <Link to={paths.search} className="text-sm font-medium text-fg-2 hover:text-fg">
+              <Link to={paths.search} className="text-xs font-medium text-fg-2 hover:text-fg">
                 {t.home.seeAll}
               </Link>
             }

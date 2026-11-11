@@ -1,14 +1,11 @@
 import {
-  ArrowsInLineHorizontalIcon,
-  ArrowsOutLineHorizontalIcon,
   CaretDownIcon,
-  CaretLeftIcon,
-  CaretRightIcon,
   EqualizerIcon,
   ListBulletsIcon,
   MagnifyingGlassIcon,
   MicrophoneStageIcon,
   RadioIcon,
+  SidebarSimpleIcon,
   VideoCameraSlashIcon,
   XIcon,
 } from "@phosphor-icons/react";
@@ -178,7 +175,7 @@ function PanelBody({ tab, slot }: { tab: PanelTab; slot: number }) {
 function PanelTabs({ tab, onTab }: { tab: PanelTab; onTab: (t: PanelTab) => void }) {
   const t = useT();
   return (
-    <div role="tablist" className="flex gap-1">
+    <div role="tablist" className="flex items-center rounded-[10px] bg-surface-1/90 p-1 ring-1 ring-line">
       {(
         [
           ["playing", `${t.nowPlaying.tabPlaying} & ${t.player.queue}`],
@@ -192,8 +189,8 @@ function PanelTabs({ tab, onTab }: { tab: PanelTab; onTab: (t: PanelTab) => void
           aria-selected={tab === id}
           onClick={() => onTab(id)}
           className={cn(
-            "h-9 rounded-full px-3.5 text-sm font-medium transition-colors",
-            tab === id ? "bg-surface-4 text-fg" : "text-fg-2 hover:text-fg",
+            "h-7 rounded-[7px] px-3 text-xs font-medium transition-colors",
+            tab === id ? "bg-surface-4 text-fg shadow-2xs" : "text-fg-2 hover:text-fg",
           )}
         >
           {label}
@@ -207,7 +204,6 @@ function PanelTabs({ tab, onTab }: { tab: PanelTab; onTab: (t: PanelTab) => void
 export function SidePanel() {
   const tab = useUi((s) => s.panelTab);
   const openPanel = useUi((s) => s.openPanel);
-  const togglePanel = useUi((s) => s.togglePanel);
   const rightPanelWidth = useAppearance((s) => s.rightPanelWidth);
   const rightPanelCollapsed = useAppearance((s) => s.rightPanelCollapsed);
   const setAppearance = useAppearance((s) => s.set);
@@ -216,11 +212,6 @@ export function SidePanel() {
 
   const effectiveWidth = rightPanelCollapsed ? 68 : rightPanelWidth;
   const toggleCollapse = () => setAppearance({ rightPanelCollapsed: !rightPanelCollapsed });
-  const toggleWide = () =>
-    setAppearance({
-      rightPanelCollapsed: false,
-      rightPanelWidth: rightPanelWidth > 380 ? 320 : 440,
-    });
 
   return (
     <aside
@@ -264,17 +255,17 @@ export function SidePanel() {
 
       <div className="island-core flex w-full flex-col overflow-hidden">
         {rightPanelCollapsed ? (
-          <div className="flex h-full flex-col items-center gap-2 py-3">
+          <div className="flex h-full flex-col items-center gap-2 py-2.5">
             <button
               type="button"
               onClick={toggleCollapse}
               title="Expand right sidebar"
               aria-label="Expand right sidebar"
-              className="grid size-9 place-items-center rounded-full bg-surface-3 text-fg transition-colors hover:bg-accent hover:text-accent-ink"
+              className="grid size-8 place-items-center rounded-lg text-fg-2 transition-colors hover:bg-surface-3 hover:text-fg"
             >
-              <CaretLeftIcon size={16} weight="bold" />
+              <SidebarSimpleIcon size={17} mirrored weight="regular" />
             </button>
-            <div className="my-1 h-px w-8 bg-line" />
+            <div className="my-1 h-px w-7 bg-line" />
             <button
               type="button"
               onClick={() => {
@@ -283,11 +274,11 @@ export function SidePanel() {
               }}
               title={`${t.nowPlaying.tabPlaying} & ${t.player.queue}`}
               className={cn(
-                "grid size-10 place-items-center rounded-xl transition-colors",
-                tab === "playing" ? "bg-surface-4 text-accent-text" : "text-fg-2 hover:bg-surface-3 hover:text-fg",
+                "grid size-9 place-items-center rounded-[10px] transition-colors",
+                tab === "playing" ? "bg-surface-3 text-accent-text" : "text-fg-2 hover:bg-surface-3/60 hover:text-fg",
               )}
             >
-              <ListBulletsIcon size={20} weight="bold" />
+              <ListBulletsIcon size={19} weight={tab === "playing" ? "bold" : "regular"} />
             </button>
             <button
               type="button"
@@ -297,42 +288,26 @@ export function SidePanel() {
               }}
               title={t.nowPlaying.tabLyrics}
               className={cn(
-                "grid size-10 place-items-center rounded-xl transition-colors",
-                tab === "lyrics" ? "bg-surface-4 text-accent-text" : "text-fg-2 hover:bg-surface-3 hover:text-fg",
+                "grid size-9 place-items-center rounded-[10px] transition-colors",
+                tab === "lyrics" ? "bg-surface-3 text-accent-text" : "text-fg-2 hover:bg-surface-3/60 hover:text-fg",
               )}
             >
-              <MicrophoneStageIcon size={20} weight="fill" />
+              <MicrophoneStageIcon size={19} weight={tab === "lyrics" ? "fill" : "regular"} />
             </button>
           </div>
         ) : (
           <>
-            <div className="flex h-14 shrink-0 items-center justify-between gap-1 border-b border-line/60 px-2.5">
+            <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-line/60 px-3">
               <PanelTabs tab={tab} onTab={openPanel} />
-              <div className="flex shrink-0 items-center gap-0.5">
-                <button
-                  type="button"
-                  onClick={toggleWide}
-                  title={rightPanelWidth > 380 ? "Standard right panel width" : "Expand right panel wider"}
-                  className="grid size-7 place-items-center rounded-full text-fg-3 transition-colors hover:bg-surface-3 hover:text-fg"
-                >
-                  {rightPanelWidth > 380 ? (
-                    <ArrowsInLineHorizontalIcon size={15} weight="bold" />
-                  ) : (
-                    <ArrowsOutLineHorizontalIcon size={15} weight="bold" />
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={toggleCollapse}
-                  title="Collapse right sidebar to rail"
-                  className="grid size-7 place-items-center rounded-full text-fg-3 transition-colors hover:bg-surface-3 hover:text-fg"
-                >
-                  <CaretRightIcon size={15} weight="bold" />
-                </button>
-                <IconButton label={t.nowPlaying.closePanel} size="sm" onClick={() => togglePanel(tab)}>
-                  <XIcon size={16} />
-                </IconButton>
-              </div>
+              <button
+                type="button"
+                onClick={toggleCollapse}
+                title="Collapse right sidebar"
+                aria-label="Collapse right sidebar"
+                className="grid size-8 shrink-0 place-items-center rounded-lg text-fg-2 transition-colors hover:bg-surface-3 hover:text-fg"
+              >
+                <SidebarSimpleIcon size={17} mirrored weight="regular" />
+              </button>
             </div>
             <div className={cn("scroll-area min-h-0 flex-1 px-2 pt-2", tab === "lyrics" ? "flex flex-col overflow-hidden" : "overflow-y-auto")}>
               <PanelBody tab={tab} slot={SLOT.panel} />

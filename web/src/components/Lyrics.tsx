@@ -396,22 +396,22 @@ export function LyricsView({ className, compact = false }: { className?: string;
     };
 
     return (
-      <div className={cn("relative flex min-h-0 flex-1 flex-col overflow-hidden", className)}>
+      <div className={cn("group/lyrics relative flex min-h-0 flex-1 flex-col overflow-hidden", className)}>
         <div
           ref={containerRef}
           className={cn(
-            "scroll-area relative flex min-h-0 flex-1 flex-col items-center gap-2.5 overflow-y-auto overscroll-contain touch-pan-y px-4 text-center",
-            compact ? "py-20" : "py-[36%]",
+            "scroll-area lyrics-mask relative flex min-h-0 flex-1 flex-col items-center gap-3 overflow-y-auto overscroll-contain touch-pan-y px-4 text-center",
+            compact ? "py-16" : "py-[36%]",
           )}
         >
           {waitingForVocals && (
-            <div className="mb-1 flex shrink-0 items-center gap-2 rounded-full bg-accent-soft px-3.5 py-1.5 text-xs font-semibold text-accent-text ring-1 ring-accent/30 animate-pulse">
+            <div className="mb-1 flex shrink-0 items-center gap-1.5 rounded-full bg-surface-3/80 px-3 py-1 text-xs font-medium text-fg-2 ring-1 ring-line backdrop-blur-md">
+              <span className="size-1.5 animate-pulse rounded-full bg-accent" />
               <span>{t.lyrics.waitingForVocals}</span>
             </div>
           )}
           {state.synced.map((line, i) => {
             const isCurrent = i === activeIdx;
-            const isPast = activeIdx >= 0 && i < activeIdx;
             const dist = activeIdx >= 0 ? Math.abs(i - activeIdx) : 99;
             return (
               <button
@@ -422,22 +422,22 @@ export function LyricsView({ className, compact = false }: { className?: string;
                 type="button"
                 onClick={() => seek(videoTimeFor(line.time))}
                 className={cn(
-                  "w-full shrink-0 origin-center rounded-[12px] px-3 py-1.5 text-center leading-snug transition-all duration-300 hover:bg-surface-2/70 hover:opacity-100",
+                  "w-full shrink-0 origin-center rounded-[10px] px-3 py-1.5 text-center leading-snug transition-all duration-300 hover:bg-white/[0.04] hover:opacity-100",
                   isCurrent
                     ? compact
-                      ? "scale-[1.04] bg-accent-soft/40 text-[18px] font-extrabold tracking-tight text-accent-text shadow-sm"
-                      : "scale-[1.05] bg-accent-soft/35 text-[22px] font-extrabold tracking-tight text-accent-text drop-shadow-[0_0_16px_var(--accent-soft)] md:text-[24px]"
-                    : isPast
+                      ? "scale-[1.03] text-[18px] font-bold tracking-tight text-fg"
+                      : "scale-[1.03] text-[22px] font-bold tracking-tight text-fg drop-shadow-[0_2px_20px_rgba(255,255,255,0.18)] md:text-[26px]"
+                    : dist === 1
                       ? compact
-                        ? "text-[14px] font-semibold text-fg-3/50"
-                        : "text-[16px] font-semibold text-fg-3/45 md:text-[17px]"
-                      : dist === 1
+                        ? "text-[14.5px] font-semibold text-fg/55"
+                        : "text-[17px] font-semibold text-fg/55 md:text-[19px]"
+                      : dist === 2
                         ? compact
-                          ? "text-[15px] font-semibold text-fg/85"
-                          : "text-[17px] font-semibold text-fg/85 md:text-[18px]"
+                          ? "text-[14px] font-semibold text-fg/36"
+                          : "text-[16.5px] font-semibold text-fg/36 md:text-[18px]"
                         : compact
-                          ? "text-[14px] font-medium text-fg-2/65"
-                          : "text-[16px] font-medium text-fg-2/65 md:text-[17px]",
+                          ? "text-[13.5px] font-medium text-fg/22"
+                          : "text-[16px] font-medium text-fg/22 md:text-[17px]",
                 )}
               >
                 {line.text}
@@ -446,24 +446,23 @@ export function LyricsView({ className, compact = false }: { className?: string;
           })}
         </div>
         {!compact && (
-          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-line/50 bg-surface-1/60 px-3 py-1.5 text-[11px] text-fg-3 backdrop-blur-sm">
-            <span>{t.lyrics.syncedHint}</span>
-            <div className="flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 ring-1 ring-line">
+          <div className="pointer-events-none absolute right-3 bottom-2.5 flex items-center justify-end opacity-0 transition-opacity duration-200 group-hover/lyrics:opacity-100 focus-within:opacity-100">
+            <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-surface-2/90 px-2.5 py-1 text-[11px] ring-1 ring-line backdrop-blur-md">
               <button
                 type="button"
                 onClick={() => setUserOffset((o) => Math.round((o - 0.5) * 10) / 10)}
-                className="px-1 font-mono font-semibold text-fg-2 hover:text-fg"
+                className="px-1 font-mono font-medium text-fg-2 hover:text-fg"
                 title="Lyrics earlier (-0.5s)"
               >
                 -0.5s
               </button>
-              <span className="font-mono text-[10px] text-fg-3">
+              <span className="px-0.5 font-mono text-[10px] text-fg-3">
                 {userOffset === 0 ? "sync" : `${userOffset > 0 ? "+" : ""}${userOffset.toFixed(1)}s`}
               </span>
               <button
                 type="button"
                 onClick={() => setUserOffset((o) => Math.round((o + 0.5) * 10) / 10)}
-                className="px-1 font-mono font-semibold text-fg-2 hover:text-fg"
+                className="px-1 font-mono font-medium text-fg-2 hover:text-fg"
                 title="Lyrics later (+0.5s)"
               >
                 +0.5s

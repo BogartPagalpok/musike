@@ -4,18 +4,12 @@ import {
   CassetteTapeIcon,
   CoffeeIcon,
   ConfettiIcon,
-  DiscIcon,
-  FireIcon,
   HeadphonesIcon,
   HeartIcon,
-  LightningIcon,
-  MoonStarsIcon,
-  MusicNotesIcon,
   PlayIcon,
-  SparkleIcon,
   SunHorizonIcon,
 } from "@phosphor-icons/react";
-import { useState, type ComponentType } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useRemote } from "../hooks/useRemote";
 import { useI18n, useT } from "../i18n";
@@ -25,17 +19,13 @@ import { paths } from "../lib/routes";
 import type { Genre } from "../lib/types";
 import { usePlayer } from "../player/player";
 
-const TILE_ICONS: ComponentType<{ size?: number; weight?: "fill" | "regular" | "duotone"; className?: string }>[] = [
-  SparkleIcon,
-  HeadphonesIcon,
-  FireIcon,
-  MoonStarsIcon,
-  SunHorizonIcon,
-  MusicNotesIcon,
-  DiscIcon,
-  LightningIcon,
-  HeartIcon,
-  ConfettiIcon,
+const ACCENT_VARS = [
+  "var(--c1, var(--accent))",
+  "var(--c2, var(--accent))",
+  "var(--c3, var(--accent))",
+  "var(--c4, var(--accent))",
+  "var(--c5, var(--accent))",
+  "var(--c6, var(--accent))",
 ];
 
 function hashIndex(s: string, mod: number): number {
@@ -44,7 +34,7 @@ function hashIndex(s: string, mod: number): number {
   return h % mod;
 }
 
-/** Curated Mood & Vibe Mixes shown on Home and Search — sleek surface cards matching the app theme. */
+/** Curated Mood & Vibe Mixes — Apple Music editorial cards with container-responsive layout. */
 export function MoodCollections({ compact = false }: { compact?: boolean }) {
   const t = useT();
   const navigate = useNavigate();
@@ -77,50 +67,58 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
   };
 
   return (
-    <div className={cn("grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-4", !compact && "px-4 md:px-6")}>
-      {cards.map(({ key, title, sub, query, Icon }) => {
-        const busy = loadingKey === key;
-        return (
-          <div
-            key={key}
-            role="button"
-            tabIndex={0}
-            onClick={() => navigate(`${paths.search}?q=${encodeURIComponent(query)}`)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" || e.key === " ") {
-                e.preventDefault();
-                navigate(`${paths.search}?q=${encodeURIComponent(query)}`);
-              }
-            }}
-            className="group relative flex items-center gap-3.5 overflow-hidden rounded-[14px] bg-surface-2 p-3.5 text-left ring-1 ring-line transition-colors duration-200 hover:bg-surface-3 hover:ring-line-strong"
-          >
-            <span className="grid size-11 shrink-0 place-items-center rounded-[10px] bg-surface-3 text-accent-text ring-1 ring-line transition-colors group-hover:bg-accent-soft">
-              <Icon size={22} weight="duotone" />
-            </span>
-            <div className="min-w-0 flex-1 pr-8">
-              <p className="truncate text-sm font-semibold tracking-tight text-fg">{title}</p>
-              <p className="mt-0.5 truncate text-xs text-fg-2">{sub}</p>
-            </div>
-            <button
-              type="button"
-              onClick={(e) => handlePlayMix(key, query, e)}
-              aria-label={t.home.playMix(title)}
-              title={t.home.playMix(title)}
-              className={cn(
-                "absolute right-3 z-10 grid size-9 shrink-0 place-items-center rounded-full bg-accent text-accent-ink shadow-[0_4px_14px_rgb(0_0_0/0.3)] transition-all duration-200 hover:scale-105 active:scale-95",
-                busy ? "animate-pulse opacity-100" : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
-              )}
+    <div className={cn("@container", !compact && "px-4 md:px-6")}>
+      <div className="grid grid-cols-2 gap-2.5 @[620px]:grid-cols-4">
+        {cards.map(({ key, title, sub, query, Icon }, idx) => {
+          const busy = loadingKey === key;
+          const tone = ACCENT_VARS[idx % ACCENT_VARS.length]!;
+          return (
+            <div
+              key={key}
+              role="button"
+              tabIndex={0}
+              onClick={() => navigate(`${paths.search}?q=${encodeURIComponent(query)}`)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  navigate(`${paths.search}?q=${encodeURIComponent(query)}`);
+                }
+              }}
+              style={{
+                backgroundImage: `radial-gradient(circle at 100% 0%, color-mix(in srgb, ${tone} 14%, transparent), transparent 65%)`,
+              }}
+              className="group relative flex flex-col justify-between gap-2 overflow-hidden rounded-[12px] bg-surface-2/90 p-3.5 text-left ring-1 ring-line transition-colors duration-150 hover:bg-surface-3"
             >
-              <PlayIcon size={16} weight="fill" />
-            </button>
-          </div>
-        );
-      })}
+              <div className="flex items-center justify-between gap-2">
+                <span style={{ color: tone }} className=" inline-flex items-center">
+                  <Icon size={18} weight="regular" />
+                </span>
+                <button
+                  type="button"
+                  onClick={(e) => handlePlayMix(key, query, e)}
+                  aria-label={t.home.playMix(title)}
+                  title={t.home.playMix(title)}
+                  className={cn(
+                    "relative z-10 grid size-7 shrink-0 place-items-center rounded-full bg-accent text-accent-ink shadow-xs transition-all duration-150 hover:scale-105 active:scale-95",
+                    busy ? "animate-pulse opacity-100" : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+                  )}
+                >
+                  <PlayIcon size={13} weight="fill" />
+                </button>
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-[13.5px] font-semibold tracking-tight text-fg">{title}</p>
+                <p className="mt-0.5 line-clamp-1 text-[11.5px] text-fg-2">{sub}</p>
+              </div>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
 
-/** Clean, understated category cards for Moods & Moments and Genres & Styles. */
+/** Apple Music-style category tiles for Moods & Moments and Genres & Styles (container-responsive). */
 export function BrowseAllGrid({ compact = false, limit }: { compact?: boolean; limit?: number }) {
   const lang = useI18n((s) => s.lang);
   const t = useT();
@@ -128,10 +126,12 @@ export function BrowseAllGrid({ compact = false, limit }: { compact?: boolean; l
 
   if (genres.status === "loading") {
     return (
-      <div aria-label={t.common.loading} className={cn("grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6", !compact && "px-4 md:px-6")}>
-        {Array.from({ length: limit ?? 12 }, (_, i) => (
-          <span key={i} className="skeleton h-14 rounded-[12px]" />
-        ))}
+      <div aria-label={t.common.loading} className={cn("@container", !compact && "px-4 md:px-6")}>
+        <div className="grid grid-cols-2 gap-2.5 @[520px]:grid-cols-3 @[780px]:grid-cols-4 @[1080px]:grid-cols-6">
+          {Array.from({ length: limit ?? 12 }, (_, i) => (
+            <span key={i} className="skeleton h-13 rounded-[11px]" />
+          ))}
+        </div>
       </div>
     );
   }
@@ -151,10 +151,12 @@ export function BrowseAllGrid({ compact = false, limit }: { compact?: boolean; l
   if (limit) {
     const items = all.slice(0, limit);
     return (
-      <div className={cn("grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6", !compact && "px-4 md:px-6")}>
-        {items.map((g) => (
-          <CategoryTile key={g.id} genre={g} />
-        ))}
+      <div className={cn("@container", !compact && "px-4 md:px-6")}>
+        <div className="grid grid-cols-2 gap-2.5 @[520px]:grid-cols-3 @[780px]:grid-cols-4 @[1080px]:grid-cols-6">
+          {items.map((g) => (
+            <CategoryTile key={g.id} genre={g} />
+          ))}
+        </div>
       </div>
     );
   }
@@ -163,11 +165,11 @@ export function BrowseAllGrid({ compact = false, limit }: { compact?: boolean; l
   const styles = all.filter((g) => g.kind !== "mood");
 
   return (
-    <div className={cn("flex flex-col gap-7", !compact && "px-4 md:px-6")}>
+    <div className={cn("@container flex flex-col gap-7", !compact && "px-4 md:px-6")}>
       {moods.length > 0 && (
         <div className="flex flex-col gap-2.5">
           <h3 className="text-sm font-semibold tracking-tight text-fg-2">{t.search.moodsSection}</h3>
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-2.5 @[520px]:grid-cols-3 @[780px]:grid-cols-4 @[1040px]:grid-cols-5">
             {moods.map((g) => (
               <CategoryTile key={g.id} genre={g} />
             ))}
@@ -178,7 +180,7 @@ export function BrowseAllGrid({ compact = false, limit }: { compact?: boolean; l
       {styles.length > 0 && (
         <div className="flex flex-col gap-2.5">
           <h3 className="text-sm font-semibold tracking-tight text-fg-2">{t.search.genresSection}</h3>
-          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-2.5 @[520px]:grid-cols-3 @[780px]:grid-cols-4 @[1040px]:grid-cols-5">
             {styles.map((g) => (
               <CategoryTile key={g.id} genre={g} />
             ))}
@@ -190,19 +192,18 @@ export function BrowseAllGrid({ compact = false, limit }: { compact?: boolean; l
 }
 
 function CategoryTile({ genre }: { genre: Genre }) {
-  const Icon = TILE_ICONS[hashIndex(genre.id, TILE_ICONS.length)]!;
+  const tone = ACCENT_VARS[hashIndex(genre.id, ACCENT_VARS.length)]!;
   return (
     <Link
       to={paths.genre(genre.id)}
       state={{ name: genre.name }}
-      className="group relative flex h-14 items-center justify-between gap-2 overflow-hidden rounded-[12px] bg-surface-2 px-3.5 text-fg ring-1 ring-line transition-colors duration-200 hover:bg-surface-3 hover:ring-line-strong"
+      style={{
+        backgroundImage: `linear-gradient(135deg, color-mix(in srgb, ${tone} 12%, transparent), transparent 65%)`,
+      }}
+      className="group relative flex h-13 items-center gap-2.5 overflow-hidden rounded-[11px] bg-surface-2/90 px-3.5 text-fg ring-1 ring-line transition-colors duration-150 hover:bg-surface-3"
     >
-      <span className="truncate text-sm font-medium tracking-tight">{genre.name}</span>
-      <Icon
-        size={20}
-        weight="duotone"
-        className="shrink-0 text-fg-3 transition-colors duration-200 group-hover:text-accent-text"
-      />
+      <span style={{ backgroundColor: tone }} className="h-5 w-1 shrink-0 rounded-full opacity-85 transition-transform duration-150 group-hover:scale-y-125" />
+      <span className="truncate text-[13px] font-semibold tracking-tight">{genre.name}</span>
     </Link>
   );
 }
