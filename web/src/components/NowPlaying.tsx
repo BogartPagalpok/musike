@@ -369,13 +369,26 @@ export function PanelDrawer() {
 type SheetView = "player" | "lyrics" | "queue";
 
 /** Small artwork (or the live video) + title row used at the top of the Lyrics and Queue views. */
-function SheetMiniHeader({ track, showsVideo }: { track: Track; showsVideo: boolean }) {
+function SheetMiniHeader({
+  track,
+  showsVideo,
+  onVideoClick,
+}: {
+  track: Track;
+  showsVideo: boolean;
+  onVideoClick?: () => void;
+}) {
   return (
     <div className="flex shrink-0 items-center gap-3 py-2">
       {showsVideo ? (
-        <div className="w-28 shrink-0 overflow-hidden rounded-[8px] bg-black shadow-lg">
+        <button
+          type="button"
+          onClick={onVideoClick}
+          title="Switch to video player"
+          className="w-28 shrink-0 overflow-hidden rounded-[8px] bg-black shadow-lg transition-transform active:scale-95"
+        >
           <VideoSlot priority={SLOT.sheet} className="aspect-video w-full" />
-        </div>
+        </button>
       ) : (
         <Artwork src={track.thumb} className="size-14 shrink-0 rounded-[8px] shadow-lg" />
       )}
@@ -488,12 +501,37 @@ export function NowPlayingSheet({ open, onClose }: { open: boolean; onClose: () 
               </div>
             ) : view === "lyrics" ? (
               <div className="flex min-h-0 flex-1 flex-col">
-                <SheetMiniHeader track={track} showsVideo={showsVideo} />
+                {showsVideo ? (
+                  <div className="shrink-0 pb-2">
+                    <button
+                      type="button"
+                      onClick={() => setView("player")}
+                      title="Switch to full video player"
+                      className="group relative block w-full overflow-hidden rounded-2xl bg-black shadow-xl transition-transform active:scale-[0.98]"
+                    >
+                      <VideoSlot
+                        priority={SLOT.sheet}
+                        expandable
+                        className="mx-auto max-h-[30dvh] w-full"
+                        style={{ aspectRatio: Math.min(16 / 9, Math.max(9 / 16, aspect)) }}
+                      />
+                    </button>
+                    <div className="mt-2 flex items-center gap-2 px-1">
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[15px] font-semibold tracking-tight text-fg">{track.title}</p>
+                        <p className="truncate text-[13px] text-fg-2">{track.artist}</p>
+                      </div>
+                      <FavoriteButton track={track} />
+                    </div>
+                  </div>
+                ) : (
+                  <SheetMiniHeader track={track} showsVideo={false} onVideoClick={() => setView("player")} />
+                )}
                 <LyricsView className="-mx-4 min-h-0 flex-1" />
               </div>
             ) : (
               <div className="flex min-h-0 flex-1 flex-col">
-                <SheetMiniHeader track={track} showsVideo={showsVideo} />
+                <SheetMiniHeader track={track} showsVideo={showsVideo} onVideoClick={() => setView("player")} />
                 <div className="scroll-area -mx-4 min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pt-2">
                   <QueueList compact />
                 </div>
@@ -532,7 +570,11 @@ export function NowPlayingSheet({ open, onClose }: { open: boolean; onClose: () 
                 {capabilities.video && (
                   <button
                     type="button"
-                    onClick={() => setPreferVideo(!preferVideo)}
+                    onClick={() => {
+                      const next = !preferVideo;
+                      setPreferVideo(next);
+                      if (next) setView("player");
+                    }}
                     aria-pressed={preferVideo}
                     aria-label={t.player.video}
                     className={cn(

@@ -90,7 +90,7 @@ export function FloatingVideo() {
   const top = useSlots((s) => s.top);
   const t = useT();
   const isMd = useMediaQuery(MD);
-  const show = isVideo && top < SLOT.panel;
+  const show = isVideo && isMd && top < SLOT.panel;
 
   return (
     <AnimatePresence>
