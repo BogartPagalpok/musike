@@ -53,17 +53,28 @@ export function toTrack(item: any, kind: Track["kind"]): Track | null {
   const id: string | undefined = item.id ?? item.video_id;
   if (!id || !VIDEO_ID.test(id)) return null;
   const artists: string[] = (item.artists ?? item.authors ?? []).map((a: { name: string }) => a.name).filter(Boolean);
-  const artist = artists.join(", ") || text(item.author?.name) || "";
+  let artist = artists.join(", ") || text(item.author?.name) || "";
+  if (!artist && Array.isArray(item.flex_columns) && item.flex_columns[1]?.title?.runs) {
+    const runs = item.flex_columns[1].title.runs;
+    const meaningful = runs.filter((r: any) => r.text && r.text !== " • " && !/^(Episode|\d+ \w+|\w+ \d+)/i.test(r.text));
+    if (meaningful.length) {
+      artist = meaningful[meaningful.length - 1].text;
+    }
+  }
   const thumbs = item.thumbnail?.contents ?? item.thumbnail ?? item.thumbnails ?? [];
   const best = Array.isArray(thumbs) ? thumbs[0]?.url : undefined;
   const isSquare = typeof best === "string" && /googleusercontent\.com|ggpht\.com/.test(best);
   const images = isSquare ? { thumb: sized(best, 120), art: sized(best, 544) } : videoThumbs(id);
+  const duration =
+    typeof item.duration === "number"
+      ? item.duration
+      : item.duration?.seconds ?? (typeof item.length_seconds === "number" ? item.length_seconds : 0);
   return {
     id,
     title: text(item.title) || text(item.name),
     artist,
     album: item.album?.name || undefined,
-    duration: item.duration?.seconds ?? 0,
+    duration,
     ...images,
     kind: isSquare ? kind : "video",
   };
@@ -109,13 +120,28 @@ function reason(e: unknown): string {
 export async function search(query: string, type: "song" | "video" | "podcast", lang?: Lang): Promise<Track[]> {
   const failures: string[] = [];
   if (type === "podcast") {
+    const q = /podcast/i.test(query) ? query : `${query} podcast`;
     try {
-      const q = /podcast/i.test(query) ? query : `${query} podcast`;
       const result = await withClient((yt) => yt.search(q, { type: "video" }), lang);
       const tracks = (result.videos ?? []).map((v) => toTrack(v, "video")).filter((t): t is Track => !!t);
       if (tracks.length) return tracks;
     } catch (e) {
       failures.push(`YouTube podcast search: ${reason(e)}`);
+    }
+
+    try {
+      // YouTube Music search without restrictive type filter includes podcasts and talk shows
+      const tracks = tracksFrom(await withClient((yt) => yt.music.search(q), lang), "video");
+      if (tracks.length) return tracks;
+    } catch (e) {
+      failures.push(`YouTube Music podcast search: ${reason(e)}`);
+    }
+
+    try {
+      const tracks = tracksFrom(await withClient((yt) => yt.music.search(query), lang), "video");
+      if (tracks.length) return tracks;
+    } catch (e) {
+      failures.push(`YouTube Music query search: ${reason(e)}`);
     }
   }
 

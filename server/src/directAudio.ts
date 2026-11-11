@@ -11,7 +11,7 @@ import { text, withClient } from "./search.js";
  * (mobile/streaming.json in the repository) without shipping a new version.
  */
 
-export const DEFAULT_CLIENTS = ["VISIONOS"];
+export const DEFAULT_CLIENTS = ["VISIONOS", "IOS", "ANDROID"];
 const REMOTE_CONFIG = "https://raw.githubusercontent.com/Ernani1234/musike/main/mobile/streaming.json";
 
 export interface DirectAudio {
@@ -54,9 +54,16 @@ export async function directAudio(id: string, clients: string[], lang?: Lang): P
         (f) => f.has_audio && !f.has_video && typeof f.url === "string",
       );
       // AAC (m4a) first: it plays everywhere. Highest bitrate within the same kind.
-      const best = formats.sort(
+      let best = formats.sort(
         (a, b) => Number(b.mime_type?.startsWith("audio/mp4")) - Number(a.mime_type?.startsWith("audio/mp4")) || (b.bitrate ?? 0) - (a.bitrate ?? 0),
       )[0];
+      if (!best) {
+        // Fallback: muxed MP4 format (audio + video, e.g. format 18) which media players play natively
+        const muxed = [...(info.streaming_data?.formats ?? []), ...(info.streaming_data?.adaptive_formats ?? [])].filter(
+          (f: any) => f.has_audio && typeof f.url === "string" && f.mime_type?.startsWith("video/mp4"),
+        )[0];
+        if (muxed) best = muxed;
+      }
       if (!best) continue;
       const expire = Number(new URL(best.url).searchParams.get("expire")) * 1000;
       return {

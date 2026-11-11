@@ -99,16 +99,19 @@ export default function Podcasts() {
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [queryTerm, setQueryTerm] = useState("");
+  const [selectedShow, setSelectedShow] = useState<ShowInfo | null>(null);
   const [episodes, setEpisodes] = useState<Track[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
 
-  // Active query determined by search bar or selected category
+  // Active query determined by selected show, search bar, or selected category
   const effectiveQuery =
-    queryTerm.trim() ||
-    PODCAST_CATEGORIES.find((c) => c.id === activeCategory)?.query ||
-    "popular podcast full episode";
+    selectedShow
+      ? selectedShow.query
+      : queryTerm.trim() ||
+        PODCAST_CATEGORIES.find((c) => c.id === activeCategory)?.query ||
+        "popular podcast full episode";
 
   useEffect(() => {
     const ctrl = new AbortController();
@@ -123,7 +126,7 @@ export default function Podcasts() {
       })
       .catch((e: Error) => {
         if (e.name === "AbortError") return;
-        setError(e.message);
+        setError(e.message || "Failed to load podcast episodes");
         setLoading(false);
       });
 
@@ -132,13 +135,31 @@ export default function Podcasts() {
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setQueryTerm(searchQuery);
+    setSelectedShow(null);
+    setQueryTerm(searchQuery.trim());
   };
 
   const handleShowSelect = (show: ShowInfo) => {
-    setSearchQuery(show.name);
-    setQueryTerm(show.query);
+    if (selectedShow?.name === show.name) {
+      setSelectedShow(null);
+      setSearchQuery("");
+      setQueryTerm("");
+    } else {
+      setSelectedShow(show);
+      setSearchQuery(show.name);
+      setQueryTerm(show.query);
+    }
   };
+
+  const handleCategorySelect = (id: string) => {
+    setActiveCategory(id);
+    setSelectedShow(null);
+    setQueryTerm("");
+    setSearchQuery("");
+  };
+
+  const currentCategoryLabel =
+    PODCAST_CATEGORIES.find((c) => c.id === activeCategory)?.label || "Trending";
 
   return (
     <div className="flex flex-col gap-6 pb-20">
@@ -178,6 +199,7 @@ export default function Podcasts() {
               onClick={() => {
                 setSearchQuery("");
                 setQueryTerm("");
+                setSelectedShow(null);
               }}
               aria-label={t.search.clear}
               className="absolute top-1/2 right-3 -translate-y-1/2 text-fg-3 hover:text-fg"
@@ -191,16 +213,12 @@ export default function Podcasts() {
       {/* Category Filter Pills */}
       <div className="flex gap-2 overflow-x-auto px-4 md:px-6 no-scrollbar">
         {PODCAST_CATEGORIES.map((cat) => {
-          const active = activeCategory === cat.id && !queryTerm;
+          const active = activeCategory === cat.id && !queryTerm && !selectedShow;
           return (
             <button
               key={cat.id}
               type="button"
-              onClick={() => {
-                setActiveCategory(cat.id);
-                setQueryTerm("");
-                setSearchQuery("");
-              }}
+              onClick={() => handleCategorySelect(cat.id)}
               className={cn(
                 "h-8 shrink-0 rounded-full px-4 text-xs font-semibold tracking-tight transition-colors",
                 active
@@ -224,26 +242,37 @@ export default function Podcasts() {
           <span className="text-xs text-fg-3">{t.podcasts.showsCount(POPULAR_SHOWS.length)}</span>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
-          {POPULAR_SHOWS.map((show) => (
-            <button
-              key={show.name}
-              type="button"
-              onClick={() => handleShowSelect(show)}
-              className="group flex flex-col text-left transition-transform active:scale-[0.98]"
-            >
-              <div className="relative aspect-square w-full overflow-hidden rounded-[14px] bg-surface-2 shadow-sm group-hover:shadow-md">
-                <Artwork src={show.cover} className="size-full object-cover transition-transform duration-300 group-hover:scale-105" />
-                <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
-                <span className="absolute right-2 bottom-2 grid size-9 place-items-center rounded-full bg-accent text-accent-ink opacity-0 shadow-sm transition-all duration-200 group-hover:opacity-100 group-hover:scale-100">
-                  <BroadcastIcon size={16} weight="bold" />
-                </span>
-              </div>
-              <p className="mt-2 line-clamp-1 text-xs font-semibold text-fg group-hover:text-accent-text">
-                {show.name}
-              </p>
-              <p className="line-clamp-1 text-[11px] text-fg-3">{show.category}</p>
-            </button>
-          ))}
+          {POPULAR_SHOWS.map((show) => {
+            const isSelected = selectedShow?.name === show.name;
+            return (
+              <button
+                key={show.name}
+                type="button"
+                onClick={() => handleShowSelect(show)}
+                className={cn(
+                  "group flex flex-col text-left transition-transform active:scale-[0.98] rounded-[16px] p-1.5",
+                  isSelected && "bg-accent/15 ring-2 ring-accent",
+                )}
+              >
+                <div className="relative aspect-square w-full overflow-hidden rounded-[14px] bg-surface-2 shadow-sm group-hover:shadow-md">
+                  <Artwork src={show.cover} className="size-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                  <div className="absolute inset-0 bg-linear-to-t from-black/60 via-transparent to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+                  <span
+                    className={cn(
+                      "absolute right-2 bottom-2 grid size-9 place-items-center rounded-full bg-accent text-accent-ink shadow-sm transition-all duration-200",
+                      isSelected ? "opacity-100 scale-100" : "opacity-0 group-hover:opacity-100 group-hover:scale-100",
+                    )}
+                  >
+                    <BroadcastIcon size={16} weight="bold" />
+                  </span>
+                </div>
+                <p className={cn("mt-2 line-clamp-1 text-xs font-semibold", isSelected ? "text-accent-text" : "text-fg group-hover:text-accent-text")}>
+                  {show.name}
+                </p>
+                <p className="line-clamp-1 text-[11px] text-fg-3">{show.category}</p>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -253,9 +282,11 @@ export default function Podcasts() {
           <h2 className="text-base font-semibold tracking-tight text-fg flex items-center gap-2">
             <BroadcastIcon size={18} className="text-accent-text" />
             <span>
-              {queryTerm
-                ? `Results for "${queryTerm}"`
-                : t.podcasts.recentEpisodes}
+              {selectedShow
+                ? `Episodes • ${selectedShow.name}`
+                : queryTerm
+                  ? `Results for "${searchQuery || queryTerm}"`
+                  : `${currentCategoryLabel} Episodes`}
             </span>
           </h2>
         </div>
