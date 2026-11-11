@@ -455,7 +455,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     repeat: saved.repeat ?? "off",
     // Builds without video (Android) always play audio, whatever a backup or an old session says.
     preferVideo: capabilities.video && (saved.preferVideo ?? false),
-    quality: saved.quality ?? "sd",
+    quality: saved.quality ?? "hd",
     autoRadio: saved.autoRadio ?? true,
 
     playList: (tracks, start = 0) => {

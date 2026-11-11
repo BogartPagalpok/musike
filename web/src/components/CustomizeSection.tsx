@@ -1,7 +1,7 @@
-import { CheckIcon, EyedropperIcon, PaletteIcon } from "@phosphor-icons/react";
+import { CheckIcon, EyedropperIcon, PaletteIcon, SparkleIcon } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../i18n";
-import { hsvToHex, inkFor, isHex, rgbToHsv, toRgb } from "../lib/accent";
+import { hsvToHex, inkFor, isHex, rgbToHsv, THEME_PALETTES, toRgb } from "../lib/accent";
 import { cn } from "../lib/format";
 import { ACCENTS, useAppearance } from "../stores/appearance";
 import { useUi } from "../stores/ui";
@@ -12,9 +12,10 @@ interface EyeDropperApi {
 
 const hasEyeDropper = typeof window !== "undefined" && "EyeDropper" in window;
 
-/** Ready-made accent swatches plus an interactive in-app custom color picker studio. */
+/** Ready-made accent swatches plus playful theme palettes and an interactive custom color picker studio. */
 export function AccentPicker() {
   const t = useT();
+  const theme = useUi((s) => s.theme);
   const accent = useAppearance((s) => s.accent);
   const set = useAppearance((s) => s.set);
   const isCustom = !ACCENTS.some((a) => a.color.toLowerCase() === accent.toLowerCase());
@@ -24,11 +25,12 @@ export function AccentPicker() {
   const svBoxRef = useRef<HTMLDivElement>(null);
   const hueBoxRef = useRef<HTMLDivElement>(null);
 
+  const playfulPalette = THEME_PALETTES[theme] ?? THEME_PALETTES.dark;
+
   useEffect(() => {
     setHexInput(accent.toUpperCase());
     const nextHsv = rgbToHsv(toRgb(accent));
     setHsv((prev) => {
-      // Preserve hue if saturation or value is 0
       const h = nextHsv[1] === 0 || nextHsv[2] === 0 ? prev[0] : nextHsv[0];
       return [h, nextHsv[1], nextHsv[2]];
     });
@@ -98,6 +100,34 @@ export function AccentPicker() {
           <PaletteIcon size={14} weight="bold" />
           <span>{t.customize.customColor}</span>
         </button>
+      </div>
+
+      {/* 5-Color Playful Palette matching the active theme */}
+      <div className="flex flex-col gap-1.5 rounded-[12px] bg-surface-2/60 p-2.5 ring-1 ring-line">
+        <div className="flex items-center gap-1.5 text-xs font-medium text-fg-3">
+          <SparkleIcon size={13} className="text-accent-text" />
+          <span>Playful palette for {theme}</span>
+        </div>
+        <div className="grid grid-cols-5 gap-2">
+          {playfulPalette.map((color) => {
+            const on = accent.toLowerCase() === color.toLowerCase();
+            return (
+              <button
+                key={color}
+                type="button"
+                onClick={() => set({ accent: color })}
+                className={cn(
+                  "group flex h-9 items-center justify-center rounded-lg transition-transform active:scale-95",
+                  on && "ring-2 ring-fg ring-offset-2 ring-offset-surface-2",
+                )}
+                style={{ backgroundColor: color }}
+                title={color}
+              >
+                {on && <CheckIcon size={16} weight="bold" style={{ color: inkFor(color) }} />}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div role="radiogroup" aria-label={t.customize.accent} className="grid grid-cols-4 gap-2 sm:grid-cols-8">
@@ -285,6 +315,40 @@ export function LayoutSection() {
   return (
     <section className="flex flex-col gap-2">
       <h3 className="text-xs font-medium text-fg-3">{t.customize.layout}</h3>
+      
+      {/* Overall Layout Template Selector */}
+      <div className="flex flex-col gap-2 rounded-[16px] bg-surface-1 p-3.5 ring-1 ring-line">
+        <span className="text-[13px] font-medium text-fg-2">Overall Layout Template</span>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => a.set({ layoutTemplate: "default" })}
+            className={cn(
+              "flex flex-col items-start gap-1 rounded-[12px] p-2.5 text-left ring-1 transition-colors",
+              a.layoutTemplate === "default"
+                ? "bg-accent-soft text-accent-text ring-accent/40"
+                : "bg-surface-2 text-fg-2 ring-line hover:text-fg",
+            )}
+          >
+            <span className="text-xs font-semibold">Standard Explorer</span>
+            <span className="text-[11px] opacity-80">Catalog & charts in center, stage in side dock</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => a.set({ layoutTemplate: "center-lyrics" })}
+            className={cn(
+              "flex flex-col items-start gap-1 rounded-[12px] p-2.5 text-left ring-1 transition-colors",
+              a.layoutTemplate === "center-lyrics"
+                ? "bg-accent-soft text-accent-text ring-accent/40"
+                : "bg-surface-2 text-fg-2 ring-line hover:text-fg",
+            )}
+          >
+            <span className="text-xs font-semibold">Stage & Lyrics Focus</span>
+            <span className="text-[11px] opacity-80">Big player & karaoke lyrics in middle, home on side</span>
+          </button>
+        </div>
+      </div>
+
       <div className="flex flex-col divide-y divide-line rounded-[16px] bg-surface-1 ring-1 ring-line">
         <SwitchRow label={t.customize.panel} body={t.customize.panelBody} checked={panelOpen} onChange={setPanelDocked} />
         <SwitchRow label={t.customize.sidebarPlaylists} checked={a.sidebarPlaylists} onChange={(v) => a.set({ sidebarPlaylists: v })} />

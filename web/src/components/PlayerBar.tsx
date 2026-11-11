@@ -74,10 +74,10 @@ export function PlayerBar() {
             <MicrophoneStageIcon size={18} />
           </IconButton>
           <IconButton
-            label={t.player.queue}
+            label={`${t.nowPlaying.tabPlaying} & ${t.player.queue}`}
             size="sm"
-            active={panelOpen && panelTab === "queue"}
-            onClick={() => togglePanel("queue")}
+            active={panelOpen && panelTab === "playing"}
+            onClick={() => togglePanel("playing")}
           >
             <QueueIcon size={18} />
           </IconButton>

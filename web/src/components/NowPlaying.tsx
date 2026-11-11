@@ -3,7 +3,6 @@ import {
   EqualizerIcon,
   MagnifyingGlassIcon,
   MicrophoneStageIcon,
-  QueueIcon,
   RadioIcon,
   VideoCameraSlashIcon,
   XIcon,
@@ -96,15 +95,12 @@ function PanelBody({ tab, slot }: { tab: PanelTab; slot: number }) {
   const track = usePlayer(selectCurrent);
   const showsVideo = usePlayer((s) => s.mediaKind === "video");
   const startRadio = usePlayer((s) => s.startRadio);
-  const queue = usePlayer((s) => s.queue);
-  const index = usePlayer((s) => s.index);
   const eqEnabled = useEqualizer((s) => s.enabled);
   const eqPreset = useEqualizer((s) => s.preset);
   const setEqualizerOpen = useUi((s) => s.setEqualizerOpen);
   const openPanel = useUi((s) => s.openPanel);
   const t = useT();
 
-  if (tab === "queue") return <QueueList />;
   if (!track) {
     return <p className="px-2 py-16 text-center text-sm text-fg-2">{t.nowPlaying.playSomething}</p>;
   }
@@ -116,7 +112,6 @@ function PanelBody({ tab, slot }: { tab: PanelTab; slot: number }) {
       </div>
     );
   }
-  const nextUp = queue[index + 1];
   return (
     <div className="flex flex-col gap-3.5 px-1 pb-4">
       <Stage track={track} slot={slot} />
@@ -159,20 +154,11 @@ function PanelBody({ tab, slot }: { tab: PanelTab; slot: number }) {
             {t.nowPlaying.showLyrics}
           </button>
         </div>
-        <LyricsView compact className="max-h-[260px]" />
+        <LyricsView compact className="max-h-[200px]" />
       </div>
-      {nextUp && (
-        <div className="rounded-[14px] bg-surface-1 p-3 ring-1 ring-line">
-          <p className="pb-2 text-xs font-medium text-fg-3">{t.nowPlaying.upNext}</p>
-          <div className="flex items-center gap-3">
-            <Artwork src={nextUp.thumb} className="size-10 rounded-[8px]" />
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{nextUp.title}</p>
-              <p className="truncate text-xs text-fg-2">{nextUp.artist}</p>
-            </div>
-          </div>
-        </div>
-      )}
+      <div className="rounded-[14px] bg-surface-1 p-2 ring-1 ring-line">
+        <QueueList />
+      </div>
     </div>
   );
 }
@@ -183,9 +169,8 @@ function PanelTabs({ tab, onTab }: { tab: PanelTab; onTab: (t: PanelTab) => void
     <div role="tablist" className="flex gap-1">
       {(
         [
-          ["playing", t.nowPlaying.tabPlaying],
+          ["playing", `${t.nowPlaying.tabPlaying} & ${t.player.queue}`],
           ["lyrics", t.nowPlaying.tabLyrics],
-          ["queue", t.nowPlaying.tabQueue],
         ] as const
       ).map(([id, label]) => (
         <button
@@ -284,7 +269,7 @@ export function NowPlayingSheet({ open, onClose }: { open: boolean; onClose: () 
   const showsVideo = usePlayer((s) => s.mediaKind === "video");
   const reduce = useReducedMotion();
   const drag = useDragControls();
-  const [view, setView] = useState<"player" | "lyrics" | "queue">("player");
+  const [view, setView] = useState<"player" | "lyrics">("player");
   const eqEnabled = useEqualizer((s) => s.enabled);
   const setEqualizerOpen = useUi((s) => s.setEqualizerOpen);
   const t = useT();
@@ -339,21 +324,10 @@ export function NowPlayingSheet({ open, onClose }: { open: boolean; onClose: () 
                 >
                   <MicrophoneStageIcon size={22} />
                 </IconButton>
-                <IconButton
-                  label={view === "queue" ? t.nowPlaying.backToPlayer : t.nowPlaying.showQueue}
-                  active={view === "queue"}
-                  onClick={() => setView(view === "queue" ? "player" : "queue")}
-                >
-                  <QueueIcon size={22} />
-                </IconButton>
               </div>
             </div>
 
-            {view === "queue" ? (
-              <div className="scroll-area -mx-3 min-h-0 flex-1 overflow-y-auto pb-6">
-                <QueueList />
-              </div>
-            ) : view === "lyrics" ? (
+            {view === "lyrics" ? (
               <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-hidden pb-[calc(16px+env(safe-area-inset-bottom))]">
                 {showsVideo && <Stage track={track} slot={SLOT.sheet} className="max-h-[26dvh] max-w-full shrink-0" />}
                 <LyricsView className="-mx-2 min-h-0 flex-1" />
@@ -363,7 +337,7 @@ export function NowPlayingSheet({ open, onClose }: { open: boolean; onClose: () 
                 </div>
               </div>
             ) : (
-              <div className="flex flex-1 flex-col justify-evenly gap-4 pb-[calc(16px+env(safe-area-inset-bottom))]">
+              <div className="scroll-area flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pb-[calc(16px+env(safe-area-inset-bottom))]">
                 <div className={cn(!showsVideo && "touch-none")} onPointerDown={!showsVideo ? (e) => drag.start(e) : undefined}>
                   <Stage track={track} slot={SLOT.sheet} className="max-w-[min(100%,46dvh)]" />
                 </div>
@@ -372,6 +346,9 @@ export function NowPlayingSheet({ open, onClose }: { open: boolean; onClose: () 
                   <Scrubber touch />
                   <Transport big />
                   <ModeSwitch className="justify-center" />
+                </div>
+                <div className="mt-2 rounded-[16px] bg-surface-1 p-3 ring-1 ring-line">
+                  <QueueList compact />
                 </div>
               </div>
             )}

@@ -5,6 +5,7 @@ import { AddToPlaylistDialog, ShortcutsDialog } from "./components/Dialogs";
 import { EqualizerDialog } from "./components/EqualizerDialog";
 import { MiniPlayer, TabBar } from "./components/MobileChrome";
 import { NowPlayingSheet, PanelDrawer, SidePanel } from "./components/NowPlaying";
+import { CenterLyricsPlayer } from "./components/CenterLyricsPlayer";
 import { PlayerBar } from "./components/PlayerBar";
 import { Rail } from "./components/Rail";
 import { SettingsDialog } from "./components/SettingsDialog";
@@ -18,6 +19,7 @@ import { capabilities } from "./lib/api";
 import { cn } from "./lib/format";
 import { legacyRedirect, NOW_PLAYING_HASH, paths } from "./lib/routes";
 import { usePlayer } from "./player/player";
+import { useAppearance } from "./stores/appearance";
 import { useLibrary } from "./stores/library";
 import { useOffline } from "./stores/offline";
 import { openSettings, useSystem } from "./stores/system";
@@ -44,6 +46,7 @@ export default function App() {
   const loadLibrary = useLibrary((s) => s.load);
   const loadOffline = useOffline((s) => s.load);
   const loadSystem = useSystem((s) => s.load);
+  const layoutTemplate = useAppearance((s) => s.layoutTemplate);
   const main = useRef<HTMLElement>(null);
 
   useShortcuts();
@@ -120,7 +123,9 @@ export default function App() {
             "md:pb-0",
           )}
         >
-          {legacy ? (
+          {layoutTemplate === "center-lyrics" && isMd && location.pathname === paths.home ? (
+            <CenterLyricsPlayer />
+          ) : legacy ? (
             <Navigate to={legacy} replace />
           ) : (
             <Routes>

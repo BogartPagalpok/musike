@@ -1,5 +1,6 @@
 import {
   BooksIcon,
+  CaretLeftIcon,
   ClockCounterClockwiseIcon,
   DownloadSimpleIcon,
   GearSixIcon,
@@ -7,6 +8,7 @@ import {
   HouseIcon,
   MagnifyingGlassIcon,
   PlusIcon,
+  SidebarSimpleIcon,
 } from "@phosphor-icons/react";
 import { useState, type ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router";
@@ -29,7 +31,7 @@ const nav = [
 ] as const;
 
 /** Settings entry. Shows a dot (and on the wide rail, an "Update" pill) when yt-dlp needs attention. */
-function SettingsButton() {
+function SettingsButton({ isExpanded }: { isExpanded: boolean }) {
   const t = useT();
   const info = useSystem((s) => s.info);
   const setOpen = useUi((s) => s.setSettingsOpen);
@@ -41,14 +43,17 @@ function SettingsButton() {
       onClick={() => setOpen(true)}
       aria-label={attention ? t.nav.settingsAttention : t.nav.settings}
       title={t.nav.settings}
-      className="relative flex h-10 w-full items-center justify-center gap-2 rounded-full px-3 text-sm text-fg-2 transition-colors hover:bg-surface-3 hover:text-fg wide:justify-start"
+      className={cn(
+        "relative flex h-10 w-full items-center gap-2 rounded-full px-3 text-sm text-fg-2 transition-colors hover:bg-surface-3 hover:text-fg",
+        isExpanded ? "justify-start" : "justify-center wide:justify-start",
+      )}
     >
       <GearSixIcon size={19} />
-      <span className="hidden flex-1 text-left wide:inline">{t.nav.settings}</span>
+      <span className={cn("truncate text-left", isExpanded ? "inline flex-1" : "hidden flex-1 wide:inline")}>{t.nav.settings}</span>
       {attention && (
         <>
-          <span className="absolute top-2 right-[calc(50%-14px)] size-2 rounded-full bg-accent ring-2 ring-surface-2 wide:hidden" />
-          <span className="hidden rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent-text wide:inline">
+          <span className={cn("absolute top-2 right-[calc(50%-14px)] size-2 rounded-full bg-accent ring-2 ring-surface-2", isExpanded ? "hidden" : "wide:hidden")} />
+          <span className={cn("rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent-text", isExpanded ? "inline" : "hidden wide:inline")}>
             {updatable ? t.nav.updatePill : t.nav.checkPill}
           </span>
         </>
@@ -57,8 +62,8 @@ function SettingsButton() {
   );
 }
 
-/** Shared tile: square icon/art with an active Volt ring. Labels appear on the expanded rail (≥1280px). */
-function RailLink({ to, label, sub, end, children }: { to: string; label: string; sub?: string; end?: boolean; children: ReactNode }) {
+/** Shared tile: square icon/art with an active Volt ring. */
+function RailLink({ to, label, sub, end, isExpanded, children }: { to: string; label: string; sub?: string; end?: boolean; isExpanded: boolean; children: ReactNode }) {
   return (
     <NavLink
       to={to}
@@ -66,9 +71,10 @@ function RailLink({ to, label, sub, end, children }: { to: string; label: string
       title={label}
       className={({ isActive }) =>
         cn(
-          "group flex items-center justify-center gap-3 rounded-[14px] p-1.5 transition-colors duration-200 wide:justify-start",
-          "hover:bg-surface-3 wide:pr-3",
-          isActive && "wide:bg-surface-3",
+          "group flex items-center gap-3 rounded-[14px] p-1.5 transition-colors duration-200",
+          isExpanded ? "justify-start pr-3" : "justify-center wide:justify-start wide:pr-3",
+          "hover:bg-surface-3",
+          isActive && (isExpanded ? "bg-surface-3" : "wide:bg-surface-3"),
         )
       }
     >
@@ -82,7 +88,7 @@ function RailLink({ to, label, sub, end, children }: { to: string; label: string
           >
             {children}
           </span>
-          <span className="hidden min-w-0 wide:block">
+          <span className={cn("min-w-0", isExpanded ? "block" : "hidden wide:block")}>
             <span className={cn("block truncate text-sm font-medium", isActive ? "text-fg" : "text-fg-2 group-hover:text-fg")}>
               {label}
             </span>
@@ -97,6 +103,8 @@ function RailLink({ to, label, sub, end, children }: { to: string; label: string
 export function Rail() {
   const t = useT();
   const sidebarPlaylists = useAppearance((s) => s.sidebarPlaylists);
+  const sidebarExpanded = useAppearance((s) => s.sidebarExpanded);
+  const setAppearance = useAppearance((s) => s.set);
   const playlists = useLibrary((s) => s.playlists);
   const favorites = useLibrary((s) => s.favorites);
   const offlineTracks = useOffline((s) => s.tracks);
@@ -104,14 +112,27 @@ export function Rail() {
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
 
+  const toggleExpand = () => setAppearance({ sidebarExpanded: !sidebarExpanded });
+
   return (
-    <aside className="island hidden w-[78px] shrink-0 md:flex wide:w-[256px]">
+    <aside className={cn("island hidden shrink-0 md:flex transition-all duration-300", sidebarExpanded ? "w-[260px]" : "w-[78px] wide:w-[256px]")}>
       <div className="island-core flex w-full flex-col overflow-hidden">
-        <div className="flex h-16 items-center justify-center wide:justify-start wide:px-4 [@media(max-height:540px)]:h-12">
-          <LogoMark className="size-8 text-accent-text wide:hidden" />
-          <span className="hidden wide:block">
-            <Logo />
-          </span>
+        <div className={cn("flex h-16 items-center px-3.5 [@media(max-height:540px)]:h-12", sidebarExpanded ? "justify-between" : "justify-center wide:justify-between")}>
+          <div className="flex items-center gap-2">
+            <LogoMark className={cn("size-8 text-accent-text", sidebarExpanded ? "hidden" : "wide:hidden")} />
+            <span className={cn(sidebarExpanded ? "block" : "hidden wide:block")}>
+              <Logo />
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={toggleExpand}
+            aria-label={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
+            title={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
+            className="grid size-8 shrink-0 place-items-center rounded-full text-fg-3 transition-colors hover:bg-surface-3 hover:text-fg"
+          >
+            {sidebarExpanded ? <CaretLeftIcon size={18} weight="bold" /> : <SidebarSimpleIcon size={18} />}
+          </button>
         </div>
 
         <nav aria-label={t.nav.main} className="flex flex-col gap-1 px-2">
@@ -123,7 +144,8 @@ export function Rail() {
               title={t.nav[key]}
               className={({ isActive }) =>
                 cn(
-                  "flex h-11 items-center justify-center gap-3 rounded-full transition-colors duration-200 wide:justify-start wide:px-4 [@media(max-height:540px)]:h-9",
+                  "flex h-11 items-center gap-3 rounded-full transition-colors duration-200 [@media(max-height:540px)]:h-9",
+                  sidebarExpanded ? "justify-start px-4" : "justify-center wide:justify-start wide:px-4",
                   isActive ? "bg-surface-4 text-fg" : "text-fg-2 hover:bg-surface-3 hover:text-fg",
                 )
               }
@@ -131,7 +153,7 @@ export function Rail() {
               {({ isActive }) => (
                 <>
                   <Icon size={22} weight={isActive ? "fill" : "regular"} />
-                  <span className="hidden text-sm font-medium wide:inline">{t.nav[key]}</span>
+                  <span className={cn("text-sm font-medium", sidebarExpanded ? "inline" : "hidden wide:inline")}>{t.nav[key]}</span>
                 </>
               )}
             </NavLink>
@@ -141,43 +163,43 @@ export function Rail() {
         <div className="mx-4 my-3 h-px bg-line [@media(max-height:540px)]:my-1.5" />
 
         <div className="flex items-center justify-between px-4 pb-1 [@media(max-height:540px)]:pb-0">
-          <span className="hidden text-xs font-medium text-fg-3 wide:block">{t.nav.yourCollection}</span>
+          <span className={cn("text-xs font-medium text-fg-3", sidebarExpanded ? "block" : "hidden wide:block")}>{t.nav.yourCollection}</span>
           <button
             type="button"
             onClick={() => setCreating(true)}
             aria-label={t.nav.newPlaylist}
             title={t.nav.newPlaylist}
-            className="mx-auto grid size-8 place-items-center rounded-full text-fg-2 transition-colors hover:bg-surface-3 hover:text-fg wide:mx-0"
+            className={cn("grid size-8 place-items-center rounded-full text-fg-2 transition-colors hover:bg-surface-3 hover:text-fg", sidebarExpanded ? "mx-0" : "mx-auto wide:mx-0")}
           >
             <PlusIcon size={18} />
           </button>
         </div>
 
         <div className="scroll-area flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2">
-          <RailLink to={paths.favorites} label={t.nav.favorites} sub={t.common.tracks(favorites.length)}>
+          <RailLink to={paths.favorites} label={t.nav.favorites} sub={t.common.tracks(favorites.length)} isExpanded={sidebarExpanded}>
             <span className="grid size-full place-items-center bg-accent-soft text-accent-text">
               <HeartIcon size={20} weight="fill" />
             </span>
           </RailLink>
-          <RailLink to={paths.downloads} label={t.nav.downloads} sub={t.common.tracks(offlineTracks.length)}>
+          <RailLink to={paths.downloads} label={t.nav.downloads} sub={t.common.tracks(offlineTracks.length)} isExpanded={sidebarExpanded}>
             <span className="grid size-full place-items-center bg-surface-3 text-accent-text">
               <DownloadSimpleIcon size={20} weight="bold" />
             </span>
           </RailLink>
-          <RailLink to={paths.history} label={t.nav.recentlyPlayed} sub={t.nav.history}>
+          <RailLink to={paths.history} label={t.nav.recentlyPlayed} sub={t.nav.history} isExpanded={sidebarExpanded}>
             <span className="grid size-full place-items-center bg-surface-3 text-fg-2">
               <ClockCounterClockwiseIcon size={20} />
             </span>
           </RailLink>
           {sidebarPlaylists && playlists.map((p) => (
-            <RailLink key={p.id} to={paths.playlist(p.id)} label={p.name} sub={t.common.tracks(p.tracks.length)}>
+            <RailLink key={p.id} to={paths.playlist(p.id)} label={p.name} sub={t.common.tracks(p.tracks.length)} isExpanded={sidebarExpanded}>
               <Artwork src={p.tracks[0]?.thumb} className="size-full" iconSize={18} />
             </RailLink>
           ))}
         </div>
 
         <div className="flex border-t border-line p-2">
-          <SettingsButton />
+          <SettingsButton isExpanded={sidebarExpanded} />
         </div>
       </div>
 

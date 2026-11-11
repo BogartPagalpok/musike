@@ -1,27 +1,33 @@
 import { create } from "zustand";
 import { accentCss, DEFAULT_ACCENT, isHex } from "../lib/accent";
 
+export type LayoutTemplate = "default" | "center-lyrics";
+
 /** How the app looks and what it shows, per device. The Now Playing panel lives in the UI store (it has a button too). */
 export interface Appearance {
   accent: string;
   sidebarPlaylists: boolean;
   compactSidebar: boolean;
+  sidebarExpanded: boolean;
   albumColumn: boolean;
   texture: boolean;
   homeShortcuts: boolean;
   homeRecent: boolean;
   homeFavorites: boolean;
+  layoutTemplate: LayoutTemplate;
 }
 
 export const DEFAULT_APPEARANCE: Appearance = {
   accent: DEFAULT_ACCENT,
   sidebarPlaylists: true,
   compactSidebar: false,
+  sidebarExpanded: false,
   albumColumn: true,
   texture: true,
   homeShortcuts: true,
   homeRecent: true,
   homeFavorites: true,
+  layoutTemplate: "default",
 };
 
 /** Ready-made accents. "volt" is Musike's own. */
@@ -46,7 +52,11 @@ export function cleanAppearance(input: unknown): Appearance {
   const out: Appearance = { ...DEFAULT_APPEARANCE };
   if (isHex(v.accent)) out.accent = v.accent.toLowerCase();
   for (const k of Object.keys(DEFAULT_APPEARANCE) as (keyof Appearance)[]) {
-    if (k !== "accent" && typeof v[k] === "boolean") (out[k] as boolean) = v[k];
+    if (k === "accent" || k === "layoutTemplate") continue;
+    if (typeof v[k] === "boolean") (out[k] as boolean) = v[k];
+  }
+  if (v.layoutTemplate === "center-lyrics" || v.layoutTemplate === "default") {
+    out.layoutTemplate = v.layoutTemplate;
   }
   return out;
 }

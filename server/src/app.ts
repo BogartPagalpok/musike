@@ -139,10 +139,12 @@ export async function startServer(opts: StartOptions = {}): Promise<RunningServe
   app.get("/api/stream/:id/video", async (req, reply) => {
     const id = videoId(req.params);
     const { q } = req.query as { q?: string };
-    if (q === "hd") return serveFile(req, reply, await downloadHd(id), "video/mp4");
-    const vid = await resolveVideoStream(id);
-    if (!vid) return serveFile(req, reply, await downloadHd(id), "video/mp4");
-    return proxyStream(req, reply, id, "video");
+    // Default video streaming to at least 720p HD merged stream
+    if (q === "sd") {
+      const vid = await resolveVideoStream(id);
+      if (vid) return proxyStream(req, reply, id, "video");
+    }
+    return serveFile(req, reply, await downloadHd(id), "video/mp4");
   });
 
   app.get("/api/download/:id", (req, reply) => {

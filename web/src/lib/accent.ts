@@ -30,6 +30,19 @@ export const THEMES: readonly ThemeMeta[] = [
   { id: "cream", scheme: "light", bg: "#f2ece1", surface1: "#fbf8f3", surface2: "#efe9de", fg: "#1f1b16", surfaceRgb: [0xef, 0xe9, 0xde] },
 ] as const;
 
+/** 5 curated playful accent colors specifically matched per theme */
+export const THEME_PALETTES: Record<ThemeId, string[]> = {
+  dark: ["#c3ec52", "#38bdf8", "#f43f5e", "#a855f7", "#fbbf24"],
+  light: ["#2563eb", "#059669", "#d97706", "#7c3aed", "#e11d48"],
+  oled: ["#00ffcc", "#ff007f", "#39ff14", "#ffe600", "#7928ca"],
+  midnight: ["#38bdf8", "#818cf8", "#f472b6", "#34d399", "#fb923c"],
+  rose: ["#f472b6", "#fb7185", "#c084fc", "#fbb034", "#38bdf8"],
+  forest: ["#4ade80", "#a3e635", "#2dd4bf", "#facc15", "#f87171"],
+  sunset: ["#fb923c", "#f87171", "#fbbf24", "#e879f9", "#38bdf8"],
+  nord: ["#88c0d0", "#81a1c1", "#a3be8c", "#ebcb8b", "#b48ead"],
+  cream: ["#d97706", "#059669", "#dc2626", "#4f46e5", "#b45309"],
+};
+
 export const isTheme = (v: unknown): v is ThemeId =>
   typeof v === "string" && THEMES.some((t) => t.id === v);
 

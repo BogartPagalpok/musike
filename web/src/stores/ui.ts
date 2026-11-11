@@ -24,7 +24,7 @@ export interface TrackMenuState {
 }
 
 export type Theme = ThemeId;
-export type PanelTab = "playing" | "lyrics" | "queue";
+export type PanelTab = "playing" | "lyrics";
 
 interface UiState {
   theme: Theme;

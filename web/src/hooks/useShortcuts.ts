@@ -80,7 +80,7 @@ export function useShortcuts() {
           break;
         case "q":
         case "Q":
-          ui.togglePanel("queue");
+          ui.togglePanel("playing");
           break;
         case "/":
           handled();
