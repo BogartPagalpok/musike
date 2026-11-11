@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate, useNavigationType } from "react-router";
 import { DataDialog } from "./components/BackupSection";
+import { OpeningSplash } from "./components/Brand";
 import { AddToPlaylistDialog, ShortcutsDialog } from "./components/Dialogs";
 import { EqualizerDialog } from "./components/EqualizerDialog";
 import { MiniPlayer, TabBar } from "./components/MobileChrome";
@@ -111,10 +112,30 @@ export default function App() {
     else navigate({ hash: "" }, { replace: true });
   };
 
+  const appRoutes = legacy ? (
+    <Navigate to={legacy} replace />
+  ) : (
+    <Routes>
+      <Route path={paths.home} element={<Home />} />
+      <Route path={paths.search} element={<Search />} />
+      <Route path={paths.searchList} element={<BatchSearch />} />
+      <Route path="/search/genre/:id" element={<Genre />} />
+      <Route path="/search/artist/:id" element={<Artist />} />
+      <Route path="/search/album/:id" element={<Album />} />
+      <Route path={paths.library} element={<Library />} />
+      <Route path={paths.favorites} element={<Collection kind="favorites" />} />
+      <Route path={paths.downloads} element={<Collection kind="downloads" />} />
+      <Route path={paths.history} element={<Collection kind="history" />} />
+      <Route path="/playlist/:id" element={<Collection kind="playlist" />} />
+      <Route path="*" element={<Home />} />
+    </Routes>
+  );
+
   return (
     <div className="grain flex h-dvh flex-col bg-bg md:gap-2 md:p-2">
+      <OpeningSplash />
       <div className="flex min-h-0 flex-1 md:gap-2">
-        <Rail />
+        <Rail embeddedRoutes={layoutTemplate === "center-lyrics" && isMd ? appRoutes : undefined} />
         <main
           ref={main}
           className={cn(
@@ -123,25 +144,19 @@ export default function App() {
             "md:pb-0",
           )}
         >
-          {layoutTemplate === "center-lyrics" && isMd && location.pathname === paths.home ? (
-            <CenterLyricsPlayer />
-          ) : legacy ? (
-            <Navigate to={legacy} replace />
+          {layoutTemplate === "center-lyrics" && isMd ? (
+            <CenterLyricsPlayer mode="stage" />
+          ) : layoutTemplate === "cinema" && isMd ? (
+            <div className="flex h-full flex-col divide-y divide-line overflow-hidden">
+              <div className="min-h-0 flex-[1.2] overflow-hidden">
+                <CenterLyricsPlayer mode="cinema" />
+              </div>
+              <div className="scroll-area min-h-0 flex-1 overflow-y-auto bg-surface-1/80">
+                {appRoutes}
+              </div>
+            </div>
           ) : (
-            <Routes>
-              <Route path={paths.home} element={<Home />} />
-              <Route path={paths.search} element={<Search />} />
-              <Route path={paths.searchList} element={<BatchSearch />} />
-              <Route path="/search/genre/:id" element={<Genre />} />
-              <Route path="/search/artist/:id" element={<Artist />} />
-              <Route path="/search/album/:id" element={<Album />} />
-              <Route path={paths.library} element={<Library />} />
-              <Route path={paths.favorites} element={<Collection kind="favorites" />} />
-              <Route path={paths.downloads} element={<Collection kind="downloads" />} />
-              <Route path={paths.history} element={<Collection kind="history" />} />
-              <Route path="/playlist/:id" element={<Collection kind="playlist" />} />
-              <Route path="*" element={<Home />} />
-            </Routes>
+            appRoutes
           )}
         </main>
         {panelOpen && hasTrack && <SidePanel />}

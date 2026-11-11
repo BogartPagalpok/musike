@@ -1,12 +1,16 @@
 import {
+  ArrowsInLineHorizontalIcon,
+  ArrowsOutLineHorizontalIcon,
   BooksIcon,
   CaretLeftIcon,
+  CaretRightIcon,
   ClockCounterClockwiseIcon,
   DownloadSimpleIcon,
   GearSixIcon,
   HeartIcon,
   HouseIcon,
   MagnifyingGlassIcon,
+  MicrophoneStageIcon,
   PlusIcon,
   SidebarSimpleIcon,
 } from "@phosphor-icons/react";
@@ -30,7 +34,7 @@ const nav = [
   { to: paths.library, key: "library", Icon: BooksIcon, end: false },
 ] as const;
 
-/** Settings entry. Shows a dot (and on the wide rail, an "Update" pill) when yt-dlp needs attention. */
+/** Settings entry. Shows a dot (and on the expanded rail, an "Update" pill) when yt-dlp needs attention. */
 function SettingsButton({ isExpanded }: { isExpanded: boolean }) {
   const t = useT();
   const info = useSystem((s) => s.info);
@@ -45,25 +49,41 @@ function SettingsButton({ isExpanded }: { isExpanded: boolean }) {
       title={t.nav.settings}
       className={cn(
         "relative flex h-10 w-full items-center gap-2 rounded-full px-3 text-sm text-fg-2 transition-colors hover:bg-surface-3 hover:text-fg",
-        isExpanded ? "justify-start" : "justify-center wide:justify-start",
+        isExpanded ? "justify-start" : "justify-center",
       )}
     >
       <GearSixIcon size={19} />
-      <span className={cn("truncate text-left", isExpanded ? "inline flex-1" : "hidden flex-1 wide:inline")}>{t.nav.settings}</span>
+      {isExpanded && <span className="flex-1 truncate text-left">{t.nav.settings}</span>}
       {attention && (
         <>
-          <span className={cn("absolute top-2 right-[calc(50%-14px)] size-2 rounded-full bg-accent ring-2 ring-surface-2", isExpanded ? "hidden" : "wide:hidden")} />
-          <span className={cn("rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent-text", isExpanded ? "inline" : "hidden wide:inline")}>
-            {updatable ? t.nav.updatePill : t.nav.checkPill}
-          </span>
+          {!isExpanded && <span className="absolute top-2 right-[calc(50%-14px)] size-2 rounded-full bg-accent ring-2 ring-surface-2" />}
+          {isExpanded && (
+            <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[11px] font-semibold text-accent-text">
+              {updatable ? t.nav.updatePill : t.nav.checkPill}
+            </span>
+          )}
         </>
       )}
     </button>
   );
 }
 
-/** Shared tile: square icon/art with an active Volt ring. */
-function RailLink({ to, label, sub, end, isExpanded, children }: { to: string; label: string; sub?: string; end?: boolean; isExpanded: boolean; children: ReactNode }) {
+/** Shared tile: square icon/art with an active accent ring. */
+function RailLink({
+  to,
+  label,
+  sub,
+  end,
+  isExpanded,
+  children,
+}: {
+  to: string;
+  label: string;
+  sub?: string;
+  end?: boolean;
+  isExpanded: boolean;
+  children: ReactNode;
+}) {
   return (
     <NavLink
       to={to}
@@ -72,9 +92,9 @@ function RailLink({ to, label, sub, end, isExpanded, children }: { to: string; l
       className={({ isActive }) =>
         cn(
           "group flex items-center gap-3 rounded-[14px] p-1.5 transition-colors duration-200",
-          isExpanded ? "justify-start pr-3" : "justify-center wide:justify-start wide:pr-3",
+          isExpanded ? "justify-start pr-3" : "justify-center",
           "hover:bg-surface-3",
-          isActive && (isExpanded ? "bg-surface-3" : "wide:bg-surface-3"),
+          isActive && isExpanded && "bg-surface-3",
         )
       }
     >
@@ -88,22 +108,26 @@ function RailLink({ to, label, sub, end, isExpanded, children }: { to: string; l
           >
             {children}
           </span>
-          <span className={cn("min-w-0", isExpanded ? "block" : "hidden wide:block")}>
-            <span className={cn("block truncate text-sm font-medium", isActive ? "text-fg" : "text-fg-2 group-hover:text-fg")}>
-              {label}
+          {isExpanded && (
+            <span className="min-w-0 flex-1">
+              <span className={cn("block truncate text-sm font-medium", isActive ? "text-fg" : "text-fg-2 group-hover:text-fg")}>
+                {label}
+              </span>
+              {sub && <span className="block truncate text-xs text-fg-3">{sub}</span>}
             </span>
-            {sub && <span className="block truncate text-xs text-fg-3">{sub}</span>}
-          </span>
+          )}
         </>
       )}
     </NavLink>
   );
 }
 
-export function Rail() {
+export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
   const t = useT();
   const sidebarPlaylists = useAppearance((s) => s.sidebarPlaylists);
-  const sidebarExpanded = useAppearance((s) => s.sidebarExpanded);
+  const compactSidebar = useAppearance((s) => s.compactSidebar);
+  const sidebarWidth = useAppearance((s) => s.sidebarWidth);
+  const layoutTemplate = useAppearance((s) => s.layoutTemplate);
   const setAppearance = useAppearance((s) => s.set);
   const playlists = useLibrary((s) => s.playlists);
   const favorites = useLibrary((s) => s.favorites);
@@ -111,96 +135,288 @@ export function Rail() {
   const createPlaylist = useLibrary((s) => s.createPlaylist);
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
+  const [resizing, setResizing] = useState(false);
+  const [dockTab, setDockTab] = useState<"browse" | "collection">("browse");
 
-  const toggleExpand = () => setAppearance({ sidebarExpanded: !sidebarExpanded });
+  const isExpanded = !compactSidebar;
+  const isStageLayout = layoutTemplate === "center-lyrics" && !!embeddedRoutes;
+  const effectiveWidth = isExpanded
+    ? isStageLayout
+      ? Math.max(sidebarWidth, 390)
+      : sidebarWidth
+    : 78;
+
+  const toggleExpand = () => setAppearance({ compactSidebar: !compactSidebar });
+  const toggleWideSize = () => {
+    const target = effectiveWidth > 320 ? 256 : 420;
+    setAppearance({ compactSidebar: false, sidebarWidth: target });
+  };
 
   return (
-    <aside className={cn("island hidden shrink-0 md:flex transition-all duration-300", sidebarExpanded ? "w-[260px]" : "w-[78px] wide:w-[256px]")}>
+    <aside
+      style={{ width: `${effectiveWidth}px` }}
+      className={cn(
+        "island relative hidden shrink-0 md:flex",
+        !resizing && "transition-[width] duration-250 ease-out-expo",
+      )}
+    >
       <div className="island-core flex w-full flex-col overflow-hidden">
-        <div className={cn("flex h-16 items-center px-3.5 [@media(max-height:540px)]:h-12", sidebarExpanded ? "justify-between" : "justify-center wide:justify-between")}>
-          <div className="flex items-center gap-2">
-            <LogoMark className={cn("size-8 text-accent-text", sidebarExpanded ? "hidden" : "wide:hidden")} />
-            <span className={cn(sidebarExpanded ? "block" : "hidden wide:block")}>
-              <Logo />
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={toggleExpand}
-            aria-label={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
-            title={sidebarExpanded ? "Collapse sidebar" : "Expand sidebar"}
-            className="grid size-8 shrink-0 place-items-center rounded-full text-fg-3 transition-colors hover:bg-surface-3 hover:text-fg"
-          >
-            {sidebarExpanded ? <CaretLeftIcon size={18} weight="bold" /> : <SidebarSimpleIcon size={18} />}
-          </button>
+        {/* Header with Brand + Expand/Collapse + Width Toggle */}
+        <div
+          className={cn(
+            "flex h-15 items-center border-b border-line/60 px-3 [@media(max-height:540px)]:h-12",
+            isExpanded ? "justify-between" : "flex-col justify-center gap-1 py-2 h-auto",
+          )}
+        >
+          {isExpanded ? (
+            <>
+              <Logo className="min-w-0 truncate" />
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setAppearance({
+                      layoutTemplate: layoutTemplate === "center-lyrics" ? "default" : "center-lyrics",
+                      compactSidebar: false,
+                    })
+                  }
+                  title={
+                    layoutTemplate === "center-lyrics"
+                      ? "Switch to Classic Explorer Layout"
+                      : "Switch to Stage & Lyrics Layout (Home in Sidebar)"
+                  }
+                  className={cn(
+                    "grid size-7 place-items-center rounded-full transition-colors",
+                    layoutTemplate === "center-lyrics"
+                      ? "bg-accent text-accent-ink"
+                      : "text-fg-3 hover:bg-surface-3 hover:text-fg",
+                  )}
+                >
+                  <MicrophoneStageIcon size={15} weight="bold" />
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleWideSize}
+                  title={effectiveWidth > 320 ? "Standard sidebar width" : "Expand sidebar wider"}
+                  className="grid size-7 place-items-center rounded-full text-fg-3 transition-colors hover:bg-surface-3 hover:text-fg"
+                >
+                  {effectiveWidth > 320 ? (
+                    <ArrowsInLineHorizontalIcon size={15} weight="bold" />
+                  ) : (
+                    <ArrowsOutLineHorizontalIcon size={15} weight="bold" />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleExpand}
+                  aria-label="Collapse sidebar"
+                  title="Collapse sidebar to icon rail"
+                  className="grid size-7 place-items-center rounded-full bg-surface-3/70 text-fg-2 transition-colors hover:bg-surface-4 hover:text-fg"
+                >
+                  <CaretLeftIcon size={15} weight="bold" />
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <LogoMark className="size-7 text-accent-text" />
+              <button
+                type="button"
+                onClick={toggleExpand}
+                aria-label="Expand sidebar"
+                title="Expand sidebar"
+                className="mt-1 grid size-8 place-items-center rounded-full bg-surface-3 text-fg transition-colors hover:bg-accent hover:text-accent-ink"
+              >
+                <CaretRightIcon size={16} weight="bold" />
+              </button>
+            </>
+          )}
         </div>
 
-        <nav aria-label={t.nav.main} className="flex flex-col gap-1 px-2">
+        {/* Top Navigation Links */}
+        <nav
+          aria-label={t.nav.main}
+          className={cn(
+            "px-2 pt-2",
+            isExpanded && isStageLayout ? "grid grid-cols-3 gap-1" : "flex flex-col gap-1",
+          )}
+        >
           {nav.map(({ to, key, Icon, end }) => (
             <NavLink
               key={to}
               to={to}
               end={end}
+              onClick={() => {
+                if (isStageLayout) setDockTab("browse");
+              }}
               title={t.nav[key]}
               className={({ isActive }) =>
                 cn(
-                  "flex h-11 items-center gap-3 rounded-full transition-colors duration-200 [@media(max-height:540px)]:h-9",
-                  sidebarExpanded ? "justify-start px-4" : "justify-center wide:justify-start wide:px-4",
-                  isActive ? "bg-surface-4 text-fg" : "text-fg-2 hover:bg-surface-3 hover:text-fg",
+                  "flex items-center gap-2.5 rounded-full transition-colors duration-200",
+                  isExpanded && isStageLayout
+                    ? "h-9 justify-center px-2 text-xs"
+                    : isExpanded
+                      ? "h-10 justify-start px-3.5 text-sm"
+                      : "h-11 justify-center",
+                  isActive ? "bg-surface-4 text-fg font-semibold" : "text-fg-2 hover:bg-surface-3 hover:text-fg",
                 )
               }
             >
               {({ isActive }) => (
                 <>
-                  <Icon size={22} weight={isActive ? "fill" : "regular"} />
-                  <span className={cn("text-sm font-medium", sidebarExpanded ? "inline" : "hidden wide:inline")}>{t.nav[key]}</span>
+                  <Icon size={isExpanded && isStageLayout ? 17 : 20} weight={isActive ? "fill" : "regular"} />
+                  {isExpanded && <span className="truncate font-medium">{t.nav[key]}</span>}
                 </>
               )}
             </NavLink>
           ))}
         </nav>
 
-        <div className="mx-4 my-3 h-px bg-line [@media(max-height:540px)]:my-1.5" />
+        {/* Stage Layout Mode: Embedded Home / Search / Library Browser right inside the Expandable Sidebar! */}
+        {isExpanded && isStageLayout ? (
+          <>
+            <div className="mx-3 mt-2 flex items-center justify-between gap-1 rounded-full bg-surface-1 p-1 ring-1 ring-line">
+              <button
+                type="button"
+                onClick={() => setDockTab("browse")}
+                className={cn(
+                  "flex h-7 flex-1 items-center justify-center gap-1.5 rounded-full text-xs font-semibold transition-colors",
+                  dockTab === "browse" ? "bg-accent text-accent-ink" : "text-fg-2 hover:text-fg",
+                )}
+              >
+                <SidebarSimpleIcon size={13} weight="bold" />
+                <span>Home & Catalog</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setDockTab("collection")}
+                className={cn(
+                  "flex h-7 flex-1 items-center justify-center gap-1.5 rounded-full text-xs font-semibold transition-colors",
+                  dockTab === "collection" ? "bg-accent text-accent-ink" : "text-fg-2 hover:text-fg",
+                )}
+              >
+                <BooksIcon size={13} weight="bold" />
+                <span>Playlists ({playlists.length})</span>
+              </button>
+            </div>
 
-        <div className="flex items-center justify-between px-4 pb-1 [@media(max-height:540px)]:pb-0">
-          <span className={cn("text-xs font-medium text-fg-3", sidebarExpanded ? "block" : "hidden wide:block")}>{t.nav.yourCollection}</span>
-          <button
-            type="button"
-            onClick={() => setCreating(true)}
-            aria-label={t.nav.newPlaylist}
-            title={t.nav.newPlaylist}
-            className={cn("grid size-8 place-items-center rounded-full text-fg-2 transition-colors hover:bg-surface-3 hover:text-fg", sidebarExpanded ? "mx-0" : "mx-auto wide:mx-0")}
-          >
-            <PlusIcon size={18} />
-          </button>
-        </div>
+            {dockTab === "browse" ? (
+              <div className="scroll-area mt-1.5 min-h-0 flex-1 overflow-y-auto border-t border-line/60 bg-surface-1/50">
+                {embeddedRoutes}
+              </div>
+            ) : (
+              <div className="scroll-area mt-2 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2">
+                <div className="flex items-center justify-between px-2 pb-1">
+                  <span className="text-xs font-medium text-fg-3">{t.nav.yourCollection}</span>
+                  <button
+                    type="button"
+                    onClick={() => setCreating(true)}
+                    className="flex h-7 items-center gap-1 rounded-full bg-surface-3 px-2.5 text-xs font-medium text-fg hover:bg-surface-4"
+                  >
+                    <PlusIcon size={14} />
+                    <span>New</span>
+                  </button>
+                </div>
+                <RailLink to={paths.favorites} label={t.nav.favorites} sub={t.common.tracks(favorites.length)} isExpanded={true}>
+                  <span className="grid size-full place-items-center bg-accent-soft text-accent-text">
+                    <HeartIcon size={20} weight="fill" />
+                  </span>
+                </RailLink>
+                <RailLink to={paths.downloads} label={t.nav.downloads} sub={t.common.tracks(offlineTracks.length)} isExpanded={true}>
+                  <span className="grid size-full place-items-center bg-surface-3 text-accent-text">
+                    <DownloadSimpleIcon size={20} weight="bold" />
+                  </span>
+                </RailLink>
+                <RailLink to={paths.history} label={t.nav.recentlyPlayed} sub={t.nav.history} isExpanded={true}>
+                  <span className="grid size-full place-items-center bg-surface-3 text-fg-2">
+                    <ClockCounterClockwiseIcon size={20} />
+                  </span>
+                </RailLink>
+                {playlists.map((p) => (
+                  <RailLink key={p.id} to={paths.playlist(p.id)} label={p.name} sub={t.common.tracks(p.tracks.length)} isExpanded={true}>
+                    <Artwork src={p.tracks[0]?.thumb} className="size-full" iconSize={18} />
+                  </RailLink>
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <div className="mx-4 my-2.5 h-px bg-line [@media(max-height:540px)]:my-1.5" />
 
-        <div className="scroll-area flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2">
-          <RailLink to={paths.favorites} label={t.nav.favorites} sub={t.common.tracks(favorites.length)} isExpanded={sidebarExpanded}>
-            <span className="grid size-full place-items-center bg-accent-soft text-accent-text">
-              <HeartIcon size={20} weight="fill" />
-            </span>
-          </RailLink>
-          <RailLink to={paths.downloads} label={t.nav.downloads} sub={t.common.tracks(offlineTracks.length)} isExpanded={sidebarExpanded}>
-            <span className="grid size-full place-items-center bg-surface-3 text-accent-text">
-              <DownloadSimpleIcon size={20} weight="bold" />
-            </span>
-          </RailLink>
-          <RailLink to={paths.history} label={t.nav.recentlyPlayed} sub={t.nav.history} isExpanded={sidebarExpanded}>
-            <span className="grid size-full place-items-center bg-surface-3 text-fg-2">
-              <ClockCounterClockwiseIcon size={20} />
-            </span>
-          </RailLink>
-          {sidebarPlaylists && playlists.map((p) => (
-            <RailLink key={p.id} to={paths.playlist(p.id)} label={p.name} sub={t.common.tracks(p.tracks.length)} isExpanded={sidebarExpanded}>
-              <Artwork src={p.tracks[0]?.thumb} className="size-full" iconSize={18} />
-            </RailLink>
-          ))}
-        </div>
+            <div className={cn("flex items-center px-4 pb-1 [@media(max-height:540px)]:pb-0", isExpanded ? "justify-between" : "justify-center")}>
+              {isExpanded && <span className="text-xs font-medium text-fg-3">{t.nav.yourCollection}</span>}
+              <button
+                type="button"
+                onClick={() => setCreating(true)}
+                aria-label={t.nav.newPlaylist}
+                title={t.nav.newPlaylist}
+                className="grid size-8 place-items-center rounded-full text-fg-2 transition-colors hover:bg-surface-3 hover:text-fg"
+              >
+                <PlusIcon size={18} />
+              </button>
+            </div>
+
+            <div className="scroll-area flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2">
+              <RailLink to={paths.favorites} label={t.nav.favorites} sub={t.common.tracks(favorites.length)} isExpanded={isExpanded}>
+                <span className="grid size-full place-items-center bg-accent-soft text-accent-text">
+                  <HeartIcon size={20} weight="fill" />
+                </span>
+              </RailLink>
+              <RailLink to={paths.downloads} label={t.nav.downloads} sub={t.common.tracks(offlineTracks.length)} isExpanded={isExpanded}>
+                <span className="grid size-full place-items-center bg-surface-3 text-accent-text">
+                  <DownloadSimpleIcon size={20} weight="bold" />
+                </span>
+              </RailLink>
+              <RailLink to={paths.history} label={t.nav.recentlyPlayed} sub={t.nav.history} isExpanded={isExpanded}>
+                <span className="grid size-full place-items-center bg-surface-3 text-fg-2">
+                  <ClockCounterClockwiseIcon size={20} />
+                </span>
+              </RailLink>
+              {sidebarPlaylists &&
+                playlists.map((p) => (
+                  <RailLink key={p.id} to={paths.playlist(p.id)} label={p.name} sub={t.common.tracks(p.tracks.length)} isExpanded={isExpanded}>
+                    <Artwork src={p.tracks[0]?.thumb} className="size-full" iconSize={18} />
+                  </RailLink>
+                ))}
+            </div>
+          </>
+        )}
 
         <div className="flex border-t border-line p-2">
-          <SettingsButton isExpanded={sidebarExpanded} />
+          <SettingsButton isExpanded={isExpanded} />
         </div>
+      </div>
+
+      {/* Interactive Drag-to-Resize Handle on Right Edge of Sidebar */}
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Drag to resize sidebar"
+        title="Drag to resize sidebar (double-click to toggle collapse)"
+        onDoubleClick={toggleExpand}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.currentTarget.setPointerCapture(e.pointerId);
+          setResizing(true);
+        }}
+        onPointerMove={(e) => {
+          if (!resizing) return;
+          const nextWidth = e.clientX - 8;
+          if (nextWidth < 130) {
+            setAppearance({ compactSidebar: true });
+          } else {
+            setAppearance({
+              compactSidebar: false,
+              sidebarWidth: Math.max(210, Math.min(540, nextWidth)),
+            });
+          }
+        }}
+        onPointerUp={() => setResizing(false)}
+        onPointerCancel={() => setResizing(false)}
+        className="group absolute top-3 -right-1.5 bottom-3 z-20 flex w-3 cursor-col-resize items-center justify-center select-none"
+      >
+        <span className="h-12 w-1 rounded-full bg-transparent transition-colors group-hover:bg-accent/60 group-active:bg-accent" />
       </div>
 
       <NamePlaylistDialog

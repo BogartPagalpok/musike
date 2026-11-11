@@ -233,7 +233,7 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
                 <Scrubber />
 
                 <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                  <Transport size="md" />
+                  <Transport />
                   <div className="flex flex-wrap items-center gap-1.5">
                     <ModeSwitch />
                     <button
