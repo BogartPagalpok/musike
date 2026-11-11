@@ -6,7 +6,22 @@
 
 type Rgb = [number, number, number];
 
-export type ThemeId = "dark" | "light" | "oled" | "midnight" | "rose" | "forest" | "sunset" | "nord" | "cream";
+export type ThemeId =
+  | "dark"
+  | "light"
+  | "oled"
+  | "midnight"
+  | "rose"
+  | "forest"
+  | "sunset"
+  | "nord"
+  | "cream"
+  | "synthwave"
+  | "candy"
+  | "arcade"
+  | "tropical"
+  | "aurora"
+  | "holi";
 
 export interface ThemeMeta {
   id: ThemeId;
@@ -16,6 +31,8 @@ export interface ThemeMeta {
   surface2: string;
   fg: string;
   surfaceRgb: Rgb;
+  /** 6-color signature palette for playful multi-color themes (shown as a 6-color rainbow bar on the theme card). */
+  palette?: readonly [string, string, string, string, string, string];
 }
 
 export const THEMES: readonly ThemeMeta[] = [
@@ -28,19 +45,85 @@ export const THEMES: readonly ThemeMeta[] = [
   { id: "sunset", scheme: "dark", bg: "#140d0a", surface1: "#1e1410", surface2: "#281b16", fg: "#f6ece6", surfaceRgb: [0x28, 0x1b, 0x16] },
   { id: "nord", scheme: "dark", bg: "#1e222a", surface1: "#242933", surface2: "#2e3440", fg: "#eceff4", surfaceRgb: [0x2e, 0x34, 0x40] },
   { id: "cream", scheme: "light", bg: "#f2ece1", surface1: "#fbf8f3", surface2: "#efe9de", fg: "#1f1b16", surfaceRgb: [0xef, 0xe9, 0xde] },
+  {
+    id: "synthwave",
+    scheme: "dark",
+    bg: "#0c041c",
+    surface1: "#160933",
+    surface2: "#24104d",
+    fg: "#fef9ff",
+    surfaceRgb: [0x24, 0x10, 0x4d],
+    palette: ["#0c041c", "#36186e", "#ff2a85", "#00f5d4", "#fee440", "#c77dff"],
+  },
+  {
+    id: "candy",
+    scheme: "light",
+    bg: "#fff0f6",
+    surface1: "#ffffff",
+    surface2: "#f3e8ff",
+    fg: "#2e1065",
+    surfaceRgb: [0xf3, 0xe8, 0xff],
+    palette: ["#fff0f6", "#f3e8ff", "#e0f2fe", "#fef08a", "#ff3e9d", "#7c3aed"],
+  },
+  {
+    id: "arcade",
+    scheme: "dark",
+    bg: "#050a1e",
+    surface1: "#0b163b",
+    surface2: "#16265c",
+    fg: "#f0fdf4",
+    surfaceRgb: [0x16, 0x26, 0x5c],
+    palette: ["#050a1e", "#25387d", "#39ff14", "#fde047", "#38bdf8", "#f472b6"],
+  },
+  {
+    id: "tropical",
+    scheme: "dark",
+    bg: "#041c18",
+    surface1: "#072e27",
+    surface2: "#0d4238",
+    fg: "#fffbeb",
+    surfaceRgb: [0x0d, 0x42, 0x38],
+    palette: ["#041c18", "#15594b", "#ff6b6b", "#fde047", "#5eead4", "#fdba74"],
+  },
+  {
+    id: "aurora",
+    scheme: "dark",
+    bg: "#06101e",
+    surface1: "#0c1d33",
+    surface2: "#162c4a",
+    fg: "#ecfeff",
+    surfaceRgb: [0x16, 0x2c, 0x4a],
+    palette: ["#06101e", "#243b61", "#2dd4bf", "#f472b6", "#6ee7b7", "#c4b5fd"],
+  },
+  {
+    id: "holi",
+    scheme: "dark",
+    bg: "#17071c",
+    surface1: "#280d30",
+    surface2: "#3b1445",
+    fg: "#fff7ed",
+    surfaceRgb: [0x3b, 0x14, 0x45],
+    palette: ["#17071c", "#521b5e", "#f97316", "#4ade80", "#fde047", "#67e8f9"],
+  },
 ] as const;
 
-/** 5 curated playful accent colors specifically matched per theme */
+/** 6 curated playful accent colors specifically matched per theme */
 export const THEME_PALETTES: Record<ThemeId, string[]> = {
-  dark: ["#c3ec52", "#38bdf8", "#f43f5e", "#a855f7", "#fbbf24"],
-  light: ["#2563eb", "#059669", "#d97706", "#7c3aed", "#e11d48"],
-  oled: ["#00ffcc", "#ff007f", "#39ff14", "#ffe600", "#7928ca"],
-  midnight: ["#38bdf8", "#818cf8", "#f472b6", "#34d399", "#fb923c"],
-  rose: ["#f472b6", "#fb7185", "#c084fc", "#fbb034", "#38bdf8"],
-  forest: ["#4ade80", "#a3e635", "#2dd4bf", "#facc15", "#f87171"],
-  sunset: ["#fb923c", "#f87171", "#fbbf24", "#e879f9", "#38bdf8"],
-  nord: ["#88c0d0", "#81a1c1", "#a3be8c", "#ebcb8b", "#b48ead"],
-  cream: ["#d97706", "#059669", "#dc2626", "#4f46e5", "#b45309"],
+  dark: ["#c3ec52", "#38bdf8", "#f43f5e", "#a855f7", "#fbbf24", "#2dd4bf"],
+  light: ["#2563eb", "#059669", "#d97706", "#7c3aed", "#e11d48", "#0891b2"],
+  oled: ["#00ffcc", "#ff007f", "#39ff14", "#ffe600", "#7928ca", "#00b4d8"],
+  midnight: ["#38bdf8", "#818cf8", "#f472b6", "#34d399", "#fb923c", "#facc15"],
+  rose: ["#f472b6", "#fb7185", "#c084fc", "#fbb034", "#38bdf8", "#4ade80"],
+  forest: ["#4ade80", "#a3e635", "#2dd4bf", "#facc15", "#f87171", "#38bdf8"],
+  sunset: ["#fb923c", "#f87171", "#fbbf24", "#e879f9", "#38bdf8", "#4ade80"],
+  nord: ["#88c0d0", "#81a1c1", "#a3be8c", "#ebcb8b", "#b48ead", "#bf616a"],
+  cream: ["#d97706", "#059669", "#dc2626", "#4f46e5", "#b45309", "#0d9488"],
+  synthwave: ["#ff2a85", "#00f5d4", "#fee440", "#c77dff", "#38bdf8", "#ff6b6b"],
+  candy: ["#ff3e9d", "#7c3aed", "#0284c7", "#eab308", "#10b981", "#f43f5e"],
+  arcade: ["#39ff14", "#fde047", "#38bdf8", "#f472b6", "#a855f7", "#fb923c"],
+  tropical: ["#ff6b6b", "#fde047", "#2dd4bf", "#fb923c", "#a3e635", "#f472b6"],
+  aurora: ["#2dd4bf", "#f472b6", "#a78bfa", "#34d399", "#38bdf8", "#facc15"],
+  holi: ["#f97316", "#4ade80", "#fde047", "#06b6d4", "#ec4899", "#a855f7"],
 };
 
 export const isTheme = (v: unknown): v is ThemeId =>

@@ -46,6 +46,12 @@ const THEME: Record<string, { color: string; symbolColor: string }> = {
   sunset: { color: "#140D0A", symbolColor: "#F6ECE6" },
   nord: { color: "#1E222A", symbolColor: "#ECEFF4" },
   cream: { color: "#F2ECE1", symbolColor: "#1F1B16" },
+  synthwave: { color: "#0d061a", symbolColor: "#fdf2ff" },
+  candy: { color: "#fff0f6", symbolColor: "#2d0a31" },
+  arcade: { color: "#090d1e", symbolColor: "#f8fafc" },
+  tropical: { color: "#061a17", symbolColor: "#f0fdfa" },
+  aurora: { color: "#07131f", symbolColor: "#ecfeff" },
+  holi: { color: "#160924", symbolColor: "#fff8f0" },
 };
 
 interface WindowState {
