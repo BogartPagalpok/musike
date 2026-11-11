@@ -107,6 +107,9 @@ export const THEMES: readonly ThemeMeta[] = [
   },
 ] as const;
 
+export const CLASSIC_THEMES = THEMES.filter((t) => !t.palette);
+export const PLAYFUL_THEMES = THEMES.filter((t) => !!t.palette);
+
 /** 6 curated playful accent colors specifically matched per theme */
 export const THEME_PALETTES: Record<ThemeId, string[]> = {
   dark: ["#c3ec52", "#38bdf8", "#f43f5e", "#a855f7", "#fbbf24", "#2dd4bf"],
@@ -207,13 +210,13 @@ export function inkFor(hex: string): string {
   return contrast(base, BLACK) >= contrast(base, WHITE) ? "#0b0c0f" : "#ffffff";
 }
 
-/** CSS that overrides the theme's accent variables across all themes. Selectors outrank styles.css whatever the load order. */
+/** CSS that overrides the theme's accent variables across classic themes. Playful multi-color themes keep their native 6-color harmony. */
 export function accentCss(hex: string): string {
   const base = toRgb(hex);
   const ink = inkFor(hex);
   const rgb = (c: Rgb) => c.map(Math.round).join(" ");
 
-  return THEMES.map((theme) => {
+  return CLASSIC_THEMES.map((theme) => {
     const isLight = theme.scheme === "light";
     const text = readable(base, isLight ? BLACK : WHITE, theme.surfaceRgb);
     const softRgb = isLight ? rgb(text) : rgb(base);

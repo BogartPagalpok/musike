@@ -3,12 +3,13 @@ import {
   CheckCircleIcon,
   CheckIcon,
   DownloadSimpleIcon,
+  SparkleIcon,
   UserIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useT } from "../i18n";
-import { THEMES } from "../lib/accent";
+import { CLASSIC_THEMES, DEFAULT_ACCENT, PLAYFUL_THEMES, THEME_PALETTES } from "../lib/accent";
 import { capabilities, type Channel } from "../lib/api";
 import { cn } from "../lib/format";
 import { useAppearance } from "../stores/appearance";
@@ -81,6 +82,7 @@ export function SettingsDialog() {
   const theme = useUi((s) => s.theme);
   const setTheme = useUi((s) => s.setTheme);
   const accent = useAppearance((s) => s.accent);
+  const setAppearance = useAppearance((s) => s.set);
   const { info, status, load, update } = useSystem();
   const [channel, setChannel] = useState<Channel>("stable");
   const logBox = useRef<HTMLPreElement>(null);
@@ -128,54 +130,132 @@ export function SettingsDialog() {
 
         <section className="flex flex-col gap-2.5">
           <h3 className="text-xs font-medium text-fg-3">{t.settings.appearance}</h3>
-          <div className="flex flex-col gap-2 rounded-[16px] bg-surface-1 p-3.5 ring-1 ring-line">
-            <span className="text-[13px] font-medium text-fg-2">{t.settings.theme}</span>
-            <div role="radiogroup" aria-label={t.settings.theme} className="grid grid-cols-3 gap-2">
-              {THEMES.map((item) => {
-                const active = theme === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    role="radio"
-                    aria-checked={active}
-                    onClick={() => setTheme(item.id)}
-                    className={cn(
-                      "group relative flex flex-col gap-1.5 rounded-[12px] p-2 text-left transition-all",
-                      active
-                        ? "bg-surface-3 ring-2 ring-accent"
-                        : "bg-surface-2 ring-1 ring-line hover:ring-line-strong",
-                    )}
-                  >
-                    <div
-                      className="flex h-9 w-full items-center justify-between rounded-[8px] px-2 ring-1 ring-black/15"
-                      style={{ backgroundColor: item.bg }}
+          <div className="flex flex-col gap-3.5 rounded-[16px] bg-surface-1 p-3.5 ring-1 ring-line">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-[13px] font-semibold text-fg">
+                  <SparkleIcon size={15} weight="fill" className="text-accent-text" />
+                  Playful Multi-Color Themes (6+ Colors)
+                </span>
+                <span className="rounded-full bg-accent-soft px-2 py-0.5 text-[10px] font-semibold text-accent-text">
+                  6-Color Harmony
+                </span>
+              </div>
+              <div role="radiogroup" aria-label="Playful Multi-Color Themes" className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {PLAYFUL_THEMES.map((item) => {
+                  const active = theme === item.id;
+                  const colors = item.palette ?? THEME_PALETTES[item.id];
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => {
+                        setTheme(item.id);
+                        setAppearance({ accent: DEFAULT_ACCENT });
+                      }}
+                      className={cn(
+                        "group relative flex flex-col gap-1.5 rounded-[12px] p-2 text-left transition-all",
+                        active
+                          ? "bg-surface-3 ring-2 ring-accent shadow-sm"
+                          : "bg-surface-2 ring-1 ring-line hover:ring-line-strong",
+                      )}
                     >
-                      <span
-                        className="flex h-5 w-9 items-center gap-1 rounded-[5px] px-1.5"
-                        style={{ backgroundColor: item.surface2 }}
+                      <div
+                        className="relative flex h-11 w-full flex-col justify-between overflow-hidden rounded-[8px] p-1.5 ring-1 ring-black/20"
+                        style={{ backgroundColor: item.bg }}
+                      >
+                        <div className="flex items-center justify-between gap-1">
+                          <span
+                            className="flex h-4 items-center gap-1 rounded-[4px] px-1.5"
+                            style={{ backgroundColor: item.surface2 }}
+                          >
+                            {colors.slice(2, 5).map((c) => (
+                              <span key={c} className="size-1.5 rounded-full" style={{ backgroundColor: c }} />
+                            ))}
+                          </span>
+                          {active && (
+                            <span className="grid size-4 place-items-center rounded-full bg-accent text-accent-ink">
+                              <CheckIcon size={10} weight="bold" />
+                            </span>
+                          )}
+                        </div>
+                        {/* 6-Color Spectrum Bar */}
+                        <div className="grid h-2.5 w-full grid-cols-6 overflow-hidden rounded-[4px] ring-1 ring-white/15">
+                          {colors.map((c) => (
+                            <span key={c} className="h-full w-full" style={{ backgroundColor: c }} />
+                          ))}
+                        </div>
+                      </div>
+                      <span className={cn("truncate text-xs", active ? "font-semibold text-fg" : "font-medium text-fg-2")}>
+                        {t.settings.themes[item.id]}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="h-px bg-line" />
+
+            <div className="flex flex-col gap-2">
+              <span className="text-[13px] font-medium text-fg-2">{t.settings.theme} (Classic)</span>
+              <div role="radiogroup" aria-label={t.settings.theme} className="grid grid-cols-3 gap-2">
+                {CLASSIC_THEMES.map((item) => {
+                  const active = theme === item.id;
+                  const subPalette = THEME_PALETTES[item.id];
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => setTheme(item.id)}
+                      className={cn(
+                        "group relative flex flex-col gap-1.5 rounded-[12px] p-2 text-left transition-all",
+                        active
+                          ? "bg-surface-3 ring-2 ring-accent"
+                          : "bg-surface-2 ring-1 ring-line hover:ring-line-strong",
+                      )}
+                    >
+                      <div
+                        className="flex h-9 w-full items-center justify-between rounded-[8px] px-2 ring-1 ring-black/15"
+                        style={{ backgroundColor: item.bg }}
                       >
                         <span
-                          className="size-2 rounded-full"
-                          style={{ backgroundColor: accent }}
-                        />
-                        <span
-                          className="h-1 flex-1 rounded-full opacity-75"
-                          style={{ backgroundColor: item.fg }}
-                        />
-                      </span>
-                      {active && (
-                        <span className="grid size-4 place-items-center rounded-full bg-accent text-accent-ink">
-                          <CheckIcon size={10} weight="bold" />
+                          className="flex h-5 w-9 items-center gap-1 rounded-[5px] px-1.5"
+                          style={{ backgroundColor: item.surface2 }}
+                        >
+                          <span
+                            className="size-2 rounded-full"
+                            style={{ backgroundColor: accent }}
+                          />
+                          <span
+                            className="h-1 flex-1 rounded-full opacity-75"
+                            style={{ backgroundColor: item.fg }}
+                          />
                         </span>
-                      )}
-                    </div>
-                    <span className={cn("truncate text-xs", active ? "font-semibold text-fg" : "font-medium text-fg-2")}>
-                      {t.settings.themes[item.id]}
-                    </span>
-                  </button>
-                );
-              })}
+                        {active && (
+                          <span className="grid size-4 place-items-center rounded-full bg-accent text-accent-ink">
+                            <CheckIcon size={10} weight="bold" />
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className={cn("truncate text-xs", active ? "font-semibold text-fg" : "font-medium text-fg-2")}>
+                          {t.settings.themes[item.id]}
+                        </span>
+                        <span className="flex items-center gap-0.5">
+                          {subPalette.slice(0, 6).map((c) => (
+                            <span key={c} className="size-1.5 rounded-full" style={{ backgroundColor: c }} />
+                          ))}
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
           <AccentPicker />

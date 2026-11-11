@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { accentCss, DEFAULT_ACCENT, isHex } from "../lib/accent";
 
-export type LayoutTemplate = "default" | "center-lyrics";
+export type LayoutTemplate = "default" | "center-lyrics" | "cinema";
 
 /** How the app looks and what it shows, per device. The Now Playing panel lives in the UI store (it has a button too). */
 export interface Appearance {
@@ -9,6 +9,7 @@ export interface Appearance {
   sidebarPlaylists: boolean;
   compactSidebar: boolean;
   sidebarExpanded: boolean;
+  sidebarWidth: number;
   albumColumn: boolean;
   texture: boolean;
   homeShortcuts: boolean;
@@ -21,7 +22,8 @@ export const DEFAULT_APPEARANCE: Appearance = {
   accent: DEFAULT_ACCENT,
   sidebarPlaylists: true,
   compactSidebar: false,
-  sidebarExpanded: false,
+  sidebarExpanded: true,
+  sidebarWidth: 260,
   albumColumn: true,
   texture: true,
   homeShortcuts: true,
@@ -52,10 +54,13 @@ export function cleanAppearance(input: unknown): Appearance {
   const out: Appearance = { ...DEFAULT_APPEARANCE };
   if (isHex(v.accent)) out.accent = v.accent.toLowerCase();
   for (const k of Object.keys(DEFAULT_APPEARANCE) as (keyof Appearance)[]) {
-    if (k === "accent" || k === "layoutTemplate") continue;
+    if (k === "accent" || k === "layoutTemplate" || k === "sidebarWidth") continue;
     if (typeof v[k] === "boolean") (out[k] as boolean) = v[k];
   }
-  if (v.layoutTemplate === "center-lyrics" || v.layoutTemplate === "default") {
+  if (typeof v.sidebarWidth === "number" && v.sidebarWidth >= 200 && v.sidebarWidth <= 540) {
+    out.sidebarWidth = Math.round(v.sidebarWidth);
+  }
+  if (v.layoutTemplate === "center-lyrics" || v.layoutTemplate === "cinema" || v.layoutTemplate === "default") {
     out.layoutTemplate = v.layoutTemplate;
   }
   return out;

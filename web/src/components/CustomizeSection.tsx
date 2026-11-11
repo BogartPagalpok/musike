@@ -102,13 +102,16 @@ export function AccentPicker() {
         </button>
       </div>
 
-      {/* 5-Color Playful Palette matching the active theme */}
+      {/* 6-Color Playful Palette matching the active theme */}
       <div className="flex flex-col gap-1.5 rounded-[12px] bg-surface-2/60 p-2.5 ring-1 ring-line">
-        <div className="flex items-center gap-1.5 text-xs font-medium text-fg-3">
-          <SparkleIcon size={13} className="text-accent-text" />
-          <span>Playful palette for {theme}</span>
+        <div className="flex items-center justify-between gap-1.5 text-xs font-medium text-fg-3">
+          <span className="flex items-center gap-1.5">
+            <SparkleIcon size={13} className="text-accent-text" />
+            <span>6-Color Palette for {theme}</span>
+          </span>
+          <span className="text-[10px] opacity-75">6 harmonic tones</span>
         </div>
-        <div className="grid grid-cols-5 gap-2">
+        <div className="grid grid-cols-6 gap-1.5">
           {playfulPalette.map((color) => {
             const on = accent.toLowerCase() === color.toLowerCase();
             return (
@@ -317,34 +320,81 @@ export function LayoutSection() {
       <h3 className="text-xs font-medium text-fg-3">{t.customize.layout}</h3>
       
       {/* Overall Layout Template Selector */}
-      <div className="flex flex-col gap-2 rounded-[16px] bg-surface-1 p-3.5 ring-1 ring-line">
-        <span className="text-[13px] font-medium text-fg-2">Overall Layout Template</span>
-        <div className="grid grid-cols-2 gap-2">
+      <div className="flex flex-col gap-2.5 rounded-[16px] bg-surface-1 p-3.5 ring-1 ring-line">
+        <div className="flex items-center justify-between">
+          <span className="text-[13px] font-semibold text-fg">Workspace Layout Template</span>
+          <span className="text-[11px] text-fg-3">Full-app layout overhaul</span>
+        </div>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <button
             type="button"
             onClick={() => a.set({ layoutTemplate: "default" })}
             className={cn(
-              "flex flex-col items-start gap-1 rounded-[12px] p-2.5 text-left ring-1 transition-colors",
+              "flex flex-col items-start gap-2 rounded-[12px] p-2.5 text-left ring-1 transition-all",
               a.layoutTemplate === "default"
-                ? "bg-accent-soft text-accent-text ring-accent/40"
+                ? "bg-accent-soft text-accent-text ring-2 ring-accent"
                 : "bg-surface-2 text-fg-2 ring-line hover:text-fg",
             )}
           >
-            <span className="text-xs font-semibold">Standard Explorer</span>
-            <span className="text-[11px] opacity-80">Catalog & charts in center, stage in side dock</span>
+            {/* Schematic diagram */}
+            <div className="flex h-11 w-full gap-1 rounded-[6px] bg-bg/60 p-1 ring-1 ring-line">
+              <span className="h-full w-3 rounded-[3px] bg-surface-4" />
+              <span className="h-full flex-1 rounded-[3px] bg-accent/35" />
+              <span className="h-full w-4 rounded-[3px] bg-surface-3" />
+            </div>
+            <div>
+              <span className="block text-xs font-semibold">Classic Explorer</span>
+              <span className="block text-[10px] leading-snug opacity-80">Sidebar nav, catalog in center, Playing & Queue dock</span>
+            </div>
           </button>
+
           <button
             type="button"
-            onClick={() => a.set({ layoutTemplate: "center-lyrics" })}
+            onClick={() => a.set({ layoutTemplate: "center-lyrics", compactSidebar: false })}
             className={cn(
-              "flex flex-col items-start gap-1 rounded-[12px] p-2.5 text-left ring-1 transition-colors",
+              "flex flex-col items-start gap-2 rounded-[12px] p-2.5 text-left ring-1 transition-all",
               a.layoutTemplate === "center-lyrics"
-                ? "bg-accent-soft text-accent-text ring-accent/40"
+                ? "bg-accent-soft text-accent-text ring-2 ring-accent"
                 : "bg-surface-2 text-fg-2 ring-line hover:text-fg",
             )}
           >
-            <span className="text-xs font-semibold">Stage & Lyrics Focus</span>
-            <span className="text-[11px] opacity-80">Big player & karaoke lyrics in middle, home on side</span>
+            {/* Schematic diagram */}
+            <div className="flex h-11 w-full gap-1 rounded-[6px] bg-bg/60 p-1 ring-1 ring-line">
+              <span className="h-full w-6 rounded-[3px] bg-surface-4 ring-1 ring-accent/40" />
+              <span className="flex h-full flex-1 flex-col gap-0.5 rounded-[3px] bg-accent/40 p-0.5">
+                <span className="h-1/2 w-full rounded-[2px] bg-accent/70" />
+                <span className="h-1/2 w-full rounded-[2px] bg-surface-1/70" />
+              </span>
+              <span className="h-full w-4 rounded-[3px] bg-surface-3" />
+            </div>
+            <div>
+              <span className="block text-xs font-semibold">Center Stage & Karaoke</span>
+              <span className="block text-[10px] leading-snug opacity-80">Home & Browse in expandable sidebar, huge player & lyrics in center</span>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => a.set({ layoutTemplate: "cinema", compactSidebar: false })}
+            className={cn(
+              "flex flex-col items-start gap-2 rounded-[12px] p-2.5 text-left ring-1 transition-all",
+              a.layoutTemplate === "cinema"
+                ? "bg-accent-soft text-accent-text ring-2 ring-accent"
+                : "bg-surface-2 text-fg-2 ring-line hover:text-fg",
+            )}
+          >
+            {/* Schematic diagram */}
+            <div className="flex h-11 w-full flex-col gap-1 rounded-[6px] bg-bg/60 p-1 ring-1 ring-line">
+              <span className="flex h-6 w-full gap-1">
+                <span className="h-full flex-1 rounded-[3px] bg-accent/60" />
+                <span className="h-full w-8 rounded-[3px] bg-accent/30" />
+              </span>
+              <span className="h-3 w-full rounded-[3px] bg-surface-4" />
+            </div>
+            <div>
+              <span className="block text-xs font-semibold">Cinema Split Deck</span>
+              <span className="block text-[10px] leading-snug opacity-80">720p HD widescreen theater + side-by-side lyrics & bottom browse</span>
+            </div>
           </button>
         </div>
       </div>
