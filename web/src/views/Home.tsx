@@ -1,4 +1,4 @@
-import { CaretDownIcon, CaretUpIcon, ClockCounterClockwiseIcon, HeartIcon, PlayIcon, TrendUpIcon } from "@phosphor-icons/react";
+import { CaretDownIcon, CaretUpIcon, ClockCounterClockwiseIcon, DownloadSimpleIcon, HeartIcon, PlayIcon, TrendUpIcon } from "@phosphor-icons/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Artwork } from "../components/Artwork";
@@ -13,6 +13,7 @@ import type { ChartsData, Track } from "../lib/types";
 import { usePlayer } from "../player/player";
 import { useAppearance } from "../stores/appearance";
 import { useLibrary } from "../stores/library";
+import { useOffline } from "../stores/offline";
 
 let chartsMemo: { lang: string; data: ChartsData } | null = null;
 
@@ -170,10 +171,11 @@ function Top50Section() {
 
 export default function Home() {
   const { favorites, playlists, history, status } = useLibrary();
+  const offlineTracks = useOffline((s) => s.tracks);
   const playList = usePlayer((s) => s.playList);
   const t = useT();
   const show = useAppearance();
-  const empty = status === "ready" && !favorites.length && !playlists.length && !history.length;
+  const empty = status === "ready" && !favorites.length && !playlists.length && !history.length && !offlineTracks.length;
 
   return (
     <div className="pb-8">
@@ -196,6 +198,16 @@ export default function Home() {
                 cover={
                   <span className="grid size-full place-items-center bg-accent-soft text-accent-text">
                     <HeartIcon size={24} weight="fill" />
+                  </span>
+                }
+              />
+              <Shortcut
+                to={paths.downloads}
+                label={t.nav.downloads}
+                tracks={offlineTracks}
+                cover={
+                  <span className="grid size-full place-items-center bg-surface-3 text-accent-text">
+                    <DownloadSimpleIcon size={24} weight="bold" />
                   </span>
                 }
               />

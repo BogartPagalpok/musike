@@ -87,12 +87,12 @@ export async function proxyStream(req: FastifyRequest, reply: FastifyReply, id: 
   return reply.send(buf);
 }
 
-async function fastDownloadBuffer(url: string, headers: Record<string, string>, signal: AbortSignal): Promise<Buffer> {
+async function fetchFullStreamBuffer(url: string, headers: Record<string, string>, signal: AbortSignal): Promise<Buffer> {
   const first = await fetch(url, {
     headers: { ...headers, Range: `bytes=0-${CHUNK_BYTES - 1}` },
     signal,
   });
-  if (!first.ok) throw new HttpError(first.status === 403 ? 403 : 502, msg("streamRefused", { status: first.status }));
+  if (!first.ok) throw new HttpError(502, msg("streamRefused", { status: first.status }), "maybe_outdated");
   const firstBuf = Buffer.from(await first.arrayBuffer());
   const cr = first.headers.get("content-range");
   const total = cr ? Number(cr.split("/")[1]) : firstBuf.byteLength;
@@ -102,7 +102,6 @@ async function fastDownloadBuffer(url: string, headers: Record<string, string>, 
   for (let start = CHUNK_BYTES; start < total; start += CHUNK_BYTES) {
     ranges.push([start, Math.min(total - 1, start + CHUNK_BYTES - 1)]);
   }
-
   const parts = new Array<Buffer>(ranges.length);
   let nextIdx = 0;
   await Promise.all(
@@ -110,20 +109,19 @@ async function fastDownloadBuffer(url: string, headers: Record<string, string>, 
       while (nextIdx < ranges.length) {
         const i = nextIdx++;
         const [start, end] = ranges[i]!;
-        const res = await fetch(url, {
+        const r = await fetch(url, {
           headers: { ...headers, Range: `bytes=${start}-${end}` },
           signal,
         });
-        if (!res.ok) throw new HttpError(502, msg("streamRefused", { status: res.status }));
-        parts[i] = Buffer.from(await res.arrayBuffer());
+        if (!r.ok) throw new HttpError(502, msg("streamRefused", { status: r.status }), "maybe_outdated");
+        parts[i] = Buffer.from(await r.arrayBuffer());
       }
     }),
   );
-
   return Buffer.concat([firstBuf, ...parts]);
 }
 
-/** Downloads the full audio or video track with a Content-Disposition attachment filename. */
+/** Downloads the full audio or video track using fast parallel chunks. */
 export async function downloadStream(
   req: FastifyRequest,
   reply: FastifyReply,
@@ -146,17 +144,16 @@ export async function downloadStream(
 
   let buf: Buffer;
   try {
-    buf = await fastDownloadBuffer(fmt.url, fmt.headers, controller.signal);
+    buf = await fetchFullStreamBuffer(fmt.url, fmt.headers, controller.signal);
   } catch {
     invalidate(id);
     const fresh = await resolveStreams(id);
     const freshFmt = kind === "video" ? ((await resolveVideoStream(id)) ?? fresh.audio) : fresh.audio;
-    buf = await fastDownloadBuffer(freshFmt.url, freshFmt.headers, controller.signal);
+    buf = await fetchFullStreamBuffer(freshFmt.url, freshFmt.headers, controller.signal);
   }
 
   reply.code(200);
   reply.header("content-type", fmt.mime);
-  reply.header("cache-control", "no-store");
   reply.header("content-disposition", `attachment; filename="${safeAscii}.${ext}"; filename*=UTF-8''${utf8Name}`);
   reply.header("content-length", buf.byteLength);
   return reply.send(buf);

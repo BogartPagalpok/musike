@@ -1,6 +1,5 @@
 import {
   CaretDownIcon,
-  DownloadSimpleIcon,
   EqualizerIcon,
   MagnifyingGlassIcon,
   MicrophoneStageIcon,
@@ -13,14 +12,13 @@ import { AnimatePresence, motion, useDragControls, useReducedMotion } from "moti
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useT } from "../i18n";
-import { downloadTrack } from "../lib/api";
 import { cn } from "../lib/format";
 import type { Track } from "../lib/types";
 import { useEqualizer } from "../player/equalizer";
 import { selectCurrent, usePlayer, useStatusText } from "../player/player";
-import { toast, useUi, type PanelTab } from "../stores/ui";
+import { useUi, type PanelTab } from "../stores/ui";
 import { Artwork } from "./Artwork";
-import { FavoriteButton, ModeSwitch, Scrubber, Transport } from "./Controls";
+import { FavoriteButton, ModeSwitch, OfflineButton, Scrubber, Transport } from "./Controls";
 import { IconButton } from "./IconButton";
 import { LyricsView } from "./Lyrics";
 import { QueueList } from "./Queue";
@@ -80,7 +78,6 @@ function Stage({ track, slot, className }: { track: Track; slot: number; classNa
 function TrackHeading({ track, large = false }: { track: Track; large?: boolean }) {
   const statusText = useStatusText();
   const status = usePlayer((s) => s.status);
-  const t = useT();
   return (
     <div className="flex items-center gap-1.5">
       <div className="min-w-0 flex-1">
@@ -89,16 +86,7 @@ function TrackHeading({ track, large = false }: { track: Track; large?: boolean 
           {statusText ?? [track.artist, track.album].filter(Boolean).join(" · ")}
         </p>
       </div>
-      <IconButton
-        label={t.trackMenu.download}
-        size={large ? "lg" : "md"}
-        onClick={() => {
-          toast(t.trackMenu.downloading(track.title));
-          downloadTrack(track);
-        }}
-      >
-        <DownloadSimpleIcon size={large ? 22 : 19} />
-      </IconButton>
+      <OfflineButton track={track} size={large ? "lg" : "md"} />
       <FavoriteButton track={track} size={large ? "lg" : "md"} />
     </div>
   );

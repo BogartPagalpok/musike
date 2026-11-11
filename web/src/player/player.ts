@@ -6,6 +6,7 @@ import { shuffled } from "../lib/format";
 import type { Track } from "../lib/types";
 import { attachEqualizer, registerEqMedia, useEqualizer } from "./equalizer";
 import { useLibrary } from "../stores/library";
+import { getOfflineBlobUrl } from "../stores/offline";
 import { openSettings } from "../stores/system";
 import { toast } from "../stores/ui";
 
@@ -26,6 +27,8 @@ interface PlayerState {
   statusText: StatusNote | null;
   /** Which media element is driving playback right now. */
   mediaKind: Kind;
+  /** The actual YouTube video ID currently being streamed (either the track ID or its resolved music video clip ID). */
+  activeMediaId: string | null;
   /** Set when Video mode is on but the current song has no music video on YouTube. */
   videoNote: "noClip" | null;
   /** Intrinsic width/height of the current video, so vertical videos get a vertical stage. */
@@ -42,6 +45,7 @@ interface PlayerState {
   autoRadio: boolean;
 
   playList: (tracks: Track[], start?: number) => void;
+  playRelated: (track: Track) => void;
   playTrack: (track: Track) => void;
   playNext: (track: Track) => void;
   addToQueue: (track: Track) => void;
@@ -203,6 +207,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     }
 
     const kind = kindFor(track);
+    const mediaId = mediaIdFor(track, kind);
     const media = mediaFor(kind);
     stopAllMedia();
 
@@ -213,6 +218,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     set({
       index,
       mediaKind: kind,
+      activeMediaId: mediaId,
       status: autoplay ? "loading" : "paused",
       // Video may need a server-side download first (HD, or videos without a combined SD stream).
       statusText: kind === "video" ? (s.quality === "hd" ? "preparingHd" : "loadingVideo") : null,
@@ -231,15 +237,32 @@ export const usePlayer = create<PlayerState>((set, get) => {
       media.load();
       if (autoplay) play(media);
     };
-    // The server's proxy URL is known right away; on Android the stream is first resolved on the phone.
-    const source = streamSource(mediaIdFor(track, kind), kind, s.quality);
-    if (typeof source === "string") start(source);
-    else {
-      const mine = token;
-      source.then(
-        (src) => mine === token && start(src),
-        (err: ApiError) => mine === token && report(err.message, err.code),
-      );
+    const mine = token;
+    if (kind === "audio") {
+      void getOfflineBlobUrl(track.id).then((offlineSrc) => {
+        if (mine !== token) return;
+        if (offlineSrc) {
+          start(offlineSrc);
+          return;
+        }
+        const source = streamSource(mediaId, kind, s.quality);
+        if (typeof source === "string") start(source);
+        else {
+          source.then(
+            (src) => mine === token && start(src),
+            (err: ApiError) => mine === token && report(err.message, err.code),
+          );
+        }
+      });
+    } else {
+      const source = streamSource(mediaId, kind, s.quality);
+      if (typeof source === "string") start(source);
+      else {
+        source.then(
+          (src) => mine === token && start(src),
+          (err: ApiError) => mine === token && report(err.message, err.code),
+        );
+      }
     }
     setMetadata(track);
   }
@@ -420,6 +443,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     status: saved.queue?.length ? "paused" : "idle",
     statusText: null,
     mediaKind: "audio",
+    activeMediaId: saved.queue?.[saved.index ?? 0]?.id ?? null,
     videoNote: null,
     videoAspect: 16 / 9,
     position: saved.position ?? 0,
@@ -447,17 +471,35 @@ export const usePlayer = create<PlayerState>((set, get) => {
       }
     },
 
+    playRelated: (track) => {
+      set({ queue: [track], original: get().shuffle ? [track] : null });
+      load(0);
+      const startedToken = token;
+      void api
+        .radio(track.id)
+        .then((related) => {
+          if (startedToken !== token) return;
+          const more = related.filter((t) => t.id !== track.id);
+          if (!more.length) return;
+          set((st) => {
+            if (st.queue[0]?.id !== track.id) return st;
+            const seen = new Set(st.queue.map((x) => x.id));
+            const fresh = more.filter((x) => !seen.has(x.id));
+            const ordered = st.shuffle ? shuffled(fresh) : fresh;
+            return {
+              queue: [...st.queue, ...ordered],
+              original: st.original ? [...st.original, ...fresh] : null,
+            };
+          });
+        })
+        .catch(() => {});
+    },
+
     playTrack: (track) => {
       const s = get();
       const at = s.queue.findIndex((t) => t.id === track.id);
       if (at >= 0) return load(at);
-      if (!s.queue.length) return get().playList([track]);
-      const insert = s.index + 1;
-      set({
-        queue: [...s.queue.slice(0, insert), track, ...s.queue.slice(insert)],
-        original: s.original ? [...s.original, track] : null,
-      });
-      load(insert);
+      return get().playRelated(track);
     },
 
     playNext: (track) => {

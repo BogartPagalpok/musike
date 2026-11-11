@@ -1,9 +1,9 @@
-import { ClockCounterClockwiseIcon, HeartIcon } from "@phosphor-icons/react";
+import { ClockCounterClockwiseIcon, DownloadSimpleIcon, HeartIcon } from "@phosphor-icons/react";
 import { cn } from "../lib/format";
 import type { Track } from "../lib/types";
 import { Artwork } from "./Artwork";
 
-export type CoverKind = "playlist" | "favorites" | "history";
+export type CoverKind = "playlist" | "favorites" | "downloads" | "history";
 
 /** Playlist cover: a 2x2 mosaic from the first distinct covers, or a single cover / icon tile. */
 export function Cover({ kind, tracks, className, iconSize = 40 }: { kind: CoverKind; tracks: Track[]; className?: string; iconSize?: number }) {
@@ -11,6 +11,13 @@ export function Cover({ kind, tracks, className, iconSize = 40 }: { kind: CoverK
     return (
       <span className={cn("grid place-items-center bg-accent text-accent-ink", className)}>
         <HeartIcon size={iconSize} weight="fill" />
+      </span>
+    );
+  }
+  if (kind === "downloads") {
+    return (
+      <span className={cn("grid place-items-center bg-accent-soft text-accent-text", className)}>
+        <DownloadSimpleIcon size={iconSize} weight="bold" />
       </span>
     );
   }

@@ -56,6 +56,8 @@ export const en = {
     yourCollection: "Your collection",
     newPlaylist: "New playlist",
     favorites: "Favorites",
+    downloads: "Downloads",
+    offline: "Offline",
     recentlyPlayed: "Recently played",
     history: "History",
   },
@@ -98,6 +100,7 @@ export const en = {
   collection: {
     labelPlaylist: "Playlist",
     labelFavorites: "Collection",
+    labelDownloads: "Offline Library",
     labelHistory: "History",
     notFoundTitle: "Playlist not found",
     notFoundBody: "It may have been deleted.",
@@ -107,6 +110,7 @@ export const en = {
     emptyHistory: "Nothing played yet",
     empty: "Still empty",
     emptyFavoritesBody: "Tap the heart on any track to keep it here.",
+    emptyDownloadsBody: "Tap the download button on any song to save it for offline listening.",
     emptyHistoryBody: "Songs you listen to show up here.",
     emptyPlaylistBody: 'Search for songs and use "Add to playlist" in any track\'s menu.',
     rename: "Rename",
@@ -241,6 +245,7 @@ export const en = {
     notFound: "No lyrics found",
     notFoundBody: "We couldn't find lyrics for this track yet.",
     instrumental: "Instrumental track",
+    waitingForVocals: "♪ Waiting for vocals…",
     syncedHint: "Tap any line to jump to that part of the song",
   },
 
@@ -276,8 +281,11 @@ export const en = {
     addToPlaylist: "Add to playlist",
     removeFromPlaylist: "Remove from this playlist",
     openYoutube: "Open on YouTube",
-    download: "Download track",
-    downloading: (title: string) => `Downloading "${title}"…`,
+    download: "Save for offline",
+    removeOffline: "Remove from offline",
+    downloading: (title: string) => `Saving "${title}" for offline…`,
+    savedOffline: (title: string) => `"${title}" saved for offline listening`,
+    removedOffline: (title: string) => `"${title}" removed from offline downloads`,
   },
 
   trackList: {

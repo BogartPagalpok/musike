@@ -13,16 +13,18 @@ import { paths } from "../lib/routes";
 import type { Track } from "../lib/types";
 import { usePlayer } from "../player/player";
 import { useLibrary } from "../stores/library";
+import { useOffline } from "../stores/offline";
 
 interface Props {
   kind: CoverKind;
 }
 
-/** Playlist, Favorites and History share one layout. */
+/** Playlist, Favorites, Downloads and History share one layout. */
 export default function Collection({ kind }: Props) {
   const { id } = useParams();
   const navigate = useNavigate();
   const lib = useLibrary();
+  const offlineTracks = useOffline((s) => s.tracks);
   const playList = usePlayer((s) => s.playList);
   const toggle = usePlayer((s) => s.toggle);
   const queue = usePlayer((s) => s.queue);
@@ -33,10 +35,30 @@ export default function Collection({ kind }: Props) {
   const t = useT();
 
   const playlist = kind === "playlist" ? lib.playlists.find((p) => p.id === id) : undefined;
-  const tracks: Track[] = kind === "favorites" ? lib.favorites : kind === "history" ? lib.history : playlist?.tracks ?? [];
-  const name = kind === "favorites" ? t.nav.favorites : kind === "history" ? t.nav.recentlyPlayed : playlist?.name ?? "";
+  const tracks: Track[] =
+    kind === "favorites"
+      ? lib.favorites
+      : kind === "downloads"
+        ? offlineTracks
+        : kind === "history"
+          ? lib.history
+          : playlist?.tracks ?? [];
+  const name =
+    kind === "favorites"
+      ? t.nav.favorites
+      : kind === "downloads"
+        ? t.nav.downloads
+        : kind === "history"
+          ? t.nav.recentlyPlayed
+          : playlist?.name ?? "";
   const label =
-    kind === "playlist" ? t.collection.labelPlaylist : kind === "favorites" ? t.collection.labelFavorites : t.collection.labelHistory;
+    kind === "playlist"
+      ? t.collection.labelPlaylist
+      : kind === "favorites"
+        ? t.collection.labelFavorites
+        : kind === "downloads"
+          ? t.collection.labelDownloads
+          : t.collection.labelHistory;
 
   if (kind === "playlist" && !playlist) {
     if (lib.status !== "ready") return <PageHeader />;
@@ -123,9 +145,11 @@ export default function Collection({ kind }: Props) {
             body={
               kind === "favorites"
                 ? t.collection.emptyFavoritesBody
-                : kind === "history"
-                  ? t.collection.emptyHistoryBody
-                  : t.collection.emptyPlaylistBody
+                : kind === "downloads"
+                  ? t.collection.emptyDownloadsBody
+                  : kind === "history"
+                    ? t.collection.emptyHistoryBody
+                    : t.collection.emptyPlaylistBody
             }
             action={
               <Link to={paths.search} className="mt-2 h-11 rounded-full bg-accent px-6 text-sm leading-[44px] font-semibold text-accent-ink">

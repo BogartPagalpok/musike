@@ -8,6 +8,7 @@ export const paths = {
   album: (id: string) => `/search/album/${id}`,
   library: "/library",
   favorites: "/favorites",
+  downloads: "/downloads",
   history: "/history",
   playlist: (id: string) => `/playlist/${id}`,
 };

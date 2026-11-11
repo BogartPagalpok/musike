@@ -1,6 +1,7 @@
 import {
   BooksIcon,
   ClockCounterClockwiseIcon,
+  DownloadSimpleIcon,
   GearSixIcon,
   HeartIcon,
   HouseIcon,
@@ -14,6 +15,7 @@ import { cn } from "../lib/format";
 import { paths } from "../lib/routes";
 import { useAppearance } from "../stores/appearance";
 import { useLibrary } from "../stores/library";
+import { useOffline } from "../stores/offline";
 import { needsAttention, useSystem } from "../stores/system";
 import { useUi } from "../stores/ui";
 import { Artwork } from "./Artwork";
@@ -97,6 +99,7 @@ export function Rail() {
   const sidebarPlaylists = useAppearance((s) => s.sidebarPlaylists);
   const playlists = useLibrary((s) => s.playlists);
   const favorites = useLibrary((s) => s.favorites);
+  const offlineTracks = useOffline((s) => s.tracks);
   const createPlaylist = useLibrary((s) => s.createPlaylist);
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
@@ -154,6 +157,11 @@ export function Rail() {
           <RailLink to={paths.favorites} label={t.nav.favorites} sub={t.common.tracks(favorites.length)}>
             <span className="grid size-full place-items-center bg-accent-soft text-accent-text">
               <HeartIcon size={20} weight="fill" />
+            </span>
+          </RailLink>
+          <RailLink to={paths.downloads} label={t.nav.downloads} sub={t.common.tracks(offlineTracks.length)}>
+            <span className="grid size-full place-items-center bg-surface-3 text-accent-text">
+              <DownloadSimpleIcon size={20} weight="bold" />
             </span>
           </RailLink>
           <RailLink to={paths.history} label={t.nav.recentlyPlayed} sub={t.nav.history}>

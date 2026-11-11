@@ -1,6 +1,6 @@
 import type { Innertube } from "youtubei.js";
 import { isLang, msg, type Lang } from "./i18n.js";
-import { sized, text, toTrack, withClient } from "./search.js";
+import { radio, search, sized, text, toTrack, withClient } from "./search.js";
 import type { Track } from "./types.js";
 import { HttpError, VIDEO_ID } from "./types.js";
 
@@ -321,16 +321,22 @@ function albumCard(item: any): AlbumCard | null {
   };
 }
 
-const albumCards = (items: any[]) => items.map(albumCard).filter((a): a is AlbumCard => !!a && !!a.title);
+const isSingleItem = (item: any): boolean => /\b(single|sencillo)\b/i.test(text(item?.subtitle));
+
+const albumCards = (items: any[], excludeSingles = false) => {
+  const filtered = excludeSingles ? items.filter((i) => !isSingleItem(i)) : items;
+  const source = filtered.length > 0 ? filtered : items;
+  return source.map(albumCard).filter((a): a is AlbumCard => !!a && !!a.title);
+};
 
 /** Every album of an artist: the page shows ten, its "more" link opens the whole discography. */
 async function allAlbums(shelf: any, lang: Lang): Promise<AlbumCard[]> {
-  const shown = albumCards(itemsOf(shelf));
+  const shown = albumCards(itemsOf(shelf), true);
   const more = shelf?.header?.more_content?.endpoint?.payload;
   if (!more?.browseId) return shown;
   try {
     const page = await withClient((yt) => browse(yt, { browseId: more.browseId, params: more.params }), lang);
-    const all = albumCards(page.contents_memo?.get("MusicTwoRowItem") ?? []);
+    const all = albumCards(page.contents_memo?.get("MusicTwoRowItem") ?? [], true);
     return all.length >= shown.length ? all : shown;
   } catch {
     return shown;
@@ -344,8 +350,10 @@ const artistPage = cached(30 * MINUTE, async (key): Promise<ArtistPage> => {
   });
   const header: any = page.header;
   const shelf: any = page.sections.find((s) => s.type === "MusicShelf");
-  // Album shelves are told apart by what they hold, not by their (translated) titles: albums come first, then singles.
-  const releaseShelves: any[] = page.sections.filter((s: any) => itemsOf(s).some((i) => i.item_type === "album"));
+  // Album shelves are told apart by what they hold, not by their (translated) titles: filter out 1-song singles.
+  const releaseShelves: any[] = page.sections.filter((s: any) =>
+    itemsOf(s).some((i) => i.item_type === "album" && !isSingleItem(i)),
+  );
   let items: any[] = itemsOf(shelf);
   // The shelf shows 5; its "show all" link is a playlist with the full ranking.
   const fullList = shelf?.endpoint?.payload?.browseId;
@@ -365,7 +373,7 @@ const artistPage = cached(30 * MINUTE, async (key): Promise<ArtistPage> => {
     banner: typeof banner === "string" && banner.startsWith("https://") ? banner : "",
     tracks,
     albums,
-    singles: releaseShelves[1] ? albumCards(itemsOf(releaseShelves[1])) : [],
+    singles: [],
   };
 });
 
@@ -380,16 +388,16 @@ const albumPage = cached(60 * MINUTE, async (key): Promise<AlbumPage> => {
   const header = album.header;
   const title = text(header?.title);
   const artistRuns: any[] = header?.strapline_text_one?.runs ?? [];
-  const artist = text(header?.strapline_text_one) || text(header?.author?.name);
+  const artistName = text(header?.strapline_text_one) || text(header?.author?.name);
   const artistId: string | null = artistRuns.map((r) => r?.endpoint?.payload?.browseId).find((b) => ARTIST_ID.test(b ?? "")) ?? null;
   const cover = imagesOf(header);
-  const tracks = (album.contents ?? [])
+  let tracks: Track[] = (album.contents ?? [])
     .filter((i: any) => typeof i?.id === "string" && VIDEO_ID.test(i.id))
     .map(
       (i: any): Track => ({
         id: i.id,
         title: text(i.title) || "Untitled",
-        artist: (i.artists ?? []).map((a: { name?: string }) => text(a?.name)).filter(Boolean).join(", ") || artist,
+        artist: (i.artists ?? []).map((a: { name?: string }) => text(a?.name)).filter(Boolean).join(", ") || artistName,
         album: title,
         duration: i.duration?.seconds ?? 0,
         thumb: sized(cover.art, 120),
@@ -398,13 +406,30 @@ const albumPage = cached(60 * MINUTE, async (key): Promise<AlbumPage> => {
       }),
     );
   if (!title && !tracks.length) throw new HttpError(404, msg("albumNotFound"));
+
+  let kindLabel = text(header?.subtitle);
+  let infoLabel = text(header?.second_subtitle);
+
+  // Never let an album be composed of just 1-3 songs: dynamically expand singles/short releases
+  // with the artist's catalog and related tracks.
+  if (tracks.length < 5) {
+    const seedId = tracks[0]?.id;
+    const [artistTracks, relatedTracks] = await Promise.all([
+      artistName ? search(artistName, "song", lang).catch(() => [] as Track[]) : Promise.resolve([] as Track[]),
+      seedId ? radio(seedId).catch(() => [] as Track[]) : Promise.resolve([] as Track[]),
+    ]);
+    tracks = uniqueTracks([...tracks, ...artistTracks.slice(0, 10), ...relatedTracks]).slice(0, 18);
+    kindLabel = kindLabel.replace(/\b(Single|Sencillo)\b/i, "Dynamic Album");
+    infoLabel = `${tracks.length} songs`;
+  }
+
   return {
     id,
     title,
-    artist,
+    artist: artistName,
     artistId,
-    kind: text(header?.subtitle),
-    info: text(header?.second_subtitle),
+    kind: kindLabel,
+    info: infoLabel,
     thumb: cover.thumb,
     art: cover.art,
     tracks,
@@ -415,7 +440,7 @@ export const album = (id: string, lang: Lang) => albumPage(keyOf(lang, id));
 
 export async function searchAlbums(query: string, lang: Lang): Promise<AlbumCard[]> {
   const result: any = await withClient((yt) => yt.music.search(query, { type: "album" }), lang);
-  return albumCards(itemsOf(result.contents?.[0]));
+  return albumCards(itemsOf(result.contents?.[0]), true);
 }
 
 const GLOBAL_HIT_LIST = "VLRDCLAK5uy_kmPRjHDECIcuVwnKsx2Ng7fyNgFKWNJFs";

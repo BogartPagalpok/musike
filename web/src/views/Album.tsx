@@ -1,21 +1,30 @@
-import { ArrowRightIcon, MusicNotesIcon, PauseIcon, PlayIcon, PlaylistIcon, ShuffleIcon, WarningCircleIcon } from "@phosphor-icons/react";
-import { useState } from "react";
+import {
+  ArrowRightIcon,
+  ArrowsClockwiseIcon,
+  MusicNotesIcon,
+  PauseIcon,
+  PlayIcon,
+  PlaylistIcon,
+  ShuffleIcon,
+  SparkleIcon,
+  WarningCircleIcon,
+} from "@phosphor-icons/react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router";
 import { Artwork } from "../components/Artwork";
 import { IconButton, PlayDisc } from "../components/IconButton";
 import { BackButton, EmptyState, PageHeader } from "../components/Page";
-import { SelectableTrackList } from "../components/Selection";
-import { TrackListSkeleton } from "../components/TrackList";
+import { TrackList, TrackListSkeleton } from "../components/TrackList";
 import { useRemote } from "../hooks/useRemote";
 import { useI18n, useT } from "../i18n";
 import { api } from "../lib/api";
 import { shuffled } from "../lib/format";
 import { paths } from "../lib/routes";
-import type { AlbumPage } from "../lib/types";
+import type { AlbumPage, Track } from "../lib/types";
 import { usePlayer } from "../player/player";
 import { useLibrary } from "../stores/library";
 
-/** An album, its tracks in their original order: play it whole, shuffle it, save it or pick from it. */
+/** An album, its tracks arranged like Spotify with dynamic related recommendations. */
 export default function Album() {
   const { id = "" } = useParams();
   const location = useLocation();
@@ -29,12 +38,45 @@ export default function Album() {
   const createPlaylist = useLibrary((s) => s.createPlaylist);
   const [saved, setSaved] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [recommended, setRecommended] = useState<Track[]>([]);
+  const [loadingRecs, setLoadingRecs] = useState(false);
 
   const album = page.status === "ok" ? page.data : null;
-  const tracks = album?.tracks ?? [];
+  const baseTracks = album?.tracks ?? [];
+
+  // Dynamically fetch related songs for the album (and automatically merge if the release had fewer than 5 tracks)
+  const loadRecommendations = async (seedTracks: Track[]) => {
+    if (!seedTracks.length) return;
+    setLoadingRecs(true);
+    try {
+      const seed = seedTracks[Math.floor(Math.random() * Math.min(3, seedTracks.length))] ?? seedTracks[0]!;
+      const related = await api.radio(seed.id);
+      const existing = new Set(seedTracks.map((x) => x.id));
+      setRecommended(related.filter((x) => !existing.has(x.id)).slice(0, 12));
+    } catch {
+      /* ignore */
+    } finally {
+      setLoadingRecs(false);
+    }
+  };
+
+  useEffect(() => {
+    setRecommended([]);
+    if (baseTracks.length > 0) {
+      void loadRecommendations(baseTracks);
+    }
+  }, [id, baseTracks.length]);
+
+  // Never allow a 1-song album: if the release has < 5 tracks, merge dynamic recommendations directly into the album list
+  const tracks =
+    baseTracks.length > 0 && baseTracks.length < 5 && recommended.length > 0
+      ? [...baseTracks, ...recommended.slice(0, 12 - baseTracks.length)]
+      : baseTracks;
+  const extraRecs = baseTracks.length >= 5 ? recommended : [];
+
   const title = album?.title || (location.state as { name?: string } | null)?.name || t.album.fallbackName;
-  // The queue holds exactly this album: the big button pauses and resumes instead of starting over.
-  const isThisPlaying = tracks.length > 0 && queue.length === tracks.length && queue.every((q, i) => q.id === tracks[i]?.id);
+  // The queue holds this album: the big button pauses and resumes instead of starting over.
+  const isThisPlaying = tracks.length > 0 && queue.length >= tracks.length && tracks.every((tr, i) => queue[i]?.id === tr.id);
   const playing = isThisPlaying && (status === "playing" || status === "loading");
 
   const save = async () => {
@@ -131,7 +173,33 @@ export default function Album() {
 
       {album &&
         (tracks.length ? (
-          <SelectableTrackList key={id} tracks={tracks} numbered />
+          <div className="px-2 md:px-4">
+            <TrackList key={id} tracks={tracks} context={[...tracks, ...extraRecs]} showArtwork={false} showAlbum={false} />
+
+            {extraRecs.length > 0 && (
+              <div className="mt-8 border-t border-line pt-6">
+                <div className="mb-3 flex items-center justify-between px-2 md:px-3">
+                  <div className="flex items-center gap-2">
+                    <SparkleIcon size={18} weight="fill" className="text-accent-text" />
+                    <div>
+                      <h2 className="text-base font-semibold tracking-tight">Recommended</h2>
+                      <p className="text-xs text-fg-2">Dynamic songs based on {album.title}</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={loadingRecs}
+                    onClick={() => void loadRecommendations(baseTracks)}
+                    className="flex h-9 items-center gap-1.5 rounded-full bg-surface-3 px-3.5 text-xs font-medium text-fg-2 transition-colors hover:bg-surface-4 hover:text-fg disabled:opacity-50"
+                  >
+                    <ArrowsClockwiseIcon size={14} className={loadingRecs ? "animate-spin" : ""} />
+                    Refresh
+                  </button>
+                </div>
+                <TrackList tracks={extraRecs} context={[...extraRecs, ...tracks]} header={false} showAlbum />
+              </div>
+            )}
+          </div>
         ) : (
           <EmptyState icon={<MusicNotesIcon size={28} />} title={t.album.noTracks} body={t.album.noTracksBody} />
         ))}

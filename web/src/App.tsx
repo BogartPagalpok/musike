@@ -19,6 +19,7 @@ import { cn } from "./lib/format";
 import { legacyRedirect, NOW_PLAYING_HASH, paths } from "./lib/routes";
 import { usePlayer } from "./player/player";
 import { useLibrary } from "./stores/library";
+import { useOffline } from "./stores/offline";
 import { openSettings, useSystem } from "./stores/system";
 import { toast, useUi } from "./stores/ui";
 import Album from "./views/Album";
@@ -41,6 +42,7 @@ export default function App() {
   const panelOpen = useUi((s) => s.panelOpen);
   const hasTrack = usePlayer((s) => s.queue.length > 0);
   const loadLibrary = useLibrary((s) => s.load);
+  const loadOffline = useOffline((s) => s.load);
   const loadSystem = useSystem((s) => s.load);
   const main = useRef<HTMLElement>(null);
 
@@ -48,7 +50,8 @@ export default function App() {
 
   useEffect(() => {
     void loadLibrary();
-  }, [loadLibrary]);
+    void loadOffline();
+  }, [loadLibrary, loadOffline]);
 
   // Check yt-dlp shortly after start and say so once if something needs doing (not on Android: no yt-dlp there).
   useEffect(() => {
@@ -129,6 +132,7 @@ export default function App() {
               <Route path="/search/album/:id" element={<Album />} />
               <Route path={paths.library} element={<Library />} />
               <Route path={paths.favorites} element={<Collection kind="favorites" />} />
+              <Route path={paths.downloads} element={<Collection kind="downloads" />} />
               <Route path={paths.history} element={<Collection kind="history" />} />
               <Route path="/playlist/:id" element={<Collection kind="playlist" />} />
               <Route path="*" element={<Home />} />

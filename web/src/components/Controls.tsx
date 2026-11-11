@@ -1,4 +1,6 @@
 import {
+  CheckCircleIcon,
+  DownloadSimpleIcon,
   HeartIcon,
   MusicNotesIcon,
   PauseIcon,
@@ -21,6 +23,7 @@ import { cn, formatTime } from "../lib/format";
 import type { Track } from "../lib/types";
 import { usePlayer } from "../player/player";
 import { useLibrary } from "../stores/library";
+import { useOffline } from "../stores/offline";
 import { IconButton, PlayDisc } from "./IconButton";
 import { Slider } from "./Slider";
 
@@ -155,6 +158,31 @@ export function FavoriteButton({ track, size = "md" }: { track: Track | null; si
       onClick={() => track && void toggle(track)}
     >
       <HeartIcon size={size === "lg" ? 24 : 19} weight={isFavorite ? "fill" : "regular"} />
+    </IconButton>
+  );
+}
+
+export function OfflineButton({ track, size = "md" }: { track: Track | null; size?: "sm" | "md" | "lg" }) {
+  const isOffline = useOffline((s) => !!track && s.tracks.some((t) => t.id === track.id));
+  const isDownloading = useOffline((s) => !!track && !!s.downloading[track.id]);
+  const toggle = useOffline((s) => s.toggleOffline);
+  const t = useT();
+  const iconSize = size === "lg" ? 22 : size === "sm" ? 17 : 19;
+  return (
+    <IconButton
+      label={isOffline ? t.trackMenu.removeOffline : t.trackMenu.download}
+      active={isOffline || isDownloading}
+      size={size}
+      disabled={!track || isDownloading}
+      onClick={() => track && void toggle(track)}
+    >
+      {isDownloading ? (
+        <span className="block size-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+      ) : isOffline ? (
+        <CheckCircleIcon size={iconSize} weight="fill" />
+      ) : (
+        <DownloadSimpleIcon size={iconSize} />
+      )}
     </IconButton>
   );
 }

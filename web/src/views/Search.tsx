@@ -370,7 +370,9 @@ export default function Search() {
           />
         )}
 
-        {!linkId && state === "ok" && results && results.length > 0 && <TrackList tracks={results} showAlbum={kind === "song"} />}
+        {!linkId && state === "ok" && results && results.length > 0 && (
+          <TrackList tracks={results} showAlbum={kind === "song"} playMode="related" />
+        )}
 
         {!linkId && state === "idle" && (
           <div className="flex flex-col gap-8 px-2 pt-2 md:px-3">

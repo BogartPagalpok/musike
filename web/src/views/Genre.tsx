@@ -1,16 +1,17 @@
-import { CircleNotchIcon, MusicNotesIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { CircleNotchIcon, MusicNotesIcon, PlayIcon, ShuffleIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { useState, type ReactNode } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router";
 import { Artwork } from "../components/Artwork";
 import { BackButton, EmptyState, PageHeader } from "../components/Page";
-import { SelectableTrackList, Short } from "../components/Selection";
-import { TrackListSkeleton } from "../components/TrackList";
+import { Short } from "../components/Selection";
+import { TrackList, TrackListSkeleton } from "../components/TrackList";
 import { useRemote } from "../hooks/useRemote";
 import { api } from "../lib/api";
 import { useI18n, useT, type Lang } from "../i18n";
-import { cn } from "../lib/format";
+import { cn, shuffled } from "../lib/format";
 import { paths } from "../lib/routes";
 import type { GenreArtist, GenrePage } from "../lib/types";
+import { usePlayer } from "../player/player";
 
 type View = "artists" | "tracks";
 
@@ -35,6 +36,7 @@ function GenreBody({ id, lang }: { id: string; lang: Lang }) {
   const [params, setParams] = useSearchParams();
   const view: View = params.get("view") === "songs" ? "tracks" : "artists";
   const t = useT();
+  const playList = usePlayer((s) => s.playList);
   const page = useRemote<GenrePage>(`genre:${lang}:${id}`, (signal) => api.genre(id, signal));
   const name = (page.status === "ok" && page.data.name) || (location.state as { name?: string } | null)?.name || t.genre.fallbackName;
   const memoKey = `${lang}:${id}`;
@@ -168,7 +170,25 @@ function GenreBody({ id, lang }: { id: string; lang: Lang }) {
 
       {page.status === "ok" && view === "tracks" && (
         page.data.tracks.length ? (
-          <SelectableTrackList key={id} tracks={page.data.tracks} />
+          <div className="px-2 md:px-4">
+            <div className="mb-3 flex items-center gap-2 px-2">
+              <button
+                type="button"
+                onClick={() => playList(page.data.tracks, 0)}
+                className="flex h-10 items-center gap-1.5 rounded-full bg-accent px-5 text-sm font-semibold text-accent-ink transition-transform active:scale-[0.97]"
+              >
+                <PlayIcon size={16} weight="fill" /> {t.common.playAll}
+              </button>
+              <button
+                type="button"
+                onClick={() => playList(shuffled(page.data.tracks), 0)}
+                className="flex h-10 items-center gap-1.5 rounded-full bg-surface-3 px-4 text-sm font-medium text-fg transition-colors hover:bg-surface-4"
+              >
+                <ShuffleIcon size={16} /> {t.collection.shuffle}
+              </button>
+            </div>
+            <TrackList key={id} tracks={page.data.tracks} showAlbum />
+          </div>
         ) : (
           <EmptyState icon={<MusicNotesIcon size={28} />} title={t.genre.noSongs} body={t.genre.noSongsBody} />
         )

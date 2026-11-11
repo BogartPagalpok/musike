@@ -262,8 +262,8 @@ function applyGraphParams(state: EqualizerSaved) {
 export function attachEqualizer(media: HTMLMediaElement) {
   if (!(media instanceof HTMLMediaElement)) return;
   const src = media.currentSrc || media.src || media.getAttribute("src") || "";
-  // Only route same-origin / server-proxied streams through Web Audio API to avoid CORS silence on direct URLs.
-  if (src && !src.startsWith("/") && !src.startsWith(window.location.origin)) return;
+  // Only route same-origin / server-proxied / local blob streams through Web Audio API to avoid CORS silence on direct URLs.
+  if (src && !src.startsWith("/") && !src.startsWith("blob:") && !src.startsWith(window.location.origin)) return;
 
   const graph = getOrCreateGraph();
   if (!graph) return;

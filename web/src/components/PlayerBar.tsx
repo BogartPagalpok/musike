@@ -1,12 +1,11 @@
-import { DownloadSimpleIcon, EqualizerIcon, KeyboardIcon, MicrophoneStageIcon, QueueIcon, SidebarSimpleIcon } from "@phosphor-icons/react";
-import { downloadTrack } from "../lib/api";
+import { EqualizerIcon, KeyboardIcon, MicrophoneStageIcon, QueueIcon, SidebarSimpleIcon } from "@phosphor-icons/react";
 import { cn } from "../lib/format";
 import { useT } from "../i18n";
 import { useEqualizer } from "../player/equalizer";
 import { selectCurrent, usePlayer, useStatusText } from "../player/player";
-import { toast, useUi } from "../stores/ui";
+import { useUi } from "../stores/ui";
 import { Artwork } from "./Artwork";
-import { FavoriteButton, ModeSwitch, Scrubber, Transport, Volume } from "./Controls";
+import { FavoriteButton, ModeSwitch, OfflineButton, Scrubber, Transport, Volume } from "./Controls";
 import { IconButton } from "./IconButton";
 
 /** Desktop and tablet player: a floating island under the content. */
@@ -44,16 +43,7 @@ export function PlayerBar() {
                 </p>
               </div>
               <FavoriteButton track={track} size="sm" />
-              <IconButton
-                label={t.trackMenu.download}
-                size="sm"
-                onClick={() => {
-                  toast(t.trackMenu.downloading(track.title));
-                  downloadTrack(track);
-                }}
-              >
-                <DownloadSimpleIcon size={17} />
-              </IconButton>
+              <OfflineButton track={track} size="sm" />
             </>
           ) : (
             <p className="truncate pl-1 text-sm text-fg-3">{t.player.nothingPlaying}</p>

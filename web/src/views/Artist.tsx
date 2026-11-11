@@ -1,19 +1,20 @@
-import { MusicNotesIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { MusicNotesIcon, PauseIcon, PlayIcon, ShuffleIcon, WarningCircleIcon } from "@phosphor-icons/react";
 import { useState } from "react";
 import { useLocation, useParams } from "react-router";
 import { AlbumRow } from "../components/AlbumTiles";
 import { Artwork } from "../components/Artwork";
+import { IconButton, PlayDisc } from "../components/IconButton";
 import { BackButton, EmptyState, PageHeader } from "../components/Page";
-import { SelectableTrackList } from "../components/Selection";
-import { TrackListSkeleton } from "../components/TrackList";
+import { TrackList, TrackListSkeleton } from "../components/TrackList";
 import { useRemote } from "../hooks/useRemote";
 import { useI18n, useT } from "../i18n";
 import { api } from "../lib/api";
 import { paths } from "../lib/routes";
-import { cn } from "../lib/format";
+import { cn, shuffled } from "../lib/format";
 import type { ArtistPage } from "../lib/types";
+import { usePlayer } from "../player/player";
 
-/** An artist's greatest hits, ready to pick from. */
+/** An artist's greatest hits and albums, arranged like Spotify. */
 export default function Artist() {
   const { id = "" } = useParams();
   const location = useLocation();
@@ -21,8 +22,15 @@ export default function Artist() {
   const t = useT();
   // The bio comes from YouTube Music in the app language.
   const page = useRemote<ArtistPage>(`artist:${lang}:${id}`, (signal) => api.artist(id, signal));
+  const playList = usePlayer((s) => s.playList);
+  const toggle = usePlayer((s) => s.toggle);
+  const queue = usePlayer((s) => s.queue);
+  const status = usePlayer((s) => s.status);
   const [fullBio, setFullBio] = useState(false);
   const name = (page.status === "ok" && page.data.name) || (location.state as { name?: string } | null)?.name || t.artist.fallbackName;
+  const tracks = page.status === "ok" ? page.data.tracks : [];
+  const isThisPlaying = tracks.length > 0 && queue.length === tracks.length && queue.every((q, i) => q.id === tracks[i]?.id);
+  const playing = isThisPlaying && (status === "playing" || status === "loading");
 
   return (
     <div className="pb-8">
@@ -54,9 +62,24 @@ export default function Artist() {
       )}
 
       {page.status === "ok" && page.data.albums.length > 0 && <AlbumRow title={t.artist.albums} albums={page.data.albums} />}
-      {page.status === "ok" && page.data.singles.length > 0 && <AlbumRow title={t.artist.singles} albums={page.data.singles} />}
 
-      <h2 className="px-4 pt-6 pb-1 text-xl font-semibold tracking-tight md:px-6">{t.artist.hits}</h2>
+      <div className="flex items-center justify-between px-4 pt-6 pb-2 md:px-6">
+        <h2 className="text-xl font-semibold tracking-tight">{t.artist.hits}</h2>
+        {tracks.length > 0 && (
+          <div className="flex items-center gap-2">
+            <IconButton label={t.collection.shuffle} size="md" onClick={() => playList(shuffled(tracks), 0)}>
+              <ShuffleIcon size={20} />
+            </IconButton>
+            <PlayDisc
+              label={playing ? t.common.pause : t.common.playAll}
+              px={44}
+              onClick={() => (isThisPlaying ? toggle() : playList(tracks, 0))}
+            >
+              {playing ? <PauseIcon size={20} weight="fill" /> : <PlayIcon size={20} weight="fill" />}
+            </PlayDisc>
+          </div>
+        )}
+      </div>
 
       {page.status === "loading" && <TrackListSkeleton />}
 
@@ -78,8 +101,10 @@ export default function Artist() {
       )}
 
       {page.status === "ok" &&
-        (page.data.tracks.length ? (
-          <SelectableTrackList key={id} tracks={page.data.tracks} numbered />
+        (tracks.length ? (
+          <div className="px-2 md:px-4">
+            <TrackList key={id} tracks={tracks} showAlbum />
+          </div>
         ) : (
           <EmptyState icon={<MusicNotesIcon size={28} />} title={t.artist.noHits} body={t.artist.noHitsBody} />
         ))}
