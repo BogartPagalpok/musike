@@ -299,24 +299,39 @@ export function LyricsView({ className, compact = false }: { className?: string;
     }
   }
 
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+  const centerActiveLine = (behavior: ScrollBehavior = "smooth") => {
+    const box = containerRef.current;
+    if (!box) return;
     if (activeIdx < 0) {
-      container.scrollTo({ top: 0, behavior: "smooth" });
+      box.scrollTo({ top: 0, behavior });
       return;
     }
-    const raf = requestAnimationFrame(() => {
-      const el = lineRefs.current[activeIdx];
-      const box = containerRef.current;
-      if (!el || !box) return;
-      const boxRect = box.getBoundingClientRect();
-      const elRect = el.getBoundingClientRect();
-      const targetTop = box.scrollTop + (elRect.top - boxRect.top) - boxRect.height / 2 + elRect.height / 2;
-      box.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
-    });
-    return () => cancelAnimationFrame(raf);
+    const el = lineRefs.current[activeIdx];
+    if (!el) return;
+    const boxRect = box.getBoundingClientRect();
+    const elRect = el.getBoundingClientRect();
+    const delta = elRect.top - boxRect.top - boxRect.height / 2 + elRect.height / 2;
+    if (Math.abs(delta) > 2) {
+      box.scrollTo({ top: Math.max(0, box.scrollTop + delta), behavior });
+    }
+  };
+
+  useEffect(() => {
+    const raf = requestAnimationFrame(() => centerActiveLine("smooth"));
+    const timer = setTimeout(() => centerActiveLine("smooth"), 120);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearTimeout(timer);
+    };
   }, [activeIdx, track?.id, state]);
+
+  useEffect(() => {
+    const box = containerRef.current;
+    if (!box || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => centerActiveLine("auto"));
+    ro.observe(box);
+    return () => ro.disconnect();
+  }, [activeIdx, state]);
 
   if (!track) {
     return <p className="px-2 py-16 text-center text-sm text-fg-2">{t.nowPlaying.playSomething}</p>;
@@ -381,73 +396,81 @@ export function LyricsView({ className, compact = false }: { className?: string;
     };
 
     return (
-      <div
-        ref={containerRef}
-        className={cn(
-          "scroll-area relative flex min-h-0 flex-col items-center gap-3 overflow-y-auto overscroll-contain touch-pan-y px-4 text-center",
-          compact ? "py-16" : "py-[28dvh] md:py-24",
-          className,
-        )}
-      >
-        {waitingForVocals && (
-          <div className="mb-1 flex items-center gap-2 rounded-full bg-accent-soft px-3.5 py-1.5 text-xs font-semibold text-accent-text ring-1 ring-accent/30 animate-pulse">
-            <span>{t.lyrics.waitingForVocals}</span>
-          </div>
-        )}
-        {state.synced.map((line, i) => {
-          const isCurrent = i === activeIdx;
-          const isPast = activeIdx >= 0 && i < activeIdx;
-          return (
-            <button
-              key={`${i}-${line.time}`}
-              ref={(el) => {
-                lineRefs.current[i] = el;
-              }}
-              type="button"
-              onClick={() => seek(videoTimeFor(line.time))}
-              className={cn(
-                "w-full origin-center rounded-[12px] px-3 py-2 text-center leading-snug transition-all duration-300 hover:bg-surface-2/70 hover:opacity-100",
-                isCurrent
-                  ? compact
-                    ? "scale-[1.03] text-[22px] font-extrabold tracking-tight text-accent-text drop-shadow-[0_0_16px_var(--accent-soft)] md:text-[17px]"
-                    : "scale-[1.04] text-[24px] font-extrabold tracking-tight text-accent-text drop-shadow-[0_0_18px_var(--accent-soft)] sm:text-[26px] md:text-[20px]"
-                  : isPast
+      <div className={cn("relative flex min-h-0 flex-1 flex-col overflow-hidden", className)}>
+        <div
+          ref={containerRef}
+          className={cn(
+            "scroll-area relative flex min-h-0 flex-1 flex-col items-center gap-2.5 overflow-y-auto overscroll-contain touch-pan-y px-4 text-center",
+            compact ? "py-20" : "py-[36%]",
+          )}
+        >
+          {waitingForVocals && (
+            <div className="mb-1 flex shrink-0 items-center gap-2 rounded-full bg-accent-soft px-3.5 py-1.5 text-xs font-semibold text-accent-text ring-1 ring-accent/30 animate-pulse">
+              <span>{t.lyrics.waitingForVocals}</span>
+            </div>
+          )}
+          {state.synced.map((line, i) => {
+            const isCurrent = i === activeIdx;
+            const isPast = activeIdx >= 0 && i < activeIdx;
+            const dist = activeIdx >= 0 ? Math.abs(i - activeIdx) : 99;
+            return (
+              <button
+                key={`${i}-${line.time}`}
+                ref={(el) => {
+                  lineRefs.current[i] = el;
+                }}
+                type="button"
+                onClick={() => seek(videoTimeFor(line.time))}
+                className={cn(
+                  "w-full shrink-0 origin-center rounded-[12px] px-3 py-1.5 text-center leading-snug transition-all duration-300 hover:bg-surface-2/70 hover:opacity-100",
+                  isCurrent
                     ? compact
-                      ? "text-[18px] font-semibold text-fg-3/60 md:text-[14px]"
-                      : "text-[19px] font-semibold text-fg-3/60 sm:text-[20px] md:text-[16px]"
-                    : compact
-                      ? "text-[18px] font-semibold text-fg-2/85 md:text-[14px]"
-                      : "text-[19px] font-semibold text-fg-2/85 sm:text-[20px] md:text-[16px]",
-              )}
-            >
-              {line.text}
-            </button>
-          );
-        })}
-        <div className="mt-3 flex flex-wrap items-center justify-center gap-2 px-2.5 text-[11px] text-fg-3">
-          <span>{t.lyrics.syncedHint}</span>
-          <div className="flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 ring-1 ring-line">
-            <button
-              type="button"
-              onClick={() => setUserOffset((o) => Math.round((o - 0.5) * 10) / 10)}
-              className="px-1 font-mono font-semibold text-fg-2 hover:text-fg"
-              title="Lyrics earlier (-0.5s)"
-            >
-              -0.5s
-            </button>
-            <span className="font-mono text-[10px] text-fg-3">
-              {userOffset === 0 ? "sync" : `${userOffset > 0 ? "+" : ""}${userOffset.toFixed(1)}s`}
-            </span>
-            <button
-              type="button"
-              onClick={() => setUserOffset((o) => Math.round((o + 0.5) * 10) / 10)}
-              className="px-1 font-mono font-semibold text-fg-2 hover:text-fg"
-              title="Lyrics later (+0.5s)"
-            >
-              +0.5s
-            </button>
-          </div>
+                      ? "scale-[1.04] bg-accent-soft/40 text-[18px] font-extrabold tracking-tight text-accent-text shadow-sm"
+                      : "scale-[1.05] bg-accent-soft/35 text-[22px] font-extrabold tracking-tight text-accent-text drop-shadow-[0_0_16px_var(--accent-soft)] md:text-[24px]"
+                    : isPast
+                      ? compact
+                        ? "text-[14px] font-semibold text-fg-3/50"
+                        : "text-[16px] font-semibold text-fg-3/45 md:text-[17px]"
+                      : dist === 1
+                        ? compact
+                          ? "text-[15px] font-semibold text-fg/85"
+                          : "text-[17px] font-semibold text-fg/85 md:text-[18px]"
+                        : compact
+                          ? "text-[14px] font-medium text-fg-2/65"
+                          : "text-[16px] font-medium text-fg-2/65 md:text-[17px]",
+                )}
+              >
+                {line.text}
+              </button>
+            );
+          })}
         </div>
+        {!compact && (
+          <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-line/50 bg-surface-1/60 px-3 py-1.5 text-[11px] text-fg-3 backdrop-blur-sm">
+            <span>{t.lyrics.syncedHint}</span>
+            <div className="flex items-center gap-1 rounded-full bg-surface-2 px-2 py-0.5 ring-1 ring-line">
+              <button
+                type="button"
+                onClick={() => setUserOffset((o) => Math.round((o - 0.5) * 10) / 10)}
+                className="px-1 font-mono font-semibold text-fg-2 hover:text-fg"
+                title="Lyrics earlier (-0.5s)"
+              >
+                -0.5s
+              </button>
+              <span className="font-mono text-[10px] text-fg-3">
+                {userOffset === 0 ? "sync" : `${userOffset > 0 ? "+" : ""}${userOffset.toFixed(1)}s`}
+              </span>
+              <button
+                type="button"
+                onClick={() => setUserOffset((o) => Math.round((o + 0.5) * 10) / 10)}
+                className="px-1 font-mono font-semibold text-fg-2 hover:text-fg"
+                title="Lyrics later (+0.5s)"
+              >
+                +0.5s
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }

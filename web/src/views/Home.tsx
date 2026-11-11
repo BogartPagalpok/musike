@@ -1,4 +1,4 @@
-import { CaretDownIcon, CaretUpIcon, ClockCounterClockwiseIcon, DownloadSimpleIcon, FilmStripIcon, HeartIcon, LayoutIcon, MicrophoneStageIcon, PlayIcon, TrendUpIcon } from "@phosphor-icons/react";
+import { CaretDownIcon, CaretUpIcon, ClockCounterClockwiseIcon, DownloadSimpleIcon, HeartIcon, PlayIcon, TrendUpIcon } from "@phosphor-icons/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Artwork } from "../components/Artwork";
@@ -183,46 +183,8 @@ export default function Home() {
     <div className="pb-8">
       <PageHeader />
 
-      <div className="flex flex-wrap items-center justify-between gap-3 px-4 pt-2 pb-6 md:px-6 md:pt-6">
+      <div className="px-4 pt-2 pb-4 md:px-6 md:pt-5">
         <h1 className="text-[26px] leading-tight font-semibold tracking-tight md:text-3xl">{t.time.greeting(new Date().getHours())}</h1>
-        <div className="hidden items-center gap-1 rounded-full bg-surface-2 p-1 ring-1 ring-line md:flex">
-          <button
-            type="button"
-            onClick={() => show.set({ layoutTemplate: "default" })}
-            className={cn(
-              "flex h-7 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors",
-              show.layoutTemplate === "default" ? "bg-accent text-accent-ink font-semibold" : "text-fg-2 hover:text-fg",
-            )}
-            title="Classic Explorer Layout"
-          >
-            <LayoutIcon size={14} weight="bold" />
-            <span>Explorer</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => show.set({ layoutTemplate: "center-lyrics", compactSidebar: false })}
-            className={cn(
-              "flex h-7 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors",
-              show.layoutTemplate === "center-lyrics" ? "bg-accent text-accent-ink font-semibold" : "text-fg-2 hover:text-fg",
-            )}
-            title="Center Stage & Karaoke (Home on Sidebar, Giant Player in Middle)"
-          >
-            <MicrophoneStageIcon size={14} weight="bold" />
-            <span>Stage & Lyrics</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => show.set({ layoutTemplate: "cinema", compactSidebar: false })}
-            className={cn(
-              "flex h-7 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors",
-              show.layoutTemplate === "cinema" ? "bg-accent text-accent-ink font-semibold" : "text-fg-2 hover:text-fg",
-            )}
-            title="Cinema Split Deck (720p HD Video + Side-by-Side Lyrics)"
-          >
-            <FilmStripIcon size={14} weight="bold" />
-            <span>Cinema</span>
-          </button>
-        </div>
       </div>
 
       {status === "loading" && <TrackListSkeleton rows={6} />}

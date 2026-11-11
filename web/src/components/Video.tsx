@@ -15,7 +15,7 @@ import { IconButton } from "./IconButton";
  * One <video> element serves every place video can appear. It is re-parented into the highest-priority
  * mounted slot; moving a media element within the document does not interrupt playback.
  */
-export const SLOT = { theater: 50, sheet: 30, panel: 20, floating: 5 } as const;
+export const SLOT = { theater: 50, sheet: 30, center: 25, panel: 20, floating: 5 } as const;
 
 const slots = new Map<number, { el: HTMLElement; priority: number }>();
 let seq = 0;

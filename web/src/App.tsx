@@ -139,7 +139,10 @@ export default function App() {
         <main
           ref={main}
           className={cn(
-            "scroll-area relative min-w-0 flex-1 overflow-y-auto md:rounded-[20px] md:bg-surface-1 md:ring-1 md:ring-line",
+            "scroll-area relative min-h-0 min-w-0 flex-1 md:rounded-[20px] md:bg-surface-1 md:ring-1 md:ring-line",
+            (layoutTemplate === "center-lyrics" || layoutTemplate === "cinema") && isMd
+              ? "flex flex-col overflow-hidden"
+              : "overflow-y-auto",
             hasTrack ? "pb-[calc(152px+env(safe-area-inset-bottom))]" : "pb-[calc(88px+env(safe-area-inset-bottom))]",
             "md:pb-0",
           )}

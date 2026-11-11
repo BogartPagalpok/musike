@@ -1,6 +1,11 @@
 import {
+  ArrowsInLineHorizontalIcon,
+  ArrowsOutLineHorizontalIcon,
   CaretDownIcon,
+  CaretLeftIcon,
+  CaretRightIcon,
   EqualizerIcon,
+  ListBulletsIcon,
   MagnifyingGlassIcon,
   MicrophoneStageIcon,
   RadioIcon,
@@ -15,6 +20,7 @@ import { cn } from "../lib/format";
 import type { Track } from "../lib/types";
 import { useEqualizer } from "../player/equalizer";
 import { selectCurrent, usePlayer, useStatusText } from "../player/player";
+import { useAppearance } from "../stores/appearance";
 import { useUi, type PanelTab } from "../stores/ui";
 import { Artwork } from "./Artwork";
 import { FavoriteButton, ModeSwitch, OfflineButton, Scrubber, Transport } from "./Controls";
@@ -99,6 +105,8 @@ function PanelBody({ tab, slot }: { tab: PanelTab; slot: number }) {
   const eqPreset = useEqualizer((s) => s.preset);
   const setEqualizerOpen = useUi((s) => s.setEqualizerOpen);
   const openPanel = useUi((s) => s.openPanel);
+  const layoutTemplate = useAppearance((s) => s.layoutTemplate);
+  const centerHasStage = layoutTemplate === "center-lyrics" || layoutTemplate === "cinema";
   const t = useT();
 
   if (!track) {
@@ -106,56 +114,60 @@ function PanelBody({ tab, slot }: { tab: PanelTab; slot: number }) {
   }
   if (tab === "lyrics") {
     return (
-      <div className="flex flex-col gap-3 px-1 pb-4">
-        {showsVideo && <Stage track={track} slot={slot} />}
-        <LyricsView className={showsVideo ? "max-h-[calc(100dvh-390px)]" : "max-h-[calc(100dvh-190px)]"} />
+      <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden px-1 pb-2">
+        {showsVideo && !centerHasStage && <Stage track={track} slot={slot} />}
+        <LyricsView className="h-full min-h-0 flex-1" />
       </div>
     );
   }
   return (
     <div className="flex flex-col gap-3.5 px-1 pb-4">
-      <Stage track={track} slot={slot} />
-      <TrackHeading track={track} />
-      <ModeSwitch />
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => void startRadio(track)}
-          className="flex h-10 items-center justify-center gap-1.5 rounded-full bg-surface-1 px-3 text-xs font-medium ring-1 ring-line transition-colors hover:bg-surface-3 active:scale-[0.98]"
-        >
-          <RadioIcon size={16} className="shrink-0" />
-          <span className="truncate">{t.trackMenu.startRadio}</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setEqualizerOpen(true)}
-          className={cn(
-            "flex h-10 items-center justify-center gap-1.5 rounded-full px-3 text-xs font-medium ring-1 transition-colors active:scale-[0.98]",
-            eqEnabled
-              ? "bg-accent-soft text-accent-text ring-accent/35"
-              : "bg-surface-1 text-fg-2 ring-line hover:bg-surface-3 hover:text-fg",
-          )}
-        >
-          <EqualizerIcon size={16} weight={eqEnabled ? "fill" : "regular"} className="shrink-0" />
-          <span className="truncate">{ eqEnabled ? t.equalizer.presetNames[eqPreset] : t.dialogs.shortcuts.equalizer }</span>
-        </button>
-      </div>
-      <div className="overflow-hidden rounded-[14px] bg-surface-1 ring-1 ring-line">
-        <div className="flex items-center justify-between border-b border-line/60 px-3 py-2">
-          <span className="flex items-center gap-1.5 text-xs font-semibold text-fg-2">
-            <MicrophoneStageIcon size={14} className="text-accent-text" />
-            {t.nowPlaying.tabLyrics}
-          </span>
-          <button
-            type="button"
-            onClick={() => openPanel("lyrics")}
-            className="text-[11px] font-medium text-fg-3 transition-colors hover:text-fg"
-          >
-            {t.nowPlaying.showLyrics}
-          </button>
-        </div>
-        <LyricsView compact className="max-h-[200px]" />
-      </div>
+      {!centerHasStage && (
+        <>
+          <Stage track={track} slot={slot} />
+          <TrackHeading track={track} />
+          <ModeSwitch />
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => void startRadio(track)}
+              className="flex h-10 items-center justify-center gap-1.5 rounded-full bg-surface-1 px-3 text-xs font-medium ring-1 ring-line transition-colors hover:bg-surface-3 active:scale-[0.98]"
+            >
+              <RadioIcon size={16} className="shrink-0" />
+              <span className="truncate">{t.trackMenu.startRadio}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setEqualizerOpen(true)}
+              className={cn(
+                "flex h-10 items-center justify-center gap-1.5 rounded-full px-3 text-xs font-medium ring-1 transition-colors active:scale-[0.98]",
+                eqEnabled
+                  ? "bg-accent-soft text-accent-text ring-accent/35"
+                  : "bg-surface-1 text-fg-2 ring-line hover:bg-surface-3 hover:text-fg",
+              )}
+            >
+              <EqualizerIcon size={16} weight={eqEnabled ? "fill" : "regular"} className="shrink-0" />
+              <span className="truncate">{eqEnabled ? t.equalizer.presetNames[eqPreset] : t.dialogs.shortcuts.equalizer}</span>
+            </button>
+          </div>
+          <div className="overflow-hidden rounded-[14px] bg-surface-1 ring-1 ring-line">
+            <div className="flex items-center justify-between border-b border-line/60 px-3 py-2">
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-fg-2">
+                <MicrophoneStageIcon size={14} className="text-accent-text" />
+                {t.nowPlaying.tabLyrics}
+              </span>
+              <button
+                type="button"
+                onClick={() => openPanel("lyrics")}
+                className="text-[11px] font-medium text-fg-3 transition-colors hover:text-fg"
+              >
+                {t.nowPlaying.showLyrics}
+              </button>
+            </div>
+            <LyricsView compact className="h-[190px]" />
+          </div>
+        </>
+      )}
       <div className="rounded-[14px] bg-surface-1 p-2 ring-1 ring-line">
         <QueueList />
       </div>
@@ -191,24 +203,142 @@ function PanelTabs({ tab, onTab }: { tab: PanelTab; onTab: (t: PanelTab) => void
   );
 }
 
-/** Docked right column (≥1280px). */
+/** Docked right column (≥1280px), adjustable via drag handle and expand/collapse buttons. */
 export function SidePanel() {
   const tab = useUi((s) => s.panelTab);
   const openPanel = useUi((s) => s.openPanel);
   const togglePanel = useUi((s) => s.togglePanel);
+  const rightPanelWidth = useAppearance((s) => s.rightPanelWidth);
+  const rightPanelCollapsed = useAppearance((s) => s.rightPanelCollapsed);
+  const setAppearance = useAppearance((s) => s.set);
+  const [resizing, setResizing] = useState(false);
   const t = useT();
+
+  const effectiveWidth = rightPanelCollapsed ? 68 : rightPanelWidth;
+  const toggleCollapse = () => setAppearance({ rightPanelCollapsed: !rightPanelCollapsed });
+  const toggleWide = () =>
+    setAppearance({
+      rightPanelCollapsed: false,
+      rightPanelWidth: rightPanelWidth > 380 ? 320 : 440,
+    });
+
   return (
-    <aside className="island hidden w-[360px] shrink-0 xl:flex" aria-label={t.nowPlaying.panel}>
+    <aside
+      style={{ width: `${effectiveWidth}px` }}
+      className={cn(
+        "island relative hidden shrink-0 xl:flex",
+        !resizing && "transition-[width] duration-250 ease-out-expo",
+      )}
+      aria-label={t.nowPlaying.panel}
+    >
+      {/* Interactive Drag-to-Resize Handle on Left Edge of Right Sidebar */}
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Drag to resize right sidebar"
+        title="Drag to resize right sidebar (double-click to collapse/expand)"
+        onDoubleClick={toggleCollapse}
+        onPointerDown={(e) => {
+          e.preventDefault();
+          e.currentTarget.setPointerCapture(e.pointerId);
+          setResizing(true);
+        }}
+        onPointerMove={(e) => {
+          if (!resizing) return;
+          const nextWidth = window.innerWidth - e.clientX - 8;
+          if (nextWidth < 140) {
+            setAppearance({ rightPanelCollapsed: true });
+          } else {
+            setAppearance({
+              rightPanelCollapsed: false,
+              rightPanelWidth: Math.max(240, Math.min(560, nextWidth)),
+            });
+          }
+        }}
+        onPointerUp={() => setResizing(false)}
+        onPointerCancel={() => setResizing(false)}
+        className="group absolute top-3 bottom-3 -left-1.5 z-20 flex w-3 cursor-col-resize items-center justify-center select-none"
+      >
+        <span className="h-12 w-1 rounded-full bg-transparent transition-colors group-hover:bg-accent/60 group-active:bg-accent" />
+      </div>
+
       <div className="island-core flex w-full flex-col overflow-hidden">
-        <div className="flex h-16 items-center justify-between px-3">
-          <PanelTabs tab={tab} onTab={openPanel} />
-          <IconButton label={t.nowPlaying.closePanel} size="sm" onClick={() => togglePanel(tab)}>
-            <XIcon size={18} />
-          </IconButton>
-        </div>
-        <div className="scroll-area flex-1 overflow-y-auto px-2">
-          <PanelBody tab={tab} slot={SLOT.panel} />
-        </div>
+        {rightPanelCollapsed ? (
+          <div className="flex h-full flex-col items-center gap-2 py-3">
+            <button
+              type="button"
+              onClick={toggleCollapse}
+              title="Expand right sidebar"
+              aria-label="Expand right sidebar"
+              className="grid size-9 place-items-center rounded-full bg-surface-3 text-fg transition-colors hover:bg-accent hover:text-accent-ink"
+            >
+              <CaretLeftIcon size={16} weight="bold" />
+            </button>
+            <div className="my-1 h-px w-8 bg-line" />
+            <button
+              type="button"
+              onClick={() => {
+                setAppearance({ rightPanelCollapsed: false });
+                openPanel("playing");
+              }}
+              title={`${t.nowPlaying.tabPlaying} & ${t.player.queue}`}
+              className={cn(
+                "grid size-10 place-items-center rounded-xl transition-colors",
+                tab === "playing" ? "bg-surface-4 text-accent-text" : "text-fg-2 hover:bg-surface-3 hover:text-fg",
+              )}
+            >
+              <ListBulletsIcon size={20} weight="bold" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setAppearance({ rightPanelCollapsed: false });
+                openPanel("lyrics");
+              }}
+              title={t.nowPlaying.tabLyrics}
+              className={cn(
+                "grid size-10 place-items-center rounded-xl transition-colors",
+                tab === "lyrics" ? "bg-surface-4 text-accent-text" : "text-fg-2 hover:bg-surface-3 hover:text-fg",
+              )}
+            >
+              <MicrophoneStageIcon size={20} weight="fill" />
+            </button>
+          </div>
+        ) : (
+          <>
+            <div className="flex h-14 shrink-0 items-center justify-between gap-1 border-b border-line/60 px-2.5">
+              <PanelTabs tab={tab} onTab={openPanel} />
+              <div className="flex shrink-0 items-center gap-0.5">
+                <button
+                  type="button"
+                  onClick={toggleWide}
+                  title={rightPanelWidth > 380 ? "Standard right panel width" : "Expand right panel wider"}
+                  className="grid size-7 place-items-center rounded-full text-fg-3 transition-colors hover:bg-surface-3 hover:text-fg"
+                >
+                  {rightPanelWidth > 380 ? (
+                    <ArrowsInLineHorizontalIcon size={15} weight="bold" />
+                  ) : (
+                    <ArrowsOutLineHorizontalIcon size={15} weight="bold" />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleCollapse}
+                  title="Collapse right sidebar to rail"
+                  className="grid size-7 place-items-center rounded-full text-fg-3 transition-colors hover:bg-surface-3 hover:text-fg"
+                >
+                  <CaretRightIcon size={15} weight="bold" />
+                </button>
+                <IconButton label={t.nowPlaying.closePanel} size="sm" onClick={() => togglePanel(tab)}>
+                  <XIcon size={16} />
+                </IconButton>
+              </div>
+            </div>
+            <div className={cn("scroll-area min-h-0 flex-1 px-2 pt-2", tab === "lyrics" ? "flex flex-col overflow-hidden" : "overflow-y-auto")}>
+              <PanelBody tab={tab} slot={SLOT.panel} />
+            </div>
+          </>
+        )}
       </div>
     </aside>
   );

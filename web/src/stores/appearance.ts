@@ -10,6 +10,8 @@ export interface Appearance {
   compactSidebar: boolean;
   sidebarExpanded: boolean;
   sidebarWidth: number;
+  rightPanelWidth: number;
+  rightPanelCollapsed: boolean;
   albumColumn: boolean;
   texture: boolean;
   homeShortcuts: boolean;
@@ -24,6 +26,8 @@ export const DEFAULT_APPEARANCE: Appearance = {
   compactSidebar: false,
   sidebarExpanded: true,
   sidebarWidth: 260,
+  rightPanelWidth: 340,
+  rightPanelCollapsed: false,
   albumColumn: true,
   texture: true,
   homeShortcuts: true,
@@ -54,11 +58,14 @@ export function cleanAppearance(input: unknown): Appearance {
   const out: Appearance = { ...DEFAULT_APPEARANCE };
   if (isHex(v.accent)) out.accent = v.accent.toLowerCase();
   for (const k of Object.keys(DEFAULT_APPEARANCE) as (keyof Appearance)[]) {
-    if (k === "accent" || k === "layoutTemplate" || k === "sidebarWidth") continue;
+    if (k === "accent" || k === "layoutTemplate" || k === "sidebarWidth" || k === "rightPanelWidth") continue;
     if (typeof v[k] === "boolean") (out[k] as boolean) = v[k];
   }
   if (typeof v.sidebarWidth === "number" && v.sidebarWidth >= 200 && v.sidebarWidth <= 540) {
     out.sidebarWidth = Math.round(v.sidebarWidth);
+  }
+  if (typeof v.rightPanelWidth === "number" && v.rightPanelWidth >= 240 && v.rightPanelWidth <= 560) {
+    out.rightPanelWidth = Math.round(v.rightPanelWidth);
   }
   if (v.layoutTemplate === "center-lyrics" || v.layoutTemplate === "cinema" || v.layoutTemplate === "default") {
     out.layoutTemplate = v.layoutTemplate;
