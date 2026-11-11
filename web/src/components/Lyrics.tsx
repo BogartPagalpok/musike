@@ -300,16 +300,23 @@ export function LyricsView({ className, compact = false }: { className?: string;
   }
 
   useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
     if (activeIdx < 0) {
-      containerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      container.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-    const el = lineRefs.current[activeIdx];
-    const container = containerRef.current;
-    if (!el || !container) return;
-    const targetTop = el.offsetTop - container.clientHeight * 0.45 + el.clientHeight / 2;
-    container.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
-  }, [activeIdx, track?.id]);
+    const raf = requestAnimationFrame(() => {
+      const el = lineRefs.current[activeIdx];
+      const box = containerRef.current;
+      if (!el || !box) return;
+      const boxRect = box.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+      const targetTop = box.scrollTop + (elRect.top - boxRect.top) - boxRect.height / 2 + elRect.height / 2;
+      box.scrollTo({ top: Math.max(0, targetTop), behavior: "smooth" });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [activeIdx, track?.id, state]);
 
   if (!track) {
     return <p className="px-2 py-16 text-center text-sm text-fg-2">{t.nowPlaying.playSomething}</p>;
@@ -377,8 +384,8 @@ export function LyricsView({ className, compact = false }: { className?: string;
       <div
         ref={containerRef}
         className={cn(
-          "scroll-area relative flex flex-col items-center gap-3 overflow-y-auto px-4 text-center",
-          compact ? "py-5" : "py-8",
+          "scroll-area relative flex min-h-0 flex-col items-center gap-3 overflow-y-auto overscroll-contain touch-pan-y px-4 text-center",
+          compact ? "py-16" : "py-[28dvh] md:py-24",
           className,
         )}
       >
