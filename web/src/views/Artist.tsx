@@ -36,7 +36,7 @@ export default function Artist() {
     <div className="pb-8">
       <PageHeader title={name} actions={<BackButton fallback={paths.search} />} />
 
-      <div className="relative mx-4 overflow-hidden rounded-[20px] bg-surface-2 ring-1 ring-line md:mx-6">
+      <div className="relative mx-4 overflow-hidden rounded-[20px] bg-surface-2 md:mx-6">
         {page.status === "ok" && page.data.banner && (
           <div className="absolute inset-0">
             <Artwork src={page.data.banner} className="size-full" />

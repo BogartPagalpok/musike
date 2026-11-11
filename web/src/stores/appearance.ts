@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { accentCss, DEFAULT_ACCENT, isHex } from "../lib/accent";
 
 export type LayoutTemplate = "default" | "center-lyrics" | "cinema";
+export type SidebarTab = "browse" | "playing" | "lyrics";
 
 /** How the app looks and what it shows, per device. The Now Playing panel lives in the UI store (it has a button too). */
 export interface Appearance {
@@ -10,6 +11,7 @@ export interface Appearance {
   compactSidebar: boolean;
   sidebarExpanded: boolean;
   sidebarWidth: number;
+  sidebarTab: SidebarTab;
   rightPanelWidth: number;
   rightPanelCollapsed: boolean;
   albumColumn: boolean;
@@ -25,7 +27,8 @@ export const DEFAULT_APPEARANCE: Appearance = {
   sidebarPlaylists: true,
   compactSidebar: false,
   sidebarExpanded: true,
-  sidebarWidth: 260,
+  sidebarWidth: 280,
+  sidebarTab: "browse",
   rightPanelWidth: 340,
   rightPanelCollapsed: false,
   albumColumn: true,
@@ -58,7 +61,7 @@ export function cleanAppearance(input: unknown): Appearance {
   const out: Appearance = { ...DEFAULT_APPEARANCE };
   if (isHex(v.accent)) out.accent = v.accent.toLowerCase();
   for (const k of Object.keys(DEFAULT_APPEARANCE) as (keyof Appearance)[]) {
-    if (k === "accent" || k === "layoutTemplate" || k === "sidebarWidth" || k === "rightPanelWidth") continue;
+    if (k === "accent" || k === "layoutTemplate" || k === "sidebarWidth" || k === "rightPanelWidth" || k === "sidebarTab") continue;
     if (typeof v[k] === "boolean") (out[k] as boolean) = v[k];
   }
   if (typeof v.sidebarWidth === "number" && v.sidebarWidth >= 200 && v.sidebarWidth <= 540) {
@@ -66,6 +69,9 @@ export function cleanAppearance(input: unknown): Appearance {
   }
   if (typeof v.rightPanelWidth === "number" && v.rightPanelWidth >= 240 && v.rightPanelWidth <= 560) {
     out.rightPanelWidth = Math.round(v.rightPanelWidth);
+  }
+  if (v.sidebarTab === "browse" || v.sidebarTab === "playing" || v.sidebarTab === "lyrics") {
+    out.sidebarTab = v.sidebarTab;
   }
   if (v.layoutTemplate === "center-lyrics" || v.layoutTemplate === "cinema" || v.layoutTemplate === "default") {
     out.layoutTemplate = v.layoutTemplate;

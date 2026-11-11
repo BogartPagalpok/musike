@@ -66,7 +66,7 @@ export interface SystemMedia {
 }
 
 export interface MusikeApi {
-  search(q: string, type: "song" | "video", signal?: AbortSignal): Promise<Track[]>;
+  search(q: string, type: "song" | "video" | "podcast", signal?: AbortSignal): Promise<Track[]>;
   suggest(q: string, signal?: AbortSignal): Promise<string[]>;
   radio(id: string): Promise<Track[]>;
   charts(signal?: AbortSignal): Promise<ChartsData>;

@@ -359,7 +359,7 @@ export function LyricsView({ className, compact = false }: { className?: string;
           className,
         )}
       >
-        <span className="grid size-11 place-items-center rounded-full bg-surface-2 text-fg-3 ring-1 ring-line">
+        <span className="grid size-11 place-items-center rounded-full bg-surface-2 text-fg-3">
           <MicrophoneStageIcon size={22} />
         </span>
         <p className="text-sm font-medium text-fg">{t.lyrics.notFound}</p>
@@ -377,7 +377,7 @@ export function LyricsView({ className, compact = false }: { className?: string;
           className,
         )}
       >
-        <span className="grid size-11 place-items-center rounded-full bg-surface-2 text-accent-text ring-1 ring-line">
+        <span className="grid size-11 place-items-center rounded-full bg-surface-2 text-accent-text">
           <MicrophoneStageIcon size={22} />
         </span>
         <p className="text-sm font-medium text-fg">{t.lyrics.instrumental}</p>
@@ -405,7 +405,7 @@ export function LyricsView({ className, compact = false }: { className?: string;
           )}
         >
           {waitingForVocals && (
-            <div className="mb-1 flex shrink-0 items-center gap-1.5 rounded-full bg-surface-3/80 px-3 py-1 text-xs font-medium text-fg-2 ring-1 ring-line backdrop-blur-md">
+            <div className="mb-1 flex shrink-0 items-center gap-1.5 rounded-full bg-surface-3/80 px-3 py-1 text-xs font-medium text-fg-2 backdrop-blur-md">
               <span className="size-1.5 animate-pulse rounded-full bg-accent" />
               <span>{t.lyrics.waitingForVocals}</span>
             </div>
@@ -447,7 +447,7 @@ export function LyricsView({ className, compact = false }: { className?: string;
         </div>
         {!compact && (
           <div className="pointer-events-none absolute right-3 bottom-2.5 flex items-center justify-end opacity-0 transition-opacity duration-200 group-hover/lyrics:opacity-100 focus-within:opacity-100">
-            <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-surface-2/90 px-2.5 py-1 text-[11px] ring-1 ring-line backdrop-blur-md">
+            <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-fg/[0.05] px-2.5 py-1 text-[11px] backdrop-blur-md">
               <button
                 type="button"
                 onClick={() => setUserOffset((o) => Math.round((o - 0.5) * 10) / 10)}

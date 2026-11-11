@@ -69,7 +69,8 @@ export async function startServer(opts: StartOptions = {}): Promise<RunningServe
 
   app.get("/api/search", async (req) => {
     const { q, type } = req.query as { q?: string; type?: string };
-    return { tracks: await search(query(q), type === "video" ? "video" : "song", langOf(req)) };
+    const searchType = type === "video" ? "video" : type === "podcast" ? "podcast" : "song";
+    return { tracks: await search(query(q), searchType, langOf(req)) };
   });
 
   app.get("/api/suggest", async (req) => {

@@ -122,7 +122,7 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
               <button
                 type="button"
                 onClick={() => void startRadio(track)}
-                className="flex h-8 items-center gap-1.5 rounded-full bg-surface-3/80 px-3.5 text-xs font-medium text-fg-2 ring-1 ring-line backdrop-blur-md transition-colors hover:bg-surface-4 hover:text-fg"
+                className="flex h-8 items-center gap-1.5 rounded-full bg-surface-3/80 px-3.5 text-xs font-medium text-fg-2 backdrop-blur-md transition-colors hover:bg-surface-4 hover:text-fg"
               >
                 <RadioIcon size={14} />
                 <span>{t.trackMenu.startRadio}</span>

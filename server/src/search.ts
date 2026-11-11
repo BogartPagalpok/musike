@@ -69,6 +69,11 @@ export function toTrack(item: any, kind: Track["kind"]): Track | null {
   };
 }
 
+// Maximum duration for regular song results: 15 minutes (900 seconds)
+// Excludes 1-3+ hour long compilations/sleep mixes that get misclassified as songs
+const MAX_SONG_DURATION = 15 * 60;
+const MIN_SONG_DURATION = 25; // Exclude brief sound effects / cut fragments
+
 /** Tracks from every shelf of a search response, not just the first (a "did you mean" block can come first). */
 function tracksFrom(result: { contents?: unknown }, kind: Track["kind"]): Track[] {
   const seen = new Set<string>();
@@ -78,6 +83,10 @@ function tracksFrom(result: { contents?: unknown }, kind: Track["kind"]): Track[
     for (const item of Array.isArray(section?.contents) ? section.contents : []) {
       const track = toTrack(item, kind);
       if (track && !seen.has(track.id)) {
+        // Filter out excessively long multi-hour DJ/sleep mixes or <25s sound snippets when looking for songs
+        if (kind === "song" && track.duration > 0 && (track.duration > MAX_SONG_DURATION || track.duration < MIN_SONG_DURATION)) {
+          continue;
+        }
         seen.add(track.id);
         tracks.push(track);
       }
@@ -97,10 +106,22 @@ function reason(e: unknown): string {
  * YouTube Music first; then plain YouTube search (another endpoint, videos only), which also covers the Android app,
  * where there is no yt-dlp; then yt-dlp on a computer.
  */
-export async function search(query: string, type: "song" | "video", lang?: Lang): Promise<Track[]> {
+export async function search(query: string, type: "song" | "video" | "podcast", lang?: Lang): Promise<Track[]> {
   const failures: string[] = [];
+  if (type === "podcast") {
+    try {
+      const q = /podcast/i.test(query) ? query : `${query} podcast`;
+      const result = await withClient((yt) => yt.search(q, { type: "video" }), lang);
+      const tracks = (result.videos ?? []).map((v) => toTrack(v, "video")).filter((t): t is Track => !!t);
+      if (tracks.length) return tracks;
+    } catch (e) {
+      failures.push(`YouTube podcast search: ${reason(e)}`);
+    }
+  }
+
   try {
-    const tracks = tracksFrom(await withClient((yt) => yt.music.search(query, { type }), lang), type);
+    const musicSearchType = type === "podcast" ? "video" : type;
+    const tracks = tracksFrom(await withClient((yt) => yt.music.search(query, { type: musicSearchType }), lang), musicSearchType);
     if (tracks.length) return tracks;
     failures.push("YouTube Music: no results");
   } catch (e) {
@@ -124,7 +145,13 @@ export async function search(query: string, type: "song" | "video", lang?: Lang)
     throw new HttpError(503, msg("searchFailed", { detail: failures.join("; ") }));
   }
   return entries
-    .filter((e) => VIDEO_ID.test(e.id))
+    .filter((e) => {
+      if (!VIDEO_ID.test(e.id)) return false;
+      if (type === "song" && e.duration && (e.duration > MAX_SONG_DURATION || e.duration < MIN_SONG_DURATION)) {
+        return false;
+      }
+      return true;
+    })
     .map((e) => ({
       id: e.id,
       title: e.title,

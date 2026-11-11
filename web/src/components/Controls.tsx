@@ -206,7 +206,7 @@ export function ModeSwitch({ className }: { className?: string }) {
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <div role="radiogroup" aria-label={t.player.mode} className="flex rounded-full bg-surface-1 p-1 ring-1 ring-line">
+      <div role="radiogroup" aria-label={t.player.mode} className="flex rounded-full bg-fg/[0.07] p-1">
         <button type="button" role="radio" aria-checked={!preferVideo} className={seg(!preferVideo)} onClick={() => setPreferVideo(false)}>
           <MusicNotesIcon size={15} /> {t.player.audio}
         </button>

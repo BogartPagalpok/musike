@@ -1,14 +1,15 @@
-import { EqualizerIcon, KeyboardIcon, MicrophoneStageIcon, SidebarSimpleIcon } from "@phosphor-icons/react";
+import { EqualizerIcon, KeyboardIcon, MicrophoneStageIcon, QueueIcon } from "@phosphor-icons/react";
 import { cn } from "../lib/format";
 import { useT } from "../i18n";
 import { useEqualizer } from "../player/equalizer";
 import { selectCurrent, usePlayer, useStatusText } from "../player/player";
+import { useAppearance } from "../stores/appearance";
 import { useUi } from "../stores/ui";
 import { Artwork } from "./Artwork";
 import { FavoriteButton, ModeSwitch, OfflineButton, Scrubber, Transport, Volume } from "./Controls";
 import { IconButton } from "./IconButton";
 
-/** Desktop and tablet player: a floating island under the content. */
+/** Desktop and tablet player: a flat bar under the content (Spotify-style, no box). */
 export function PlayerBar() {
   const track = usePlayer(selectCurrent);
   const statusText = useStatusText();
@@ -17,24 +18,34 @@ export function PlayerBar() {
   const eqEnabled = useEqualizer((s) => s.enabled);
   const equalizerOpen = useUi((s) => s.equalizerOpen);
   const setEqualizerOpen = useUi((s) => s.setEqualizerOpen);
-  const panelOpen = useUi((s) => s.panelOpen || s.drawerOpen);
-  const panelTab = useUi((s) => s.panelTab);
-  const togglePanel = useUi((s) => s.togglePanel);
   const setShortcutsOpen = useUi((s) => s.setShortcutsOpen);
+  const sidebarTab = useAppearance((s) => s.sidebarTab);
+  const compactSidebar = useAppearance((s) => s.compactSidebar);
+  const setAppearance = useAppearance((s) => s.set);
+
+  const toggleSidebarTab = (tab: "lyrics" | "playing") => {
+    if (compactSidebar) {
+      setAppearance({ compactSidebar: false, sidebarTab: tab });
+    } else if (sidebarTab === tab) {
+      setAppearance({ sidebarTab: "browse" });
+    } else {
+      setAppearance({ sidebarTab: tab });
+    }
+  };
 
   return (
-    <div className="island shrink-0">
-      <div className="island-core grid h-[84px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 px-3 lg:px-4">
+    <div className="shrink-0">
+      <div className="grid h-[76px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 px-2">
         <div className="flex min-w-0 items-center gap-3">
           {track ? (
             <>
               <button
                 type="button"
-                onClick={() => togglePanel("playing")}
+                onClick={() => toggleSidebarTab("playing")}
                 aria-label={t.player.showNowPlaying}
                 className="group relative shrink-0 rounded-[10px] transition-transform active:scale-[0.96]"
               >
-                <Artwork src={track.thumb} className="size-14 rounded-[10px]" />
+                <Artwork src={track.thumb} className="size-14 rounded-[6px] shadow-md" />
               </button>
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">{track.title}</p>
@@ -68,18 +79,18 @@ export function PlayerBar() {
           <IconButton
             label={t.nowPlaying.tabLyrics}
             size="sm"
-            active={panelOpen && panelTab === "lyrics"}
-            onClick={() => togglePanel("lyrics")}
+            active={!compactSidebar && sidebarTab === "lyrics"}
+            onClick={() => toggleSidebarTab("lyrics")}
           >
-            <MicrophoneStageIcon size={18} weight={panelOpen && panelTab === "lyrics" ? "fill" : "regular"} />
+            <MicrophoneStageIcon size={18} weight={!compactSidebar && sidebarTab === "lyrics" ? "fill" : "regular"} />
           </IconButton>
           <IconButton
             label={`${t.nowPlaying.tabPlaying} & ${t.player.queue}`}
             size="sm"
-            active={panelOpen && panelTab === "playing"}
-            onClick={() => togglePanel("playing")}
+            active={!compactSidebar && sidebarTab === "playing"}
+            onClick={() => toggleSidebarTab("playing")}
           >
-            <SidebarSimpleIcon size={18} mirrored weight={panelOpen && panelTab === "playing" ? "fill" : "regular"} />
+            <QueueIcon size={18} weight={!compactSidebar && sidebarTab === "playing" ? "bold" : "regular"} />
           </IconButton>
           <Volume className="max-lg:hidden" />
           <IconButton label={t.player.shortcuts} size="sm" onClick={() => setShortcutsOpen(true)} className="max-xl:hidden">

@@ -32,7 +32,7 @@ function Shortcut({ to, label, tracks, cover }: { to: string; label: string; tra
   const playList = usePlayer((s) => s.playList);
   const t = useT();
   return (
-    <div className="group relative flex h-14 items-center gap-3 overflow-hidden rounded-[12px] bg-surface-2/90 pr-2.5 ring-1 ring-line transition-colors hover:bg-surface-3">
+    <div className="group relative flex h-14 items-center gap-3 overflow-hidden rounded-[12px] bg-fg/[0.05] pr-2.5 transition-colors hover:bg-surface-3">
       <Link to={to} className="absolute inset-0" aria-label={label} />
       <span className="pointer-events-none size-14 shrink-0 overflow-hidden">{cover}</span>
       <span className="pointer-events-none min-w-0 flex-1 truncate text-[13px] font-semibold tracking-tight">{label}</span>
@@ -53,7 +53,7 @@ function Shortcut({ to, label, tracks, cover }: { to: string; label: string; tra
 function RecentCard({ track, onPlay }: { track: Track; onPlay: () => void }) {
   return (
     <button type="button" onClick={onPlay} className="group flex w-36 shrink-0 snap-start flex-col gap-2 text-left md:w-42">
-      <span className="relative block overflow-hidden rounded-[12px] shadow-sm ring-1 ring-line">
+      <span className="relative block overflow-hidden rounded-[12px] shadow-sm">
         <Artwork src={track.art} fallback={track.thumb} className="aspect-square w-full transition-transform duration-300 group-hover:scale-[1.03]" />
         <span className="absolute right-2 bottom-2 grid size-9 translate-y-1 place-items-center rounded-full bg-black/65 text-white opacity-0 backdrop-blur-md transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:opacity-100">
           <PlayIcon size={16} weight="fill" />
@@ -100,7 +100,7 @@ function ChartTrackCell({
     <li
       onContextMenu={menuAt}
       className={cn(
-        "group relative flex items-center gap-2.5 rounded-[10px] px-2 py-1.5 transition-colors duration-150 hover:bg-surface-2/90",
+        "group relative flex items-center gap-2.5 rounded-[10px] px-2 py-1.5 transition-colors duration-150 hover:bg-fg/[0.05]",
         isCurrent && "bg-surface-2/80",
       )}
     >
@@ -112,7 +112,7 @@ function ChartTrackCell({
       />
 
       {/* Artwork with Apple Music hover play overlay */}
-      <div className="pointer-events-none relative size-11 shrink-0 overflow-hidden rounded-[8px] shadow-xs ring-1 ring-line">
+      <div className="pointer-events-none relative size-11 shrink-0 overflow-hidden rounded-[8px] shadow-xs">
         <Artwork src={track.thumb} className="size-full object-cover" />
         <span
           className={cn(
@@ -213,10 +213,21 @@ function Top50Section() {
       title={t.home.top50Title}
       action={
         <div className="flex items-center gap-2">
+          {activeTracks.length > 0 && (
+            <button
+              type="button"
+              onClick={() => playList(activeTracks, 0)}
+              aria-label={t.home.playTop50}
+              title={t.home.playTop50}
+              className="grid size-8 place-items-center rounded-full bg-accent text-accent-ink shadow-sm transition-transform hover:scale-105 active:scale-95"
+            >
+              <PlayIcon size={14} weight="fill" className="translate-x-0.5" />
+            </button>
+          )}
           <div
             role="tablist"
             aria-label={t.home.top50Title}
-            className="flex items-center rounded-lg bg-surface-2 p-0.5 ring-1 ring-line"
+            className="flex items-center rounded-lg bg-fg/[0.07] p-0.5"
           >
             <button
               type="button"
@@ -243,16 +254,6 @@ function Top50Section() {
               {t.home.top50Trending(charts?.region)}
             </button>
           </div>
-          {activeTracks.length > 0 && (
-            <button
-              type="button"
-              onClick={() => playList(activeTracks, 0)}
-              className="flex h-8 items-center gap-1.5 rounded-lg bg-accent px-3 text-xs font-semibold text-accent-ink transition-transform hover:opacity-95 active:scale-[0.98]"
-            >
-              <PlayIcon size={12} weight="fill" />
-              <span>{t.home.playTop50}</span>
-            </button>
-          )}
         </div>
       }
     >
@@ -278,7 +279,7 @@ function Top50Section() {
                 <button
                   type="button"
                   onClick={() => setExpanded((e) => !e)}
-                  className="flex h-8 items-center gap-1.5 rounded-lg bg-surface-2 px-4 text-xs font-medium text-fg-2 ring-1 ring-line transition-colors hover:bg-surface-3 hover:text-fg"
+                  className="flex h-8 items-center gap-1.5 rounded-lg bg-surface-2 px-4 text-xs font-medium text-fg-2 transition-colors hover:bg-surface-3 hover:text-fg"
                 >
                   {expanded ? (
                     <>

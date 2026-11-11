@@ -1,4 +1,4 @@
-import { BooksIcon, HouseIcon, MagnifyingGlassIcon } from "@phosphor-icons/react";
+import { BooksIcon, BroadcastIcon, HouseIcon, MagnifyingGlassIcon, SkipForwardIcon } from "@phosphor-icons/react";
 import { NavLink, useNavigate } from "react-router";
 import { cn } from "../lib/format";
 import { useT } from "../i18n";
@@ -9,6 +9,7 @@ import { PlayPauseIcon } from "./Controls";
 
 const tabs = [
   { to: paths.home, key: "home", Icon: HouseIcon, end: true },
+  { to: paths.podcasts, key: "podcasts", Icon: BroadcastIcon, end: false },
   { to: paths.search, key: "search", Icon: MagnifyingGlassIcon, end: false },
   { to: paths.library, key: "library", Icon: BooksIcon, end: false },
 ] as const;
@@ -20,7 +21,7 @@ export function TabBar() {
       aria-label={t.nav.main}
       className="safe-bottom fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg/85 backdrop-blur-xl"
     >
-      <ul className="mx-auto grid h-16 max-w-md grid-cols-3">
+      <ul className="mx-auto grid h-16 max-w-md grid-cols-4">
         {tabs.map(({ to, key, Icon, end }) => (
           <li key={to}>
             <NavLink
@@ -60,41 +61,48 @@ export function MiniPlayer() {
   const status = usePlayer((s) => s.status);
   const statusText = useStatusText();
   const toggle = usePlayer((s) => s.toggle);
+  const next = usePlayer((s) => s.next);
   const t = useT();
   const navigate = useNavigate();
   if (!track) return null;
   const pct = duration > 0 ? Math.min(100, (position / duration) * 100) : 0;
 
   return (
-    <div className="fixed inset-x-2 bottom-[calc(72px+env(safe-area-inset-bottom))] z-20">
-      <div className="island p-1! shadow-[0_10px_30px_rgb(0_0_0/0.35)]">
-        <div className="island-core relative flex h-14 items-center gap-3 overflow-hidden pr-1 pl-1.5">
-          <button
-            type="button"
-            onClick={() => navigate({ hash: NOW_PLAYING_HASH })}
-            className="flex min-w-0 flex-1 items-center gap-3 text-left"
-            aria-label={t.player.openNowPlaying(track.title)}
-          >
-            <Artwork src={track.thumb} className="size-11 rounded-[10px]" />
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-medium">{track.title}</span>
-              <span className={cn("block truncate text-xs", status === "error" ? "text-danger" : "text-fg-2")}>
-                {statusText ?? track.artist}
-              </span>
+    <div className="fixed inset-x-2 bottom-[calc(70px+env(safe-area-inset-bottom))] z-20">
+      <div className="relative flex h-14 items-center gap-3 overflow-hidden rounded-[14px] bg-surface-2/85 pr-1 pl-2 shadow-[0_8px_28px_rgb(0_0_0/0.35)] ring-1 ring-line backdrop-blur-2xl">
+        <button
+          type="button"
+          onClick={() => navigate({ hash: NOW_PLAYING_HASH })}
+          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          aria-label={t.player.openNowPlaying(track.title)}
+        >
+          <Artwork src={track.thumb} className="size-10 rounded-[8px] shadow-sm" />
+          <span className="min-w-0">
+            <span className="block truncate text-[14px] font-semibold tracking-tight">{track.title}</span>
+            <span className={cn("block truncate text-[12px]", status === "error" ? "text-danger" : "text-fg-2")}>
+              {statusText ?? track.artist}
             </span>
-          </button>
-          <button
-            type="button"
-            onClick={toggle}
-            aria-label={status === "playing" ? t.common.pause : t.common.play}
-            className="grid size-11 shrink-0 place-items-center rounded-full text-fg active:scale-90"
-          >
-            <PlayPauseIcon size={24} />
-          </button>
-          <span className="absolute inset-x-3 bottom-0 h-[2px] rounded-full bg-surface-4">
-            <span className="block h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
           </span>
-        </div>
+        </button>
+        <button
+          type="button"
+          onClick={toggle}
+          aria-label={status === "playing" ? t.common.pause : t.common.play}
+          className="grid size-11 shrink-0 place-items-center rounded-full text-fg active:scale-90"
+        >
+          <PlayPauseIcon size={24} />
+        </button>
+        <button
+          type="button"
+          onClick={next}
+          aria-label={t.player.next}
+          className="grid size-11 shrink-0 place-items-center rounded-full text-fg active:scale-90"
+        >
+          <SkipForwardIcon size={22} weight="fill" />
+        </button>
+        <span className="absolute inset-x-0 bottom-0 h-[2px] bg-fg/10">
+          <span className="block h-full bg-fg/80" style={{ width: `${pct}%` }} />
+        </span>
       </div>
     </div>
   );

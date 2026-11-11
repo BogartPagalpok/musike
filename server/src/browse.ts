@@ -251,7 +251,10 @@ const genreState = cached(30 * MINUTE, async (key): Promise<GenreState> => {
   const first = songs.length >= 10 ? 2 : 4;
   const fromPlaylists = (await Promise.all(playlists.slice(0, first).map((p) => playlistItems(p, 60, lang)))).flat();
 
-  const tracks = uniqueTracks([...songs, ...fromPlaylists].map((i) => toTrack(i, "song"))).slice(0, MAX_GENRE_TRACKS);
+  // Filter out any abnormal tracks (e.g. >15 min compilations/DJ sets or empty duration)
+  const tracks = uniqueTracks([...songs, ...fromPlaylists].map((i) => toTrack(i, "song")))
+    .filter((t) => t.duration === 0 || (t.duration >= 25 && t.duration <= 15 * 60))
+    .slice(0, MAX_GENRE_TRACKS);
   if (!tracks.length && !albums.length) throw new HttpError(404, msg("genreEmpty"));
 
   // The genre's own song and album shelves weigh more than playlists.

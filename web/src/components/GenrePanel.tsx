@@ -42,25 +42,32 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
 
   const cards = [
-    { key: "chill", ...t.home.collections.chill, Icon: CoffeeIcon },
-    { key: "focus", ...t.home.collections.focus, Icon: HeadphonesIcon },
-    { key: "energy", ...t.home.collections.energy, Icon: BarbellIcon },
-    { key: "feelGood", ...t.home.collections.feelGood, Icon: SunHorizonIcon },
-    { key: "lateNight", ...t.home.collections.lateNight, Icon: CarProfileIcon },
-    { key: "party", ...t.home.collections.party, Icon: ConfettiIcon },
-    { key: "romance", ...t.home.collections.romance, Icon: HeartIcon },
-    { key: "throwback", ...t.home.collections.throwback, Icon: CassetteTapeIcon },
+    { key: "chill", genreId: "ggMPOg1uX1JOQWZFeDByc2Jm", ...t.home.collections.chill, Icon: CoffeeIcon },
+    { key: "focus", genreId: "ggMPOg1uX0NvNGNhWThMYWRh", ...t.home.collections.focus, Icon: HeadphonesIcon },
+    { key: "energy", genreId: "ggMPOg1uXzIxYkNac21YZ2Z0", ...t.home.collections.energy, Icon: BarbellIcon },
+    { key: "feelGood", genreId: "ggMPOg1uXzZQbDB5eThLRTQ3", ...t.home.collections.feelGood, Icon: SunHorizonIcon },
+    { key: "lateNight", genreId: "ggMPOg1uX2JxQ2hxc2J5UFhR", ...t.home.collections.lateNight, Icon: CarProfileIcon },
+    { key: "party", genreId: "ggMPOg1uX2w1aW1CRDFTSUNo", ...t.home.collections.party, Icon: ConfettiIcon },
+    { key: "romance", genreId: "ggMPOg1uX1JCQnB2QXVYVEIz", ...t.home.collections.romance, Icon: HeartIcon },
+    { key: "throwback", genreId: "ggMPOg1uX1F0bWVKNFlyWG9I", ...t.home.collections.throwback, Icon: CassetteTapeIcon },
   ];
 
-  const handlePlayMix = async (key: string, query: string, e: React.MouseEvent) => {
+  const handlePlayMix = async (key: string, genreId: string | undefined, query: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (loadingKey) return;
     setLoadingKey(key);
     try {
+      if (genreId) {
+        const page = await api.genre(genreId);
+        if (page.tracks.length > 0) {
+          playList(page.tracks, 0);
+          return;
+        }
+      }
       const tracks = await api.search(query, "song");
       if (tracks.length > 0) playList(tracks, 0);
     } catch {
-      navigate(`${paths.search}?q=${encodeURIComponent(query)}`);
+      navigate(genreId ? paths.genre(genreId) : `${paths.search}?q=${encodeURIComponent(query)}`);
     } finally {
       setLoadingKey(null);
     }
@@ -69,25 +76,26 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
   return (
     <div className={cn("@container", !compact && "px-4 md:px-6")}>
       <div className="grid grid-cols-2 gap-2.5 @[620px]:grid-cols-4">
-        {cards.map(({ key, title, sub, query, Icon }, idx) => {
+        {cards.map(({ key, genreId, title, sub, query, Icon }, idx) => {
           const busy = loadingKey === key;
           const tone = ACCENT_VARS[idx % ACCENT_VARS.length]!;
+          const targetUrl = genreId ? paths.genre(genreId) : `${paths.search}?q=${encodeURIComponent(query)}`;
           return (
             <div
               key={key}
               role="button"
               tabIndex={0}
-              onClick={() => navigate(`${paths.search}?q=${encodeURIComponent(query)}`)}
+              onClick={() => navigate(targetUrl, { state: { name: title } })}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  navigate(`${paths.search}?q=${encodeURIComponent(query)}`);
+                  navigate(targetUrl, { state: { name: title } });
                 }
               }}
               style={{
                 backgroundImage: `radial-gradient(circle at 100% 0%, color-mix(in srgb, ${tone} 14%, transparent), transparent 65%)`,
               }}
-              className="group relative flex flex-col justify-between gap-2 overflow-hidden rounded-[12px] bg-surface-2/90 p-3.5 text-left ring-1 ring-line transition-colors duration-150 hover:bg-surface-3"
+              className="group relative flex flex-col justify-between gap-2 overflow-hidden rounded-[12px] bg-fg/[0.05] p-3.5 text-left transition-colors duration-150 hover:bg-surface-3"
             >
               <div className="flex items-center justify-between gap-2">
                 <span style={{ color: tone }} className=" inline-flex items-center">
@@ -95,7 +103,7 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
                 </span>
                 <button
                   type="button"
-                  onClick={(e) => handlePlayMix(key, query, e)}
+                  onClick={(e) => handlePlayMix(key, genreId, query, e)}
                   aria-label={t.home.playMix(title)}
                   title={t.home.playMix(title)}
                   className={cn(
@@ -200,7 +208,7 @@ function CategoryTile({ genre }: { genre: Genre }) {
       style={{
         backgroundImage: `linear-gradient(135deg, color-mix(in srgb, ${tone} 12%, transparent), transparent 65%)`,
       }}
-      className="group relative flex h-13 items-center gap-2.5 overflow-hidden rounded-[11px] bg-surface-2/90 px-3.5 text-fg ring-1 ring-line transition-colors duration-150 hover:bg-surface-3"
+      className="group relative flex h-13 items-center gap-2.5 overflow-hidden rounded-[11px] bg-fg/[0.05] px-3.5 text-fg transition-colors duration-150 hover:bg-surface-3"
     >
       <span style={{ backgroundColor: tone }} className="h-5 w-1 shrink-0 rounded-full opacity-85 transition-transform duration-150 group-hover:scale-y-125" />
       <span className="truncate text-[13px] font-semibold tracking-tight">{genre.name}</span>
@@ -219,7 +227,7 @@ export function GenrePanel({ id }: { id: string }) {
   const styles = list.filter((g) => g.kind !== "mood");
 
   return (
-    <div id={id} className="rounded-[16px] bg-surface-2 p-3.5 ring-1 ring-line">
+    <div id={id} className="rounded-[16px] bg-surface-2 p-3.5">
       {genres.status === "loading" && (
         <div aria-label={t.common.loading} className="flex flex-wrap gap-2">
           {Array.from({ length: 14 }, (_, i) => (

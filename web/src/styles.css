@@ -368,12 +368,12 @@
 }
 
 /* Subtle Apple Music ambient mesh lighting for Playful 6-Color Themes */
-html:is([data-theme="synthwave"], [data-theme="candy"], [data-theme="arcade"], [data-theme="tropical"], [data-theme="aurora"], [data-theme="holi"]) .island-core {
+html:is([data-theme="synthwave"], [data-theme="candy"], [data-theme="arcade"], [data-theme="tropical"], [data-theme="aurora"], [data-theme="holi"]) .island {
   background:
     radial-gradient(circle at 8% 6%, color-mix(in srgb, var(--c1) 10%, transparent), transparent 45%),
     radial-gradient(circle at 92% 12%, color-mix(in srgb, var(--c2) 10%, transparent), transparent 45%),
     radial-gradient(circle at 50% 92%, color-mix(in srgb, var(--c3) 8%, transparent), transparent 50%),
-    var(--surface-2);
+    var(--surface-1);
 }
 
 .lyrics-mask {
@@ -436,17 +436,14 @@ html:is([data-theme="synthwave"], [data-theme="candy"], [data-theme="arcade"], [
   }
 
   @layer components {
-    /* Floating island with a nested bezel: outer shell + inner core (high-end-visual-design). */
+    /* Flat panel (Spotify / Apple Music): one surface, no nested bezel or inner padding. */
     .island {
       background: var(--surface-1);
-      border: 1px solid var(--line);
-      border-radius: var(--radius-panel);
-      padding: 5px;
+      border-radius: 12px;
     }
     .island-core {
-      background: var(--surface-2);
-      border-radius: calc(var(--radius-panel) - 5px);
-      box-shadow: inset 0 1px 0 var(--highlight);
+      background: transparent;
+      border-radius: inherit;
     }
 
     .scroll-area {

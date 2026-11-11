@@ -5,7 +5,7 @@ import { OpeningSplash } from "./components/Brand";
 import { AddToPlaylistDialog, ShortcutsDialog } from "./components/Dialogs";
 import { EqualizerDialog } from "./components/EqualizerDialog";
 import { MiniPlayer, TabBar } from "./components/MobileChrome";
-import { NowPlayingSheet, PanelDrawer, SidePanel } from "./components/NowPlaying";
+import { NowPlayingSheet, PanelDrawer } from "./components/NowPlaying";
 import { CenterLyricsPlayer } from "./components/CenterLyricsPlayer";
 import { PlayerBar } from "./components/PlayerBar";
 import { Rail } from "./components/Rail";
@@ -24,7 +24,7 @@ import { useAppearance } from "./stores/appearance";
 import { useLibrary } from "./stores/library";
 import { useOffline } from "./stores/offline";
 import { openSettings, useSystem } from "./stores/system";
-import { toast, useUi } from "./stores/ui";
+import { toast } from "./stores/ui";
 import Album from "./views/Album";
 import Artist from "./views/Artist";
 import BatchSearch from "./views/BatchSearch";
@@ -32,6 +32,7 @@ import Collection from "./views/Collection";
 import Genre from "./views/Genre";
 import Home from "./views/Home";
 import Library from "./views/Library";
+import Podcasts from "./views/Podcasts";
 import Search from "./views/Search";
 
 const SHEET_HASH = `#${NOW_PLAYING_HASH}`;
@@ -42,7 +43,6 @@ export default function App() {
   const navigate = useNavigate();
   const navigationType = useNavigationType();
   const isMd = useMediaQuery(MD);
-  const panelOpen = useUi((s) => s.panelOpen);
   const hasTrack = usePlayer((s) => s.queue.length > 0);
   const loadLibrary = useLibrary((s) => s.load);
   const loadOffline = useOffline((s) => s.load);
@@ -117,6 +117,7 @@ export default function App() {
   ) : (
     <Routes>
       <Route path={paths.home} element={<Home />} />
+      <Route path={paths.podcasts} element={<Podcasts />} />
       <Route path={paths.search} element={<Search />} />
       <Route path={paths.searchList} element={<BatchSearch />} />
       <Route path="/search/genre/:id" element={<Genre />} />
@@ -132,14 +133,14 @@ export default function App() {
   );
 
   return (
-    <div className="grain flex h-dvh flex-col bg-bg md:gap-2 md:p-2">
+    <div className="grain flex h-dvh flex-col bg-bg md:p-2 md:pb-0">
       <OpeningSplash />
       <div className="flex min-h-0 flex-1 md:gap-2">
         <Rail embeddedRoutes={layoutTemplate === "center-lyrics" && isMd ? appRoutes : undefined} />
         <main
           ref={main}
           className={cn(
-            "scroll-area relative min-h-0 min-w-0 flex-1 md:rounded-[20px] md:bg-surface-1 md:ring-1 md:ring-line",
+            "scroll-area relative min-h-0 min-w-0 flex-1 md:rounded-[12px] md:bg-surface-1",
             (layoutTemplate === "center-lyrics" || layoutTemplate === "cinema") && isMd
               ? "flex flex-col overflow-hidden"
               : "overflow-y-auto",
@@ -162,7 +163,6 @@ export default function App() {
             appRoutes
           )}
         </main>
-        {panelOpen && hasTrack && <SidePanel />}
       </div>
 
       {isMd ? (

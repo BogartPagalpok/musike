@@ -55,8 +55,8 @@ function videoIdFromUrl(text: string): string | null {
   }
 }
 
-type Kind = "song" | "video" | "album";
-const KIND_PARAM: Record<Kind, string | null> = { song: null, video: "videos", album: "albums" };
+type Kind = "song" | "video" | "album" | "podcast";
+const KIND_PARAM: Record<Kind, string | null> = { song: null, video: "videos", album: "albums", podcast: "podcasts" };
 
 // The genre panel stays open when coming back from a genre page.
 let genresOpenMemo = false;
@@ -64,7 +64,14 @@ let genresOpenMemo = false;
 export default function Search() {
   const [params, setParams] = useSearchParams();
   const q = params.get("q") ?? "";
-  const kind: Kind = params.get("type") === "videos" ? "video" : params.get("type") === "albums" ? "album" : "song";
+  const kind: Kind =
+    params.get("type") === "videos"
+      ? "video"
+      : params.get("type") === "albums"
+        ? "album"
+        : params.get("type") === "podcasts"
+          ? "podcast"
+          : "song";
   const t = useT();
   const [text, setText] = useState(q);
   const [results, setResults] = useState<Track[] | null>(null);
@@ -244,7 +251,7 @@ export default function Search() {
           <Link
             to={paths.searchList}
             state={{ text }}
-            className="flex items-center gap-3 rounded-[16px] bg-accent-soft px-4 py-3 text-sm ring-1 ring-line transition-colors hover:bg-surface-3"
+            className="flex items-center gap-3 rounded-[16px] bg-accent-soft px-4 py-3 text-sm transition-colors hover:bg-surface-3"
           >
             <ListBulletsIcon size={20} className="shrink-0 text-accent-text" />
             <span className="min-w-0 flex-1">
@@ -265,7 +272,7 @@ export default function Search() {
                   setText(s);
                   setQuery(s);
                 }}
-                className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-surface-2 px-3 text-[13px] text-fg-2 ring-1 ring-line transition-colors hover:text-fg"
+                className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-surface-2 px-3 text-[13px] text-fg-2 transition-colors hover:text-fg"
               >
                 <ArrowUpLeftIcon size={13} className="text-fg-3" /> {s}
               </button>
@@ -275,10 +282,11 @@ export default function Search() {
 
         {!linkId && (
           <div className="flex flex-wrap items-center gap-2">
-            <div role="tablist" aria-label={t.search.resultType} className="flex gap-2">
+            <div role="tablist" aria-label={t.search.resultType} className="flex flex-wrap gap-2">
               {tab("song", t.search.songs)}
               {tab("album", t.search.albums)}
               {tab("video", t.search.videos)}
+              {tab("podcast", t.search.podcasts)}
             </div>
             <span className="flex-1" />
             <div className="flex items-center gap-1">
@@ -317,7 +325,7 @@ export default function Search() {
               <button
                 type="button"
                 onClick={() => playTrack(linkTrack)}
-                className="flex w-full items-center gap-4 rounded-[16px] bg-surface-2 p-3 text-left ring-1 ring-line transition-colors hover:bg-surface-3"
+                className="flex w-full items-center gap-4 rounded-[16px] bg-surface-2 p-3 text-left transition-colors hover:bg-surface-3"
               >
                 <Artwork src={linkTrack.thumb} className="aspect-video w-28 rounded-[10px] md:w-36" />
                 <span className="min-w-0 flex-1">
@@ -400,7 +408,7 @@ export default function Search() {
                         setText(r);
                         setQuery(r);
                       }}
-                      className="h-10 rounded-full bg-surface-2 px-4 text-sm ring-1 ring-line transition-colors hover:bg-surface-3"
+                      className="h-10 rounded-full bg-surface-2 px-4 text-sm transition-colors hover:bg-surface-3"
                     >
                       {r}
                     </button>
