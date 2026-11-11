@@ -1,30 +1,20 @@
 import { create } from "zustand";
 import { desktop } from "../lib/desktop";
 import { en, type Messages } from "./en";
-import { pt } from "./pt";
 
 export type { Messages };
-export type Lang = "en" | "pt-BR";
+export type Lang = "en";
 
 /** Each language named in itself, as language pickers do. */
-export const LANGUAGES: { id: Lang; name: string }[] = [
-  { id: "en", name: "English" },
-  { id: "pt-BR", name: "Português (Brasil)" },
-];
+export const LANGUAGES: { id: Lang; name: string }[] = [{ id: "en", name: "English" }];
 
-const MESSAGES: Record<Lang, Messages> = { en, "pt-BR": pt };
+const MESSAGES: Record<Lang, Messages> = { en };
 const KEY = "musike:lang";
 
-export const isLang = (v: unknown): v is Lang => v === "en" || v === "pt-BR";
+export const isLang = (v: unknown): v is Lang => v === "en";
 
-/** Musike speaks English until the user picks another language in Settings. */
+/** Illusive Sounds uses English. */
 function readLang(): Lang {
-  try {
-    const saved = localStorage.getItem(KEY);
-    if (isLang(saved)) return saved;
-  } catch {
-    /* private mode */
-  }
   return "en";
 }
 

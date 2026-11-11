@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Themed icon (Android 13+): the logo at the size of the colored one, in the launcher's tint. -->
+<!-- Themed icon (Android 13+): the Illusive Sounds play-wave mark in the launcher's tint. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <group android:translateX="32" android:translateY="32" android:scaleX="1.5714" android:scaleY="1.5714">
-        <path android:fillColor="#FFFFFFFF" android:pathData="M4,0a4,4 0 0 1 4,4v20a4,4 0 0 1 -8,0v-20a4,4 0 0 1 4,-4z M14,0a4,4 0 0 1 4,4v8a4,4 0 0 1 -8,0v-8a4,4 0 0 1 4,-4z M24,0a4,4 0 0 1 4,4v20a4,4 0 0 1 -8,0v-20a4,4 0 0 1 4,-4z" />
-    </group>
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M24,54 L32,48 L36,42 L40,48 L40,34 C40,30 44,28 48,30 L74,46 C78,48.5 78,59.5 74,62 L48,78 C44,80 40,78 40,74 L40,60 L36,66 L32,60 Z M46,38 L46,43 L50,45 L50,40 Z M46,48 L46,70 L50,67.5 L50,50 Z M54,43 L54,56 L62,56 L62,59 L54,64 L54,65 L66,57.5 C68,56 68,52 66,50.5 Z" />
 </vector>

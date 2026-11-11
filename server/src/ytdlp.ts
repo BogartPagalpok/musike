@@ -1,10 +1,10 @@
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdir, readdir, rename, rm, stat, utimes } from "node:fs/promises";
+import { mkdir, readdir, rename, rm, stat, utimes, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { ensureComponent } from "./bootstrap.js";
 import { config } from "./config.js";
-import { DEFAULT_CLIENTS, directAudio, fetchRemoteClients } from "./directAudio.js";
+import { DEFAULT_CLIENTS, directAudio, directVideo, fetchRemoteClients } from "./directAudio.js";
 import { tools } from "./tools.js";
 import { msg } from "./i18n.js";
 import { HttpError } from "./types.js";
@@ -22,6 +22,7 @@ export interface Resolved {
   duration: number;
   audio: StreamFormat;
   video?: StreamFormat;
+  hdVideoUrl?: string;
   expiresAt: number;
 }
 
@@ -153,25 +154,51 @@ async function clientsForDirect(): Promise<string[]> {
 }
 
 /**
- * Plan B for audio: YouTube's bot check stops yt-dlp on some connections (VPNs, shared networks), and a YouTube
- * change can break it until it's updated. Asking YouTube for the audio directly often still works. Video stays
- * yt-dlp's job.
+ * Primary fast path for audio: asks YouTube's VISIONOS Innertube client directly (~250ms, no PO token required,
+ * no yt-dlp subprocess overhead or User-Agent mismatch).
  */
-async function resolveDirect(id: string, ytdlpError: unknown): Promise<Resolved> {
-  // Removed, private or age-restricted videos won't play any other way either.
-  if (ytdlpError instanceof HttpError && (ytdlpError.status === 403 || ytdlpError.status === 404)) throw ytdlpError;
-  try {
-    const direct = await directAudio(id, await clientsForDirect());
-    return {
-      id,
-      title: direct.title,
-      duration: direct.duration,
-      audio: { formatId: "direct", url: direct.url, headers: {}, mime: direct.mime },
-      expiresAt: direct.expiresAt - 10 * 60_000,
-    };
-  } catch {
-    throw ytdlpError; // yt-dlp's error says more, and may offer the update
+export async function resolveDirectOnly(id: string): Promise<Resolved> {
+  const direct = await directAudio(id, await clientsForDirect());
+  return {
+    id,
+    title: direct.title,
+    duration: direct.duration,
+    audio: { formatId: "direct", url: direct.url, headers: {}, mime: direct.mime },
+    expiresAt: direct.expiresAt - 10 * 60_000,
+  };
+}
+
+/** Fallback audio/video resolver via yt-dlp when direct Innertube resolution is unavailable for a track. */
+export async function resolveWithYtdlp(id: string): Promise<Resolved> {
+  const stdout = await run(["-J", "--no-playlist", "--no-warnings", `https://www.youtube.com/watch?v=${id}`], RESOLVE_TIMEOUT_MS);
+  const info = JSON.parse(stdout) as { title: string; duration?: number; formats: RawFormat[] };
+  const audio = pickAudio(info.formats);
+  if (!audio) throw new HttpError(404, msg("noAudio"));
+  const video = pickVideo(info.formats);
+  return {
+    id,
+    title: info.title,
+    duration: info.duration ?? 0,
+    audio: toStream(audio, "audio"),
+    video: video ? toStream(video, "video") : undefined,
+    expiresAt: expiryOf(audio.url!),
+  };
+}
+
+export async function resolveVideoStream(id: string): Promise<StreamFormat | undefined> {
+  const resolved = await resolveStreams(id);
+  if (resolved.video) return resolved.video;
+  const vid = await directVideo(id).catch(() => ({ sdUrl: undefined, hdVideoUrl: undefined }));
+  if (vid.hdVideoUrl) resolved.hdVideoUrl = vid.hdVideoUrl;
+  if (vid.sdUrl) {
+    resolved.video = { formatId: "direct-video", url: vid.sdUrl, headers: {}, mime: "video/mp4" };
+    return resolved.video;
   }
+  const ytdlpResolved = await resolveWithYtdlp(id).catch(() => null);
+  if (ytdlpResolved?.video) {
+    resolved.video = ytdlpResolved.video;
+  }
+  return resolved.video;
 }
 
 export function resolveStreams(id: string): Promise<Resolved> {
@@ -180,22 +207,8 @@ export function resolveStreams(id: string): Promise<Resolved> {
   const inflight = cache.get(id);
   if (inflight) return inflight;
 
-  const job = run(["-J", "--no-playlist", "--no-warnings", `https://www.youtube.com/watch?v=${id}`], RESOLVE_TIMEOUT_MS)
-    .then((stdout): Resolved => {
-      const info = JSON.parse(stdout) as { title: string; duration?: number; formats: RawFormat[] };
-      const audio = pickAudio(info.formats);
-      if (!audio) throw new HttpError(404, msg("noAudio"));
-      const video = pickVideo(info.formats);
-      return {
-        id,
-        title: info.title,
-        duration: info.duration ?? 0,
-        audio: toStream(audio, "audio"),
-        video: video ? toStream(video, "video") : undefined,
-        expiresAt: expiryOf(audio.url!),
-      };
-    })
-    .catch((err) => resolveDirect(id, err))
+  const job = resolveDirectOnly(id)
+    .catch(() => resolveWithYtdlp(id))
     .then((resolved) => {
       resolvedAt.set(id, resolved);
       return resolved;
@@ -231,6 +244,91 @@ export async function pruneCache(): Promise<void> {
   }
 }
 
+const FAST_CHUNK_BYTES = 2 * 1024 * 1024;
+
+/**
+ * Downloads a googlevideo stream using parallel 2 MB Range requests so YouTube does not throttle
+ * the connection to 1x realtime playback speed.
+ */
+async function fastDownloadUrl(url: string, destPath: string): Promise<void> {
+  const first = await fetch(url, {
+    headers: { Range: `bytes=0-${FAST_CHUNK_BYTES - 1}` },
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!first.ok) throw new HttpError(502, msg("streamRefused", { status: first.status }));
+  const firstBuf = Buffer.from(await first.arrayBuffer());
+  const cr = first.headers.get("content-range");
+  const total = cr ? Number(cr.split("/")[1]) : firstBuf.byteLength;
+  if (!total || total <= firstBuf.byteLength) {
+    await writeFile(destPath, firstBuf);
+    return;
+  }
+
+  const ranges: [number, number][] = [];
+  for (let start = FAST_CHUNK_BYTES; start < total; start += FAST_CHUNK_BYTES) {
+    ranges.push([start, Math.min(total - 1, start + FAST_CHUNK_BYTES - 1)]);
+  }
+
+  const parts = new Array<Buffer>(ranges.length);
+  let nextIdx = 0;
+  await Promise.all(
+    Array.from({ length: 4 }, async () => {
+      while (nextIdx < ranges.length) {
+        const i = nextIdx++;
+        const [start, end] = ranges[i]!;
+        const res = await fetch(url, {
+          headers: { Range: `bytes=${start}-${end}` },
+          signal: AbortSignal.timeout(30_000),
+        });
+        if (!res.ok) throw new HttpError(502, msg("streamRefused", { status: res.status }));
+        parts[i] = Buffer.from(await res.arrayBuffer());
+      }
+    }),
+  );
+
+  await writeFile(destPath, Buffer.concat([firstBuf, ...parts]));
+}
+
+async function mergeDirectHd(id: string, tmp: string): Promise<void> {
+  const { ffmpeg, env } = tools();
+  if (!ffmpeg) throw new HttpError(503, msg("ytdlpMissing"), "tool_missing");
+  const resolved = await resolveStreams(id);
+  const vid = resolved.hdVideoUrl ? { hdVideoUrl: resolved.hdVideoUrl, audioUrl: resolved.audio.url } : await directVideo(id);
+  const videoUrl = vid.hdVideoUrl;
+  const audioUrl = vid.audioUrl ?? resolved.audio.url;
+  if (!videoUrl || !audioUrl) throw new HttpError(404, msg("noSdVideo"));
+
+  const vTmp = `${tmp}.v.mp4`;
+  const aTmp = `${tmp}.a.m4a`;
+  try {
+    await Promise.all([fastDownloadUrl(videoUrl, vTmp), fastDownloadUrl(audioUrl, aTmp)]);
+    await new Promise<void>((resolve, reject) => {
+      const child = spawn(
+        ffmpeg,
+        ["-y", "-loglevel", "error", "-i", vTmp, "-i", aTmp, "-c", "copy", "-movflags", "+faststart", tmp],
+        { windowsHide: true, env },
+      );
+      let stderr = "";
+      const timer = setTimeout(() => {
+        child.kill();
+        reject(new HttpError(504, msg("ytdlpTimeout")));
+      }, DOWNLOAD_TIMEOUT_MS);
+      child.stderr.on("data", (d) => (stderr += d));
+      child.on("error", (err) => {
+        clearTimeout(timer);
+        reject(new HttpError(503, err.message, "tool_missing"));
+      });
+      child.on("close", (code) => {
+        clearTimeout(timer);
+        if (code === 0) return resolve();
+        reject(new HttpError(502, stderr.trim().slice(0, 240) || msg("ytdlpFailed")));
+      });
+    });
+  } finally {
+    await Promise.all([rm(vTmp, { force: true }), rm(aTmp, { force: true })]);
+  }
+}
+
 /** Downloads and merges a 720p H.264 + AAC MP4 into the cache, for HD video playback with seeking. */
 export function downloadHd(id: string): Promise<string> {
   const file = path.join(config.cacheDir, `${id}.720.mp4`);
@@ -248,19 +346,26 @@ export function downloadHd(id: string): Promise<string> {
   const job = (tools().ffmpeg || !config.binDir ? Promise.resolve() : ensureComponent("ffmpeg"))
     .then(() => mkdir(config.cacheDir, { recursive: true }))
     .then(() =>
-      run(
-        [
-          "--no-playlist",
-          "--no-warnings",
-          "--no-part",
-          "-N", "4",
-          "-f", "bv*[height<=720][vcodec^=avc1]+ba[ext=m4a]/b[ext=mp4][height<=720]/bv*[height<=720]+ba",
-          "--merge-output-format", "mp4",
-          "-o", tmp,
-          `https://www.youtube.com/watch?v=${id}`,
-        ],
-        DOWNLOAD_TIMEOUT_MS,
-      ),
+      mergeDirectHd(id, tmp).catch((err) => {
+        if (!tools().ytdlp) throw err;
+        return run(
+          [
+            "--no-playlist",
+            "--no-warnings",
+            "--no-part",
+            "-N",
+            "4",
+            "-f",
+            "bv*[height<=720][vcodec^=avc1]+ba[ext=m4a]/b[ext=mp4][height<=720]/bv*[height<=720]+ba",
+            "--merge-output-format",
+            "mp4",
+            "-o",
+            tmp,
+            `https://www.youtube.com/watch?v=${id}`,
+          ],
+          DOWNLOAD_TIMEOUT_MS,
+        );
+      }),
     )
     .then(async () => {
       await rename(tmp, file);

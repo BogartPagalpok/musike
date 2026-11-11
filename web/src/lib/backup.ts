@@ -3,12 +3,13 @@ import { usePlayer } from "../player/player";
 import { cleanAppearance, currentAppearance, useAppearance, type Appearance } from "../stores/appearance";
 import { useLibrary } from "../stores/library";
 import { useUi } from "../stores/ui";
+import { isTheme, type ThemeId } from "./accent";
 import { api, saveFile, type ImportResult } from "./api";
 import type { Library } from "./types";
 
 /**
- * Portable backup of a Musike instance: the library plus a few preferences.
- * Version 1 is read by every Musike from this release on; bump `version` only for breaking changes.
+ * Portable backup of an Illusive Sounds instance: the library plus a few preferences.
+ * Version 1 is read by every instance from this release on; bump `version` only for breaking changes.
  */
 export interface Backup {
   format: "musike-backup";
@@ -17,7 +18,7 @@ export interface Backup {
   app: string;
   library: Library;
   settings?: {
-    theme?: "dark" | "light";
+    theme?: ThemeId;
     lang?: string;
     appearance?: Partial<Appearance>;
     preferVideo?: boolean;
@@ -34,7 +35,7 @@ export async function createBackup(): Promise<Backup> {
     format: "musike-backup",
     version: 1,
     exportedAt: new Date().toISOString(),
-    app: `Musike ${__APP_VERSION__}`,
+    app: `Illusive Sounds ${__APP_VERSION__}`,
     library: { favorites: library.favorites, playlists: library.playlists, history: library.history },
     settings: {
       theme: useUi.getState().theme,
@@ -50,7 +51,7 @@ export async function createBackup(): Promise<Backup> {
 
 /** Saves the backup as a file: a download in browsers, "Save as" on desktop, the share sheet on Android. */
 export function downloadBackup(backup: Backup): Promise<void> {
-  return saveFile(`musike-backup-${backup.exportedAt.slice(0, 10)}.musike.json`, JSON.stringify(backup, null, 2));
+  return saveFile(`illusive-sounds-backup-${backup.exportedAt.slice(0, 10)}.json`, JSON.stringify(backup, null, 2));
 }
 
 export async function readBackup(file: File): Promise<Backup> {
@@ -84,7 +85,7 @@ export async function restoreBackup(backup: Backup, mode: "merge" | "replace", a
   const s = backup.settings;
   if (applySettings && s) {
     const player = usePlayer.getState();
-    if (s.theme === "dark" || s.theme === "light") useUi.getState().setTheme(s.theme);
+    if (isTheme(s.theme)) useUi.getState().setTheme(s.theme);
     if (isLang(s.lang)) useI18n.getState().setLang(s.lang);
     if (s.appearance && typeof s.appearance === "object") useAppearance.getState().set(cleanAppearance(s.appearance));
     if (typeof s.autoRadio === "boolean") player.setAutoRadio(s.autoRadio);

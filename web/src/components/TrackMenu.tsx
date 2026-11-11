@@ -1,5 +1,6 @@
 import {
   ArrowSquareOutIcon,
+  DownloadSimpleIcon,
   HeartIcon,
   ListPlusIcon,
   PlayIcon,
@@ -13,10 +14,11 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "re
 import { createPortal } from "react-dom";
 import { MD, useMediaQuery } from "../hooks/useMediaQuery";
 import { useT } from "../i18n";
+import { downloadTrack } from "../lib/api";
 import { cn } from "../lib/format";
 import { usePlayer } from "../player/player";
 import { useLibrary } from "../stores/library";
-import { useUi } from "../stores/ui";
+import { toast, useUi } from "../stores/ui";
 import { Artwork } from "./Artwork";
 
 function Item({ icon, children, onClick, danger }: { icon: ReactNode; children: ReactNode; onClick: () => void; danger?: boolean }) {
@@ -106,6 +108,15 @@ export function TrackMenu() {
         </Item>
       )}
       <div className="mx-3 my-1 h-px bg-line" />
+      <Item
+        icon={<DownloadSimpleIcon size={18} />}
+        onClick={run(() => {
+          toast(t.trackMenu.downloading(menu.track.title));
+          downloadTrack(menu.track);
+        })}
+      >
+        {t.trackMenu.download}
+      </Item>
       <Item
         icon={<ArrowSquareOutIcon size={18} />}
         onClick={run(() => window.open(`https://www.youtube.com/watch?v=${menu.track.id}`, "_blank", "noopener"))}

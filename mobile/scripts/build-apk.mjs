@@ -12,18 +12,29 @@ const { version } = JSON.parse(readFileSync(join(root, "package.json"), "utf8"))
 const android = join(root, "android");
 const win = process.platform === "win32";
 
+const env = { ...process.env };
+if (process.platform === "darwin") {
+  if (!env.JAVA_HOME && existsSync("/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home")) {
+    env.JAVA_HOME = "/opt/homebrew/opt/openjdk@21/libexec/openjdk.jdk/Contents/Home";
+    env.PATH = `/opt/homebrew/opt/openjdk@21/bin:${env.PATH ?? ""}`;
+  }
+  if (!env.ANDROID_HOME && existsSync("/opt/homebrew/share/android-commandlinetools")) {
+    env.ANDROID_HOME = "/opt/homebrew/share/android-commandlinetools";
+  }
+}
+
 const task = "assembleRelease --console=plain";
 const gradle = win
   ? // Batch files only run through a shell, as one command line with the path quoted.
-    spawnSync(`"${join(android, "gradlew.bat")}" ${task}`, { cwd: android, stdio: "inherit", shell: true })
+    spawnSync(`"${join(android, "gradlew.bat")}" ${task}`, { cwd: android, stdio: "inherit", shell: true, env })
   : // Through sh, so it runs even when the executable bit was lost (files committed from Windows).
-    spawnSync("sh", [join(android, "gradlew"), ...task.split(" ")], { cwd: android, stdio: "inherit" });
+    spawnSync("sh", [join(android, "gradlew"), ...task.split(" ")], { cwd: android, stdio: "inherit", env });
 if (gradle.status !== 0) process.exit(gradle.status ?? 1);
 
 const outputs = join(android, "app", "build", "outputs", "apk", "release");
 const signed = join(outputs, "app-release.apk");
 const apk = existsSync(signed) ? signed : join(outputs, "app-release-unsigned.apk");
-const target = join(root, "..", "release", `Musike-Setup-${version}-Android${apk === signed ? "" : "-unsigned"}.apk`);
+const target = join(root, "..", "release", `Illusive-Sounds-Setup-${version}-Android${apk === signed ? "" : "-unsigned"}.apk`);
 mkdirSync(dirname(target), { recursive: true });
 copyFileSync(apk, target);
 console.log(`\n${target}`);

@@ -1,5 +1,5 @@
 import { Capacitor } from "@capacitor/core";
-import { DEFAULT_CLIENTS, directAudio, fetchRemoteClients, validClients, type DirectAudio } from "../../../server/src/directAudio";
+import { DEFAULT_CLIENTS, directAudio, directVideo, fetchRemoteClients, validClients, type DirectAudio } from "../../../server/src/directAudio";
 import { msg, tr } from "../../../server/src/i18n";
 import { getLang } from "../i18n";
 import { ApiError } from "../lib/apiTypes";
@@ -22,6 +22,8 @@ const CLIENTS_KEY = ios ? "musike:stream-clients-ios" : "musike:stream-clients";
 
 const cache = new Map<string, DirectAudio>();
 const inflight = new Map<string, Promise<DirectAudio>>();
+const videoCache = new Map<string, { url: string; expiresAt: number }>();
+const videoInflight = new Map<string, Promise<string>>();
 
 function storedClients(): string[] {
   try {
@@ -48,7 +50,7 @@ void fetchRemoteClients(REMOTE_KEY).then((remote) => {
 async function resolveOnIos(id: string): Promise<DirectAudio | null> {
   if (!nativeResolverAvailable()) return null;
   try {
-    const r = await resolveNatively(id, getLang() === "pt-BR" ? "pt-BR" : "en", config.location);
+    const r = await resolveNatively(id, "en", config.location);
     if (r.error || !r.url) return null;
     const expire = Number(new URL(r.url).searchParams.get("expire")) * 1000;
     return {
@@ -90,7 +92,32 @@ export function resolveAudio(id: string): Promise<DirectAudio> {
   return job;
 }
 
+/** Resolves a muxed MP4 video stream directly on mobile. */
+export function resolveVideo(id: string): Promise<string> {
+  const hit = videoCache.get(id);
+  if (hit && hit.expiresAt - Date.now() > 60_000) return Promise.resolve(hit.url);
+  let job = videoInflight.get(id);
+  if (!job) {
+    job = (async () => {
+      const vid = await directVideo(id, getLang()).catch(() => ({ sdUrl: undefined }));
+      if (vid.sdUrl) {
+        const expire = Number(new URL(vid.sdUrl).searchParams.get("expire")) * 1000;
+        videoCache.set(id, {
+          url: vid.sdUrl,
+          expiresAt: Number.isFinite(expire) && expire > 0 ? expire : Date.now() + 3 * 3600_000,
+        });
+        return vid.sdUrl;
+      }
+      const audio = await resolveAudio(id);
+      return audio.url;
+    })().finally(() => videoInflight.delete(id));
+    videoInflight.set(id, job);
+  }
+  return job;
+}
+
 /** Forgets the stream behind a URL that stopped working, so the next try resolves a fresh one. */
 export function forgetUrl(url: string) {
   for (const [id, r] of cache) if (r.url === url) cache.delete(id);
+  for (const [id, r] of videoCache) if (r.url === url) videoCache.delete(id);
 }

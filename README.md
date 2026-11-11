@@ -1,8 +1,8 @@
 <div align="center">
 
-<img src="desktop/build/icon.png" width="96" alt="Musike logo: three equalizer bars forming an M" />
+<img src="desktop/build/icon.png" width="96" alt="Illusive Sounds logo: three equalizer bars" />
 
-# Musike
+# Illusive Sounds
 
 **Your music, uninterrupted.**
 
@@ -478,4 +478,4 @@ Musike is a project for **personal and educational use**. Playing YouTube conten
 
 ## License
 
-[MIT](LICENSE) © 2026 Ernani Neto
+[MIT](LICENSE) © 2026 Ian Lester Eclevia

@@ -10,7 +10,7 @@ import {
   type SystemJob,
   type SystemMedia,
 } from "./apiTypes";
-import type { AlbumCard, AlbumPage, ArtistPage, Genre, GenreArtist, GenrePage, Library, Playlist, Track } from "./types";
+import type { AlbumCard, AlbumPage, ArtistPage, ChartsData, Genre, GenreArtist, GenrePage, Library, Playlist, Track } from "./types";
 
 // The HTTP backend: the Musike server (web app, desktop app). The Android build swaps this module for native/api.ts.
 export * from "./apiTypes";
@@ -41,6 +41,7 @@ export const api: MusikeApi = {
   suggest: (q: string, signal?: AbortSignal) =>
     request<{ suggestions: string[] }>(`/api/suggest?q=${encodeURIComponent(q)}`, { signal }).then((r) => r.suggestions),
   radio: (id: string) => request<{ tracks: Track[] }>(`/api/radio/${id}`).then((r) => r.tracks),
+  charts: (signal?: AbortSignal) => request<ChartsData>("/api/charts", { signal }),
   genres: () => request<{ genres: Genre[] }>("/api/genres").then((r) => r.genres),
   genre: (id: string, signal?: AbortSignal) => request<GenrePage>(`/api/genres/${encodeURIComponent(id)}`, { signal }),
   genreArtists: (id: string, offset: number) =>
@@ -95,11 +96,25 @@ export async function saveFile(name: string, text: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000);
 }
 
+/** Triggers a direct audio or video file download for a track. */
+export function downloadTrack(track: Track, kind: "audio" | "video" = "audio") {
+  const params = new URLSearchParams({
+    title: track.title,
+    artist: track.artist,
+    kind,
+  });
+  const url = `/api/download/${encodeURIComponent(track.id)}?${params.toString()}`;
+  const a = Object.assign(document.createElement("a"), { href: url, download: "" });
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+
 /** Only the Android app needs its own bridge to the system's media controls. */
 export const systemMedia: SystemMedia | null = null;
 
-/** What this build can do. The Android build has no video yet, no yt-dlp to manage, and retries expired streams. */
-export const capabilities = { video: true, engineSettings: true, retryOnError: false };
+/** What this build can do. */
+export const capabilities = { video: true, engineSettings: false, retryOnError: true };
 
 /** Media elements hide the HTTP error body; fetch it to show the real reason. */
 export async function explainStreamError(url: string): Promise<{ message: string; code?: ErrorCode }> {

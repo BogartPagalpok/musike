@@ -1,23 +1,23 @@
 import { cn } from "../lib/format";
 
-/** The Musike mark: three equalizer bars forming an M. */
+/** The Illusive Sounds mark: cyan-to-purple wave play triangle with "IS". */
 export function LogoMark({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 48 48" className={className} aria-hidden="true">
-      <g fill="currentColor">
-        <rect x="10" y="10" width="8" height="28" rx="4" />
-        <rect x="20" y="10" width="8" height="16" rx="4" />
-        <rect x="30" y="10" width="8" height="28" rx="4" />
-      </g>
-    </svg>
+    <img
+      src="/logo.png"
+      alt=""
+      aria-hidden="true"
+      draggable={false}
+      className={cn("select-none object-contain", className)}
+    />
   );
 }
 
 export function Logo({ className }: { className?: string }) {
   return (
-    <span className={cn("inline-flex items-center gap-1.5", className)}>
-      <LogoMark className="size-7 text-accent-text" />
-      <span className="text-[17px] font-semibold tracking-tight">musike</span>
+    <span className={cn("inline-flex items-center gap-2", className)}>
+      <LogoMark className="size-8 shrink-0" />
+      <span className="text-[17px] font-semibold tracking-tight">Illusive Sounds</span>
     </span>
   );
 }

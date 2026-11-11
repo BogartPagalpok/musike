@@ -188,8 +188,8 @@ export function SelectableRow({
         </span>
       </button>
 
-      <button type="button" onClick={onToggle} className={cn("min-w-0 flex-1 text-left", !selected && "opacity-60")}>
-        <span className={cn("block truncate text-[15px] leading-tight font-medium", isCurrent && "text-accent-text")}>{track.title}</span>
+      <button type="button" onClick={onPlay} className="min-w-0 flex-1 text-left">
+        <span className={cn("block truncate text-[15px] leading-tight font-medium", isCurrent ? "text-accent-text" : "text-fg")}>{track.title}</span>
         <span className="mt-0.5 flex items-center gap-1.5 text-[13px] text-fg-2">
           {track.kind === "video" && <VideoCameraIcon size={13} className="shrink-0 text-fg-3" aria-label={t.common.video} />}
           <span className="truncate">

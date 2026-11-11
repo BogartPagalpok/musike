@@ -1,13 +1,15 @@
-import { ArrowsMergeIcon, DownloadSimpleIcon, SwapIcon, UploadSimpleIcon } from "@phosphor-icons/react";
+import { ArrowsMergeIcon, DatabaseIcon, DownloadSimpleIcon, SwapIcon, UploadSimpleIcon } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
-import { createBackup, downloadBackup, readBackup, restoreBackup, summarize, type Backup } from "../lib/backup";
 import { useT } from "../i18n";
+import { createBackup, downloadBackup, readBackup, restoreBackup, summarize, type Backup } from "../lib/backup";
 import { cn } from "../lib/format";
-import { toast } from "../stores/ui";
+import { useLibrary } from "../stores/library";
+import { toast, useUi } from "../stores/ui";
+import { Modal } from "./Modal";
 
 type Mode = "merge" | "replace";
 
-/** Export the library to a file and import it in any other Musike (web, desktop, another computer). */
+/** Export the library to a file and import it in any other Illusive Sounds instance (web, desktop, another computer). */
 export function BackupSection() {
   const input = useRef<HTMLInputElement>(null);
   const [pending, setPending] = useState<{ backup: Backup; file: string } | null>(null);
@@ -15,6 +17,9 @@ export function BackupSection() {
   const [withSettings, setWithSettings] = useState(true);
   const [busy, setBusy] = useState<"export" | "import" | null>(null);
   const [confirmReplace, setConfirmReplace] = useState(false);
+  const playlists = useLibrary((s) => s.playlists);
+  const favorites = useLibrary((s) => s.favorites);
+  const history = useLibrary((s) => s.history);
   const t = useT();
 
   const onExport = async () => {
@@ -66,16 +71,35 @@ export function BackupSection() {
   };
 
   const s = pending && summarize(pending.backup);
+  const playlistTracks = playlists.reduce((n, p) => n + p.tracks.length, 0);
   const action = "flex h-11 items-center justify-center gap-2 rounded-full text-sm font-medium transition-[transform,background-color] active:scale-[0.98] disabled:opacity-50";
 
   return (
-    <section className="flex flex-col gap-3">
-      <h3 className="text-xs font-medium text-fg-3">{t.backup.yourData}</h3>
-      <p className="text-sm text-fg-2">{t.backup.body}</p>
+    <section className="flex flex-col gap-3.5">
+      <div className="flex items-center gap-2.5 rounded-[14px] bg-surface-1 p-3 ring-1 ring-line">
+        <span className="grid size-10 shrink-0 place-items-center rounded-[10px] bg-accent-soft text-accent-text">
+          <DatabaseIcon size={20} weight="duotone" />
+        </span>
+        <p className="text-xs leading-relaxed text-fg-2">{t.backup.body}</p>
+      </div>
+
+      <ul className="grid grid-cols-3 gap-2 text-center">
+        {[
+          ["playlists", playlists.length, t.backup.playlistsWord(playlists.length), t.backup.tracksIn(playlistTracks)],
+          ["favorites", favorites.length, t.backup.favoritesWord(favorites.length), null],
+          ["history", history.length, t.backup.inHistory, null],
+        ].map(([key, n, label, sub]) => (
+          <li key={key} className="rounded-[12px] bg-surface-1 px-2 py-2.5 ring-1 ring-line">
+            <span className="block font-mono text-lg font-semibold tabular-nums">{n}</span>
+            <span className="block text-xs text-fg-2">{label}</span>
+            {sub && <span className="block text-[11px] text-fg-3">{sub}</span>}
+          </li>
+        ))}
+      </ul>
 
       <div className="grid grid-cols-2 gap-2">
-        <button type="button" onClick={onExport} disabled={!!busy} className={cn(action, "bg-surface-1 ring-1 ring-line hover:bg-surface-3")}>
-          <DownloadSimpleIcon size={18} /> {busy === "export" ? t.backup.exporting : t.backup.export}
+        <button type="button" onClick={onExport} disabled={!!busy} className={cn(action, "bg-accent font-semibold text-accent-ink")}>
+          <DownloadSimpleIcon size={18} weight="bold" /> {busy === "export" ? t.backup.exporting : t.backup.export}
         </button>
         <button type="button" onClick={() => input.current?.click()} disabled={!!busy} className={cn(action, "bg-surface-1 ring-1 ring-line hover:bg-surface-3")}>
           <UploadSimpleIcon size={18} /> {t.backup.import}
@@ -180,5 +204,20 @@ export function BackupSection() {
         </div>
       )}
     </section>
+  );
+}
+
+/** Dedicated Data & Backup dialog opened by the database icon in the Library header. */
+export function DataDialog() {
+  const open = useUi((s) => s.dataOpen);
+  const setOpen = useUi((s) => s.setDataOpen);
+  const t = useT();
+
+  return (
+    <Modal open={open} onClose={() => setOpen(false)} title={t.backup.yourData}>
+      <div className="scroll-area -mx-2 max-h-[70dvh] overflow-y-auto px-2 pb-1">
+        <BackupSection />
+      </div>
+    </Modal>
   );
 }

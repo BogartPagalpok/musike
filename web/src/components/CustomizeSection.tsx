@@ -1,24 +1,108 @@
-import { CheckIcon, PaletteIcon } from "@phosphor-icons/react";
+import { CheckIcon, EyedropperIcon, PaletteIcon } from "@phosphor-icons/react";
+import { useEffect, useRef, useState } from "react";
 import { useT } from "../i18n";
-import { inkFor } from "../lib/accent";
+import { hsvToHex, inkFor, isHex, rgbToHsv, toRgb } from "../lib/accent";
 import { cn } from "../lib/format";
 import { ACCENTS, useAppearance } from "../stores/appearance";
 import { useUi } from "../stores/ui";
 
-/** Ready-made accent swatches plus any colour from the system picker. */
+interface EyeDropperApi {
+  open: () => Promise<{ sRGBHex: string }>;
+}
+
+const hasEyeDropper = typeof window !== "undefined" && "EyeDropper" in window;
+
+/** Ready-made accent swatches plus an interactive in-app custom color picker studio. */
 export function AccentPicker() {
   const t = useT();
   const accent = useAppearance((s) => s.accent);
   const set = useAppearance((s) => s.set);
-  const custom = !ACCENTS.some((a) => a.color === accent);
-  const swatch = "grid size-8 shrink-0 place-items-center rounded-full ring-offset-2 ring-offset-surface-2 transition-transform active:scale-90";
+  const isCustom = !ACCENTS.some((a) => a.color.toLowerCase() === accent.toLowerCase());
+  const [pickerOpen, setPickerOpen] = useState(isCustom);
+  const [hsv, setHsv] = useState<[number, number, number]>(() => rgbToHsv(toRgb(accent)));
+  const [hexInput, setHexInput] = useState(accent.toUpperCase());
+  const svBoxRef = useRef<HTMLDivElement>(null);
+  const hueBoxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setHexInput(accent.toUpperCase());
+    const nextHsv = rgbToHsv(toRgb(accent));
+    setHsv((prev) => {
+      // Preserve hue if saturation or value is 0
+      const h = nextHsv[1] === 0 || nextHsv[2] === 0 ? prev[0] : nextHsv[0];
+      return [h, nextHsv[1], nextHsv[2]];
+    });
+  }, [accent]);
+
+  const applyHsv = (h: number, s: number, v: number) => {
+    const clamped: [number, number, number] = [
+      Math.max(0, Math.min(360, Math.round(h))),
+      Math.max(0, Math.min(1, s)),
+      Math.max(0, Math.min(1, v)),
+    ];
+    setHsv(clamped);
+    const hex = hsvToHex(clamped[0], clamped[1], clamped[2]);
+    setHexInput(hex.toUpperCase());
+    set({ accent: hex });
+  };
+
+  const handleSvPointer = (clientX: number, clientY: number) => {
+    const rect = svBoxRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const s = (clientX - rect.left) / rect.width;
+    const v = 1 - (clientY - rect.top) / rect.height;
+    applyHsv(hsv[0], s, v);
+  };
+
+  const handleHuePointer = (clientX: number) => {
+    const rect = hueBoxRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const h = ((clientX - rect.left) / rect.width) * 360;
+    applyHsv(h, hsv[1] || 0.85, hsv[2] || 0.95);
+  };
+
+  const pickWithEyeDropper = async () => {
+    try {
+      const EyeDropperCtor = (window as unknown as { EyeDropper: new () => EyeDropperApi }).EyeDropper;
+      const result = await new EyeDropperCtor().open();
+      if (isHex(result.sRGBHex)) {
+        set({ accent: result.sRGBHex.toLowerCase() });
+      }
+    } catch {
+      /* user cancelled */
+    }
+  };
+
+  const [h, s, v] = hsv;
+  const pureHueHex = hsvToHex(h, 1, 1);
 
   return (
-    <div className="flex flex-col gap-2 pt-1">
-      <p className="text-[13px] text-fg-2">{t.customize.accent}</p>
-      <div role="radiogroup" aria-label={t.customize.accent} className="flex flex-wrap items-center gap-2.5">
+    <div className="flex flex-col gap-3 rounded-[16px] bg-surface-1 p-3.5 ring-1 ring-line">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[13px] font-medium text-fg-2">{t.customize.accent}</span>
+        <button
+          type="button"
+          onClick={() => setPickerOpen((o) => !o)}
+          aria-expanded={pickerOpen}
+          className={cn(
+            "flex h-7 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium ring-1 transition-colors",
+            pickerOpen || isCustom
+              ? "bg-accent-soft text-accent-text ring-accent/40"
+              : "bg-surface-2 text-fg-2 ring-line hover:text-fg",
+          )}
+        >
+          <span
+            className="size-3 rounded-full ring-1 ring-black/20"
+            style={{ background: accent }}
+          />
+          <PaletteIcon size={14} weight="bold" />
+          <span>{t.customize.customColor}</span>
+        </button>
+      </div>
+
+      <div role="radiogroup" aria-label={t.customize.accent} className="grid grid-cols-4 gap-2 sm:grid-cols-8">
         {ACCENTS.map(({ id, color }) => {
-          const on = accent === color;
+          const on = accent.toLowerCase() === color.toLowerCase();
           return (
             <button
               key={id}
@@ -28,32 +112,133 @@ export function AccentPicker() {
               aria-label={t.customize.colors[id]}
               title={t.customize.colors[id]}
               onClick={() => set({ accent: color })}
-              className={cn(swatch, on && "ring-2 ring-fg")}
-              style={{ background: color }}
+              className={cn(
+                "group flex flex-col items-center gap-1 rounded-[12px] py-1.5 transition-colors hover:bg-surface-2",
+                on && "bg-surface-2 ring-1 ring-line-strong",
+              )}
             >
-              {on && <CheckIcon size={15} weight="bold" style={{ color: inkFor(color) }} />}
+              <span
+                className={cn(
+                  "grid size-7 place-items-center rounded-full transition-transform group-active:scale-90",
+                  on && "ring-2 ring-fg ring-offset-2 ring-offset-surface-2",
+                )}
+                style={{ background: color }}
+              >
+                {on && <CheckIcon size={14} weight="bold" style={{ color: inkFor(color) }} />}
+              </span>
+              <span className={cn("text-[11px] leading-tight", on ? "font-semibold text-fg" : "text-fg-3")}>
+                {t.customize.colors[id]}
+              </span>
             </button>
           );
         })}
-        <label
-          title={t.customize.customColor}
-          className={cn(swatch, "relative cursor-pointer", custom && "ring-2 ring-fg")}
-          style={{ background: custom ? accent : "conic-gradient(#f43f5e, #fbbf24, #a3e635, #22d3ee, #6366f1, #d946ef, #f43f5e)" }}
-        >
-          <input
-            type="color"
-            value={accent}
-            onChange={(e) => set({ accent: e.target.value })}
-            aria-label={t.customize.customColor}
-            className="absolute inset-0 size-full cursor-pointer rounded-full opacity-0"
-          />
-          {custom ? (
-            <CheckIcon size={15} weight="bold" style={{ color: inkFor(accent) }} />
-          ) : (
-            <PaletteIcon size={15} weight="bold" className="text-white drop-shadow" />
-          )}
-        </label>
       </div>
+
+      {pickerOpen && (
+        <div className="flex flex-col gap-3 rounded-[12px] bg-surface-2 p-3 ring-1 ring-line">
+          {/* 2D Saturation / Brightness canvas */}
+          <div
+            ref={svBoxRef}
+            role="slider"
+            tabIndex={0}
+            aria-label={t.customize.saturationBrightness}
+            aria-valuenow={Math.round(s * 100)}
+            onPointerDown={(e) => {
+              e.currentTarget.setPointerCapture(e.pointerId);
+              handleSvPointer(e.clientX, e.clientY);
+            }}
+            onPointerMove={(e) => {
+              if (e.buttons > 0) handleSvPointer(e.clientX, e.clientY);
+            }}
+            className="relative h-28 w-full cursor-crosshair touch-none overflow-hidden rounded-[10px] ring-1 ring-line-strong select-none"
+            style={{
+              backgroundColor: pureHueHex,
+              backgroundImage:
+                "linear-gradient(to top, #000000, transparent), linear-gradient(to right, #ffffff, transparent)",
+            }}
+          >
+            <span
+              className="pointer-events-none absolute size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_1px_4px_rgba(0,0,0,0.65)]"
+              style={{
+                left: `${s * 100}%`,
+                top: `${(1 - v) * 100}%`,
+                backgroundColor: accent,
+              }}
+            />
+          </div>
+
+          {/* Hue slider */}
+          <div
+            ref={hueBoxRef}
+            role="slider"
+            tabIndex={0}
+            aria-label={t.customize.hue}
+            aria-valuemin={0}
+            aria-valuemax={360}
+            aria-valuenow={h}
+            onPointerDown={(e) => {
+              e.currentTarget.setPointerCapture(e.pointerId);
+              handleHuePointer(e.clientX);
+            }}
+            onPointerMove={(e) => {
+              if (e.buttons > 0) handleHuePointer(e.clientX);
+            }}
+            className="relative h-3.5 w-full cursor-pointer touch-none rounded-full ring-1 ring-line-strong select-none"
+            style={{
+              background:
+                "linear-gradient(to right, #ff0000 0%, #ffff00 17%, #00ff00 33%, #00ffff 50%, #0000ff 67%, #ff00ff 83%, #ff0000 100%)",
+            }}
+          >
+            <span
+              className="pointer-events-none absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white shadow-[0_1px_4px_rgba(0,0,0,0.65)]"
+              style={{
+                left: `${(h / 360) * 100}%`,
+                backgroundColor: pureHueHex,
+              }}
+            />
+          </div>
+
+          {/* Hex input + Eyedropper */}
+          <div className="flex items-center gap-2">
+            <span
+              className="grid size-8 shrink-0 place-items-center rounded-[8px] ring-1 ring-line-strong"
+              style={{ backgroundColor: accent }}
+            >
+              <CheckIcon size={14} weight="bold" style={{ color: inkFor(accent) }} />
+            </span>
+            <label className="relative flex-1">
+              <span className="sr-only">{t.customize.hexLabel}</span>
+              <input
+                type="text"
+                value={hexInput}
+                maxLength={7}
+                spellCheck={false}
+                onChange={(e) => {
+                  const raw = e.target.value;
+                  const normalized = raw.startsWith("#") ? raw : `#${raw}`;
+                  setHexInput(normalized.toUpperCase());
+                  if (isHex(normalized)) {
+                    set({ accent: normalized.toLowerCase() });
+                  }
+                }}
+                onBlur={() => setHexInput(accent.toUpperCase())}
+                className="h-8 w-full rounded-[8px] bg-surface-1 px-2.5 font-mono text-xs font-medium text-fg ring-1 ring-line focus:ring-accent focus:outline-none"
+              />
+            </label>
+            {hasEyeDropper && (
+              <button
+                type="button"
+                onClick={() => void pickWithEyeDropper()}
+                title={t.customize.eyedropper}
+                aria-label={t.customize.eyedropper}
+                className="grid size-8 shrink-0 place-items-center rounded-[8px] bg-surface-1 text-fg-2 ring-1 ring-line transition-colors hover:bg-surface-3 hover:text-fg"
+              >
+                <EyedropperIcon size={15} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,8 +1,10 @@
-import { KeyboardIcon, QueueIcon, SidebarSimpleIcon } from "@phosphor-icons/react";
+import { DownloadSimpleIcon, EqualizerIcon, KeyboardIcon, MicrophoneStageIcon, QueueIcon, SidebarSimpleIcon } from "@phosphor-icons/react";
+import { downloadTrack } from "../lib/api";
 import { cn } from "../lib/format";
 import { useT } from "../i18n";
+import { useEqualizer } from "../player/equalizer";
 import { selectCurrent, usePlayer, useStatusText } from "../player/player";
-import { useUi } from "../stores/ui";
+import { toast, useUi } from "../stores/ui";
 import { Artwork } from "./Artwork";
 import { FavoriteButton, ModeSwitch, Scrubber, Transport, Volume } from "./Controls";
 import { IconButton } from "./IconButton";
@@ -13,6 +15,9 @@ export function PlayerBar() {
   const statusText = useStatusText();
   const t = useT();
   const status = usePlayer((s) => s.status);
+  const eqEnabled = useEqualizer((s) => s.enabled);
+  const equalizerOpen = useUi((s) => s.equalizerOpen);
+  const setEqualizerOpen = useUi((s) => s.setEqualizerOpen);
   const panelOpen = useUi((s) => s.panelOpen || s.drawerOpen);
   const panelTab = useUi((s) => s.panelTab);
   const togglePanel = useUi((s) => s.togglePanel);
@@ -39,6 +44,16 @@ export function PlayerBar() {
                 </p>
               </div>
               <FavoriteButton track={track} size="sm" />
+              <IconButton
+                label={t.trackMenu.download}
+                size="sm"
+                onClick={() => {
+                  toast(t.trackMenu.downloading(track.title));
+                  downloadTrack(track);
+                }}
+              >
+                <DownloadSimpleIcon size={17} />
+              </IconButton>
             </>
           ) : (
             <p className="truncate pl-1 text-sm text-fg-3">{t.player.nothingPlaying}</p>
@@ -51,7 +66,23 @@ export function PlayerBar() {
         </div>
 
         <div className="flex items-center justify-end gap-1">
-          <ModeSwitch className="max-2xl:hidden" />
+          <ModeSwitch className="max-xl:hidden" />
+          <IconButton
+            label={t.player.equalizer}
+            size="sm"
+            active={equalizerOpen || eqEnabled}
+            onClick={() => setEqualizerOpen(true)}
+          >
+            <EqualizerIcon size={18} weight={eqEnabled ? "fill" : "regular"} />
+          </IconButton>
+          <IconButton
+            label={t.nowPlaying.tabLyrics}
+            size="sm"
+            active={panelOpen && panelTab === "lyrics"}
+            onClick={() => togglePanel("lyrics")}
+          >
+            <MicrophoneStageIcon size={18} />
+          </IconButton>
           <IconButton
             label={t.player.queue}
             size="sm"

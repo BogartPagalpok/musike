@@ -193,7 +193,7 @@ export function ModeSwitch({ className }: { className?: string }) {
           <VideoCameraIcon size={15} /> {t.player.video}
         </button>
       </div>
-      {showingVideo && (
+      {showingVideo && capabilities.engineSettings && (
         <button
           type="button"
           onClick={() => setQuality(quality === "sd" ? "hd" : "sd")}

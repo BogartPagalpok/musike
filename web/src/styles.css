@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-@custom-variant light (&:where([data-theme="light"], [data-theme="light"] *));
+@custom-variant light (&:where([data-theme="light"], [data-theme="light"] *, [data-theme="cream"], [data-theme="cream"] *));
 /* The wide (labelled) rail, from 1280px up unless the user chose a compact sidebar in Settings (always compact on TV). */
 @custom-variant wide {
   @media (width >= 80rem) {
@@ -51,6 +51,153 @@
   --accent-soft: rgb(110 150 0 / 0.12);
   --highlight: rgb(255 255 255 / 0.8);
   --scrim: rgb(20 22 28 / 0.45);
+  --danger: #c4372a;
+}
+
+[data-theme="oled"] {
+  color-scheme: dark;
+  --bg: #000000;
+  --surface-1: #08090c;
+  --surface-2: #101217;
+  --surface-3: #181b22;
+  --surface-4: #222630;
+  --line: rgb(255 255 255 / 0.08);
+  --line-strong: rgb(255 255 255 / 0.14);
+  --fg: #f2f4f8;
+  --fg-2: #a0a6b2;
+  --fg-3: #6c727f;
+  --accent: #c3ec52;
+  --accent-ink: #0b0c0f;
+  --accent-text: #c3ec52;
+  --accent-soft: rgb(195 236 82 / 0.12);
+  --highlight: rgb(255 255 255 / 0.05);
+  --scrim: rgb(0 0 0 / 0.82);
+  --danger: #ff7a6b;
+}
+
+[data-theme="midnight"] {
+  color-scheme: dark;
+  --bg: #070b14;
+  --surface-1: #0d1322;
+  --surface-2: #131b2e;
+  --surface-3: #1b2640;
+  --surface-4: #243252;
+  --line: rgb(180 205 255 / 0.08);
+  --line-strong: rgb(180 205 255 / 0.14);
+  --fg: #e8eef9;
+  --fg-2: #94a3c4;
+  --fg-3: #647494;
+  --accent: #c3ec52;
+  --accent-ink: #0b0c0f;
+  --accent-text: #c3ec52;
+  --accent-soft: rgb(195 236 82 / 0.12);
+  --highlight: rgb(200 220 255 / 0.06);
+  --scrim: rgb(4 6 12 / 0.76);
+  --danger: #ff7a6b;
+}
+
+[data-theme="rose"] {
+  color-scheme: dark;
+  --bg: #130a12;
+  --surface-1: #1c101b;
+  --surface-2: #261624;
+  --surface-3: #331e30;
+  --surface-4: #42273e;
+  --line: rgb(255 210 245 / 0.08);
+  --line-strong: rgb(255 210 245 / 0.14);
+  --fg: #f5e9f3;
+  --fg-2: #b89eb5;
+  --fg-3: #856b82;
+  --accent: #c3ec52;
+  --accent-ink: #0b0c0f;
+  --accent-text: #c3ec52;
+  --accent-soft: rgb(195 236 82 / 0.12);
+  --highlight: rgb(255 220 245 / 0.06);
+  --scrim: rgb(10 5 10 / 0.76);
+  --danger: #ff7a6b;
+}
+
+[data-theme="forest"] {
+  color-scheme: dark;
+  --bg: #07110d;
+  --surface-1: #0d1b15;
+  --surface-2: #13261e;
+  --surface-3: #1b3429;
+  --surface-4: #244436;
+  --line: rgb(190 255 220 / 0.08);
+  --line-strong: rgb(190 255 220 / 0.14);
+  --fg: #e7f3ed;
+  --fg-2: #93b3a3;
+  --fg-3: #638273;
+  --accent: #c3ec52;
+  --accent-ink: #0b0c0f;
+  --accent-text: #c3ec52;
+  --accent-soft: rgb(195 236 82 / 0.12);
+  --highlight: rgb(200 255 225 / 0.06);
+  --scrim: rgb(4 10 7 / 0.76);
+  --danger: #ff7a6b;
+}
+
+[data-theme="sunset"] {
+  color-scheme: dark;
+  --bg: #140d0a;
+  --surface-1: #1e1410;
+  --surface-2: #281b16;
+  --surface-3: #36241d;
+  --surface-4: #462f26;
+  --line: rgb(255 220 200 / 0.08);
+  --line-strong: rgb(255 220 200 / 0.14);
+  --fg: #f6ece6;
+  --fg-2: #baa193;
+  --fg-3: #876f62;
+  --accent: #c3ec52;
+  --accent-ink: #0b0c0f;
+  --accent-text: #c3ec52;
+  --accent-soft: rgb(195 236 82 / 0.12);
+  --highlight: rgb(255 225 210 / 0.06);
+  --scrim: rgb(12 7 5 / 0.76);
+  --danger: #ff7a6b;
+}
+
+[data-theme="nord"] {
+  color-scheme: dark;
+  --bg: #1e222a;
+  --surface-1: #242933;
+  --surface-2: #2e3440;
+  --surface-3: #3b4252;
+  --surface-4: #434c5e;
+  --line: rgb(236 239 244 / 0.08);
+  --line-strong: rgb(236 239 244 / 0.14);
+  --fg: #eceff4;
+  --fg-2: #aeb8c9;
+  --fg-3: #7b88a1;
+  --accent: #c3ec52;
+  --accent-ink: #0b0c0f;
+  --accent-text: #c3ec52;
+  --accent-soft: rgb(195 236 82 / 0.12);
+  --highlight: rgb(255 255 255 / 0.06);
+  --scrim: rgb(15 18 24 / 0.72);
+  --danger: #ff7a6b;
+}
+
+[data-theme="cream"] {
+  color-scheme: light;
+  --bg: #f2ece1;
+  --surface-1: #fbf8f3;
+  --surface-2: #efe9de;
+  --surface-3: #e4dccd;
+  --surface-4: #d6ccba;
+  --line: rgb(40 30 18 / 0.09);
+  --line-strong: rgb(40 30 18 / 0.15);
+  --fg: #1f1b16;
+  --fg-2: #61584d;
+  --fg-3: #8c8173;
+  --accent: #c3ec52;
+  --accent-ink: #0b0c0f;
+  --accent-text: #4a6300;
+  --accent-soft: rgb(110 150 0 / 0.12);
+  --highlight: rgb(255 253 248 / 0.85);
+  --scrim: rgb(30 25 20 / 0.45);
   --danger: #c4372a;
 }
 
@@ -180,7 +327,8 @@
   opacity: 0.035;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
 }
-[data-theme="light"] .grain::after {
+[data-theme="light"] .grain::after,
+[data-theme="cream"] .grain::after {
   opacity: 0.025;
 }
 [data-texture="off"] .grain::after {

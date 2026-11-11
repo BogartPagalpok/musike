@@ -196,25 +196,28 @@ async function videoSearch(query: string): Promise<Track[]> {
 function pickClip(candidates: Track[], title: string, artist: string, duration: number): Track | null {
   const wantTitle = norm(title);
   const mainArtist = artist.split(",")[0] ?? "";
+  const wantArtist = norm(mainArtist);
   const songWords = flat(title);
   const songRedFlags = NOT_THE_CLIP.test(songWords);
 
   let best: { track: Track; score: number } | null = null;
-  for (const c of candidates.slice(0, 10)) {
-    // Must be the artist's own upload of this song; anything else risks covers and fan re-uploads.
-    if (!isArtistChannel(c.artist, mainArtist)) continue;
+  for (const c of candidates.slice(0, 12)) {
     const bare = norm(c.title);
     if (!wantTitle || !bare.includes(wantTitle)) continue;
 
+    const artistChannel = isArtistChannel(c.artist, mainArtist);
+    const artistMentioned = wantArtist && (norm(c.artist).includes(wantArtist) || bare.includes(wantArtist));
+    if (!artistChannel && !artistMentioned) continue;
+
     const words = flat(c.title);
-    let score = 0;
+    let score = artistChannel ? 4 : 1;
     // "Artist - Title (Official Video)" reduced to just the title is the cleanest match.
-    if (bare.replace(norm(mainArtist), "").trim() === wantTitle) score += 2;
+    if (bare.replace(wantArtist, "").trim() === wantTitle) score += 2;
     if (duration && c.duration) {
       const diff = Math.abs(c.duration - duration);
       score += diff <= 10 ? 3 : diff <= 30 ? 1 : diff > 90 ? -2 : 0;
     }
-    if (!songRedFlags && NOT_THE_CLIP.test(words)) score -= 3;
+    if (!songRedFlags && NOT_THE_CLIP.test(words)) score -= 4;
     if (OFFICIAL_CLIP.test(words)) score += 3;
     // An "audio" upload is a still image; acceptable, but a real clip wins.
     if (/\baudio\b/.test(words)) score -= 1;
@@ -222,7 +225,7 @@ function pickClip(candidates: Track[], title: string, artist: string, duration: 
       const e = flat(extra);
       if (!NEUTRAL_EXTRA.test(e) && !songWords.includes(e)) score -= 2;
     }
-    if (!best || score > best.score) best = { track: c, score };
+    if (score >= 2 && (!best || score > best.score)) best = { track: c, score };
   }
 
   // Better to say "no clip" than to play the wrong one.

@@ -82,7 +82,10 @@ export async function refreshTools(): Promise<Tools> {
   // With a private bin folder (desktop app), use only Musike's own copies: known versions that can self-update,
   // instead of whatever happens to be on the user's PATH.
   const own = config.binDir ? [config.binDir, path.join(config.binDir, "ffmpeg")] : [];
-  const system = config.binDir ? [] : [...(process.env[key] ?? "").split(path.delimiter), ...(await registryPath()), ...wingetPackageDirs()];
+  const unixCommon = isWindows ? [] : ["/opt/homebrew/bin", "/usr/local/bin"];
+  const system = config.binDir
+    ? []
+    : [...(process.env[key] ?? "").split(path.delimiter), ...unixCommon, ...(await registryPath()), ...wingetPackageDirs()];
   const dirs = [...own, ...system]
     .map((d) => d.trim().replace(/^"|"$/g, ""))
     .filter((d) => {

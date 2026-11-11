@@ -1,19 +1,20 @@
 import {
   ArrowsClockwiseIcon,
   CheckCircleIcon,
+  CheckIcon,
   DownloadSimpleIcon,
-  MoonIcon,
-  SunIcon,
-  TranslateIcon,
+  UserIcon,
   WarningCircleIcon,
 } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { LANGUAGES, useI18n, useT, type Lang } from "../i18n";
+import { useT } from "../i18n";
+import { THEMES } from "../lib/accent";
 import { capabilities, type Channel } from "../lib/api";
 import { cn } from "../lib/format";
+import { useAppearance } from "../stores/appearance";
 import { useSystem } from "../stores/system";
 import { useUi } from "../stores/ui";
-import { BackupSection } from "./BackupSection";
+import { Logo } from "./Brand";
 import { AccentPicker, LayoutSection } from "./CustomizeSection";
 import { Modal } from "./Modal";
 
@@ -79,12 +80,11 @@ export function SettingsDialog() {
   const setOpen = useUi((s) => s.setSettingsOpen);
   const theme = useUi((s) => s.theme);
   const setTheme = useUi((s) => s.setTheme);
+  const accent = useAppearance((s) => s.accent);
   const { info, status, load, update } = useSystem();
   const [channel, setChannel] = useState<Channel>("stable");
   const logBox = useRef<HTMLPreElement>(null);
   const t = useT();
-  const lang = useI18n((s) => s.lang);
-  const setLang = useI18n((s) => s.setLang);
 
   useEffect(() => {
     if (open) void load();
@@ -126,35 +126,62 @@ export function SettingsDialog() {
       {/* Side padding keeps outset rings and the scrollbar from clipping the cards' edges. */}
       <div className="scroll-area -mx-2 flex max-h-[70dvh] flex-col gap-5 overflow-y-auto px-2 pb-1">
 
-        <section className="flex flex-col gap-2">
+        <section className="flex flex-col gap-2.5">
           <h3 className="text-xs font-medium text-fg-3">{t.settings.appearance}</h3>
-          <Segmented
-            label={t.settings.theme}
-            value={theme}
-            onChange={setTheme}
-            options={[
-              ["dark", <><MoonIcon size={15} /> {t.settings.dark}</>],
-              ["light", <><SunIcon size={15} /> {t.settings.light}</>],
-            ]}
-          />
+          <div className="flex flex-col gap-2 rounded-[16px] bg-surface-1 p-3.5 ring-1 ring-line">
+            <span className="text-[13px] font-medium text-fg-2">{t.settings.theme}</span>
+            <div role="radiogroup" aria-label={t.settings.theme} className="grid grid-cols-3 gap-2">
+              {THEMES.map((item) => {
+                const active = theme === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    role="radio"
+                    aria-checked={active}
+                    onClick={() => setTheme(item.id)}
+                    className={cn(
+                      "group relative flex flex-col gap-1.5 rounded-[12px] p-2 text-left transition-all",
+                      active
+                        ? "bg-surface-3 ring-2 ring-accent"
+                        : "bg-surface-2 ring-1 ring-line hover:ring-line-strong",
+                    )}
+                  >
+                    <div
+                      className="flex h-9 w-full items-center justify-between rounded-[8px] px-2 ring-1 ring-black/15"
+                      style={{ backgroundColor: item.bg }}
+                    >
+                      <span
+                        className="flex h-5 w-9 items-center gap-1 rounded-[5px] px-1.5"
+                        style={{ backgroundColor: item.surface2 }}
+                      >
+                        <span
+                          className="size-2 rounded-full"
+                          style={{ backgroundColor: accent }}
+                        />
+                        <span
+                          className="h-1 flex-1 rounded-full opacity-75"
+                          style={{ backgroundColor: item.fg }}
+                        />
+                      </span>
+                      {active && (
+                        <span className="grid size-4 place-items-center rounded-full bg-accent text-accent-ink">
+                          <CheckIcon size={10} weight="bold" />
+                        </span>
+                      )}
+                    </div>
+                    <span className={cn("truncate text-xs", active ? "font-semibold text-fg" : "font-medium text-fg-2")}>
+                      {t.settings.themes[item.id]}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <AccentPicker />
         </section>
 
-        <section className="flex flex-col gap-2">
-          <h3 className="flex items-center gap-1.5 text-xs font-medium text-fg-3">
-            <TranslateIcon size={14} /> {t.settings.language}
-          </h3>
-          <Segmented
-            label={t.settings.language}
-            value={lang}
-            onChange={setLang}
-            options={LANGUAGES.map(({ id, name }): [Lang, ReactNode] => [id, <span lang={id}>{name}</span>])}
-          />
-        </section>
-
         <LayoutSection />
-
-        <BackupSection />
 
         {capabilities.engineSettings && (
         <section className="flex flex-col gap-3">
@@ -238,11 +265,26 @@ export function SettingsDialog() {
           {info && (
             <ul className="divide-y divide-line px-1">
               <Dependency name="Deno" role={t.settings.denoRole} path={info.deno} fix="winget install DenoLand.Deno" />
-              <Dependency name="FFmpeg" role={t.settings.ffmpegRole} path={info.ffmpeg} fix="winget install yt-dlp.FFmpeg" />
             </ul>
           )}
         </section>
         )}
+
+        <section className="flex flex-col gap-2">
+          <h3 className="text-xs font-medium text-fg-3">{t.settings.about}</h3>
+          <div className="flex items-center justify-between gap-3 rounded-[16px] bg-surface-1 p-4 ring-1 ring-line">
+            <div className="flex flex-col gap-1">
+              <Logo />
+              <p className="flex items-center gap-1.5 text-xs text-fg-2">
+                <UserIcon size={13} className="text-accent-text" />
+                <span>{t.settings.developer}: <strong className="font-medium text-fg">Ian Lester Eclevia</strong></span>
+              </p>
+            </div>
+            <span className="rounded-full bg-surface-3 px-2.5 py-1 font-mono text-xs font-medium text-fg-2 tabular-nums">
+              v{__APP_VERSION__}
+            </span>
+          </div>
+        </section>
       </div>
     </Modal>
   );

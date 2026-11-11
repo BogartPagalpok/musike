@@ -1,12 +1,12 @@
 import { useEffect, useLayoutEffect, useRef } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate, useNavigationType } from "react-router";
+import { DataDialog } from "./components/BackupSection";
 import { AddToPlaylistDialog, ShortcutsDialog } from "./components/Dialogs";
+import { EqualizerDialog } from "./components/EqualizerDialog";
 import { MiniPlayer, TabBar } from "./components/MobileChrome";
 import { NowPlayingSheet, PanelDrawer, SidePanel } from "./components/NowPlaying";
 import { PlayerBar } from "./components/PlayerBar";
 import { Rail } from "./components/Rail";
-import { TitleBar } from "./components/TitleBar";
-import { desktop } from "./lib/desktop";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { Toasts } from "./components/Toasts";
 import { TrackMenu } from "./components/TrackMenu";
@@ -106,8 +106,7 @@ export default function App() {
   };
 
   return (
-    <div className={cn("grain flex h-dvh flex-col bg-bg md:gap-2 md:p-2", desktop && "md:pt-0")}>
-      {desktop && <TitleBar />}
+    <div className="grain flex h-dvh flex-col bg-bg md:gap-2 md:p-2">
       <div className="flex min-h-0 flex-1 md:gap-2">
         <Rail />
         <main
@@ -150,12 +149,18 @@ export default function App() {
 
       <PanelDrawer />
       <NowPlayingSheet open={sheetOpen} onClose={closeSheet} />
-      <FloatingVideo />
-      <Theater />
+      {capabilities.video && (
+        <>
+          <FloatingVideo />
+          <Theater />
+        </>
+      )}
       <TrackMenu />
       <AddToPlaylistDialog />
       <ShortcutsDialog />
+      <EqualizerDialog />
       <SettingsDialog />
+      <DataDialog />
       <Toasts />
     </div>
   );

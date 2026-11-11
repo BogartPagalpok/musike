@@ -27,7 +27,7 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "safe-top sticky top-0 z-10 bg-bg/80 backdrop-blur-xl md:bg-surface-1/80",
+        "safe-top sticky top-0 z-10 bg-bg/95 backdrop-blur-xl md:bg-surface-1/95",
         // Without a title or actions the header only exists for the phone brand bar.
         ((!title && !actions) || mobileOnly) && "md:hidden",
         className,

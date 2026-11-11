@@ -1,5 +1,5 @@
 /**
- * English: Musike's own language and the source of truth for every other one.
+ * English: Illusive Sounds' own language and the source of truth for every other one.
  * Other languages are typed as `Messages`, so a missing or extra key fails the build.
  */
 
@@ -62,9 +62,29 @@ export const en = {
 
   home: {
     startTitle: "Start with search",
-    startBody: "Find any song or music video on YouTube. It plays as audio or video, with no ads.",
+    startBody: "Find any song on YouTube. It plays uninterrupted, with no ads.",
     seeAll: "See all",
     yourFavorites: "Your favorites",
+    moodsAndVibes: "Moods & Vibes",
+    curatedCollections: "Mood Mixes",
+    exploreGenres: "Moods & Genres",
+    top50Title: "Top 50 Charts",
+    top50Global: "Top 50 · Global",
+    top50Trending: (region?: string) => (region ? `Top 50 · ${region}` : "Top 50 · Trending"),
+    playTop50: "Play Top 50",
+    showAll50: (n: number) => `Show all ${n} songs`,
+    showTop10: "Show Top 10",
+    playMix: (title: string) => `Play ${title} mix`,
+    collections: {
+      chill: { title: "Chill Vibes", sub: "Lo-fi beats, acoustic & laid-back melodies", query: "chill lofi indie relax songs" },
+      focus: { title: "Deep Focus", sub: "Ambient & instrumental tracks for flow state", query: "deep focus study ambient instrumental" },
+      energy: { title: "Workout & Beast Mode", sub: "High-energy anthems to power your session", query: "workout hype gym phonk hip hop hits" },
+      feelGood: { title: "Feel Good Hits", sub: "Uplifting pop & sunshine classics", query: "feel good upbeat pop hits" },
+      lateNight: { title: "Late Night Drive", sub: "Synthwave, R&B & midnight cruising", query: "late night drive rnb synthwave chill" },
+      party: { title: "Party Anthems", sub: "Dancefloor fillers, club & festival bangers", query: "party dance club hits bangers" },
+      romance: { title: "Romantic & Soul", sub: "Timeless love songs & slow jams", query: "romantic love songs rnb acoustic" },
+      throwback: { title: "Throwback Classics", sub: "Iconic 90s, 2000s & 2010s essentials", query: "2000s 90s throwback hits classics" },
+    },
   },
 
   library: {
@@ -119,9 +139,39 @@ export const en = {
       repeat: "Repeat",
       video: "Toggle video",
       theater: "Maximize video",
+      equalizer: "Equalizer",
       queue: "Queue",
       search: "Search",
       help: "This list",
+    },
+  },
+
+  equalizer: {
+    title: "Equalizer & Studio DSP",
+    subtitle: "10-band parametric EQ, sub-bass enhancer & dynamics processor",
+    enabled: "Enabled",
+    bypassed: "Bypassed",
+    reset: "Flat / Reset",
+    presets: "Presets",
+    preamp: "Preamp",
+    bassBoost: "Sub-Bass Boost",
+    clarity: "Vocal & Clarity",
+    compressor: "Loudness Normalizer",
+    compressorSub: "Studio dynamics compressor for balanced punch",
+    presetNames: {
+      flat: "Flat",
+      bassBoost: "Bass Boost",
+      electronic: "Electronic",
+      pop: "Pop",
+      rock: "Rock",
+      hipHop: "Hip-Hop & R&B",
+      acoustic: "Acoustic",
+      vocal: "Vocal Booster",
+      classical: "Classical",
+      lateNight: "Late Night",
+      trebleBoost: "Treble Boost",
+      loudness: "Loudness",
+      custom: "Custom",
     },
   },
 
@@ -146,6 +196,7 @@ export const en = {
     nothingPlaying: "Nothing playing. Search for something to start.",
     showNowPlaying: "Show Now playing",
     queue: "Queue",
+    equalizer: "Equalizer (E)",
     nowPlayingPanel: "Now playing panel",
     shortcuts: "Keyboard shortcuts (?)",
     openNowPlaying: (title: string) => `Open Now playing: ${title}`,
@@ -163,7 +214,7 @@ export const en = {
     cantPlay: (title: string, reason: string) => `Couldn't play "${title}". ${reason}`,
     aTrack: "this track",
     browserCantPlay: "The browser couldn't play this format.",
-    serverDown: "Can't reach the Musike server. Is it running?",
+    serverDown: "Can't reach the Illusive Sounds server. Is it running?",
     streamFailed: "YouTube stopped serving this track. Try it again in a moment.",
     offline: "You're offline. Connect to the internet to play music.",
     httpError: (status: number) => `Error ${status}`,
@@ -176,11 +227,21 @@ export const en = {
     startRadio: "Start radio from this track",
     upNext: "Up next",
     tabPlaying: "Playing",
+    tabLyrics: "Lyrics",
     tabQueue: "Queue",
     panel: "Now playing and queue",
     closePanel: "Close panel",
     backToPlayer: "Back to the player",
     showQueue: "Show queue",
+    showLyrics: "Show lyrics",
+  },
+
+  lyrics: {
+    title: "Lyrics",
+    notFound: "No lyrics found",
+    notFoundBody: "We couldn't find lyrics for this track yet.",
+    instrumental: "Instrumental track",
+    syncedHint: "Tap any line to jump to that part of the song",
   },
 
   queue: {
@@ -215,6 +276,8 @@ export const en = {
     addToPlaylist: "Add to playlist",
     removeFromPlaylist: "Remove from this playlist",
     openYoutube: "Open on YouTube",
+    download: "Download track",
+    downloading: (title: string) => `Downloading "${title}"…`,
   },
 
   trackList: {
@@ -246,7 +309,10 @@ export const en = {
     idleTitle: "What's playing today?",
     idleBody:
       "Search for a song, artist or album. For music videos and live performances, use the Videos tab. You can also paste a YouTube link.",
-    exploreGenres: "Browse by genre",
+    exploreGenres: "Browse by mood & genre",
+    moodsSection: "Moods & Moments",
+    genresSection: "Genres & Styles",
+    browseAll: "Browse All",
     albums: "Albums",
   },
 
@@ -266,7 +332,7 @@ export const en = {
     failed: "Search failed",
     emptyTitle: "Many songs at once",
     emptyBody:
-      "Musike searches for each one and picks the best match. Check them, swap any that came out wrong, then play, favorite or send them all to a playlist.",
+      "Illusive Sounds searches for each one and picks the best match. Check them, swap any that came out wrong, then play, favorite or send them all to a playlist.",
   },
 
   selection: {
@@ -323,6 +389,19 @@ export const en = {
     theme: "Theme",
     dark: "Dark",
     light: "Light",
+    themes: {
+      dark: "Dark",
+      light: "Light",
+      oled: "OLED",
+      midnight: "Midnight",
+      rose: "Velvet",
+      forest: "Forest",
+      sunset: "Sunset",
+      nord: "Nord",
+      cream: "Cream",
+    },
+    about: "About",
+    developer: "Developer",
     language: "Language",
     engine: "YouTube engine",
     checking: "checking",
@@ -346,17 +425,22 @@ export const en = {
     toStable: "Back to Stable",
     updateTo: (version: string) => `Update to ${version}`,
     check: "Check and update",
-    noWinget: "winget isn't available. Install yt-dlp manually and restart Musike.",
+    noWinget: "winget isn't available. Install yt-dlp manually and restart Illusive Sounds.",
     starting: "Starting",
     denoRole: "Solves YouTube's challenges",
     ffmpegRole: "Merges video and audio in HD mode",
     depMissingBefore: "Not found. In a terminal:",
-    depMissingAfter: "and restart Musike.",
+    depMissingAfter: "and restart Illusive Sounds.",
   },
 
   customize: {
     accent: "Accent color",
     customColor: "Custom color",
+    presets: "Presets",
+    hexLabel: "Hex color",
+    hue: "Hue",
+    saturationBrightness: "Saturation and brightness",
+    eyedropper: "Pick color from screen",
     colors: {
       volt: "Volt",
       mint: "Mint",
@@ -382,12 +466,12 @@ export const en = {
 
   backup: {
     yourData: "Your data",
-    body: "Take your playlists, favorites and history to another computer or to the desktop app: export a file here and import it into the other Musike.",
+    body: "Take your playlists, favorites and history to another computer or to the desktop app: export a file here and import it into the other Illusive Sounds.",
     export: "Export",
     exporting: "Exporting",
     import: "Import",
     importing: "Importing",
-    pickFile: "Choose a Musike backup file",
+    pickFile: "Choose an Illusive Sounds backup file",
     created: (playlists: number, favorites: number) =>
       `Backup created: ${count(playlists, "playlist", "playlists")} and ${count(favorites, "favorite", "favorites")}`,
     exportedAt: (date: string, time: string) => `Exported on ${date} at ${time}`,
@@ -410,9 +494,9 @@ export const en = {
     updatedPlaylists: (n: number) => count(n, "updated playlist", "updated playlists"),
     addedTracks: (n: number) => count(n, "track added", "tracks added"),
     addedFavorites: (n: number) => count(n, "favorite", "favorites"),
-    unreadable: "Couldn't read the file. It needs to be a .musike.json backup.",
-    notBackup: "This file isn't a Musike backup.",
-    newer: "This backup was made by a newer Musike. Update the app to import it.",
+    unreadable: "Couldn't read the file. It needs to be a backup JSON file.",
+    notBackup: "This file isn't an Illusive Sounds backup.",
+    newer: "This backup was made by a newer version of Illusive Sounds. Update the app to import it.",
   },
 
   toasts: {

@@ -5,6 +5,7 @@ import {
   ALBUM_ID,
   artist as artistPage,
   ARTIST_ID,
+  charts,
   GENRE_ID,
   genre as genrePage,
   genreArtists,
@@ -20,7 +21,7 @@ import { ApiError, type MusikeApi, type SystemInfo } from "../lib/apiTypes";
 import "./android";
 import { media } from "./media";
 import { nativeStorage } from "./storage";
-import { forgetUrl, resolveAudio } from "./streams";
+import { forgetUrl, resolveAudio, resolveVideo } from "./streams";
 
 // The Android backend: the Musike server's own code (search, genres, artists, albums, library), running on the
 // phone instead of behind HTTP. The build swaps lib/api.ts for this module (see vite.config.ts).
@@ -63,6 +64,7 @@ export const api: MusikeApi = {
     }, signal),
   suggest: (q, signal) => call(() => suggestions(q.trim().slice(0, 100), getLang()).catch(() => []), signal),
   radio: (id) => call(() => radio(id)),
+  charts: (signal) => call(() => charts(getLang()), signal),
   genres: () => call(() => genres(getLang())),
   genre: (id, signal) =>
     call(async () => {
@@ -86,7 +88,7 @@ export const api: MusikeApi = {
     call(async () => {
       if (!VIDEO_ID.test(id)) throw fail(400, "invalidVideoId");
       const r = await resolveAudio(id);
-      return { id, title: r.title, duration: r.duration, hasSdVideo: false };
+      return { id, title: r.title, duration: r.duration, hasSdVideo: true };
     }, signal),
 
   library: () => call(() => library.getLibrary()),
@@ -114,7 +116,8 @@ export const api: MusikeApi = {
 };
 
 /** On the phone, the media element plays YouTube's stream directly: resolved here, no proxy needed. */
-export const streamSource = (id: string): Promise<string> => resolveAudio(id).then((r) => r.url);
+export const streamSource = (id: string, kind: "audio" | "video" = "audio", _quality: "sd" | "hd" = "sd"): Promise<string> =>
+  kind === "video" ? resolveVideo(id) : resolveAudio(id).then((r) => r.url);
 
 export async function explainStreamError(url: string): Promise<{ message: string }> {
   forgetUrl(url);
@@ -127,6 +130,11 @@ export async function saveFile(name: string, text: string) {
   await Share.share({ title: name, files: [uri] });
 }
 
+export async function downloadTrack(track: { id: string; title: string; artist: string }, kind: "audio" | "video" = "audio") {
+  const url = kind === "video" ? await resolveVideo(track.id) : (await resolveAudio(track.id)).url;
+  window.open(url, "_blank", "noopener");
+}
+
 export const systemMedia = media;
 
-export const capabilities = { video: false, engineSettings: false, retryOnError: true };
+export const capabilities = { video: true, engineSettings: false, retryOnError: true };

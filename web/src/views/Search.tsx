@@ -13,7 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { AlbumGrid } from "../components/AlbumTiles";
 import { Artwork } from "../components/Artwork";
-import { GenrePanel } from "../components/GenrePanel";
+import { BrowseAllGrid, GenrePanel, MoodCollections } from "../components/GenrePanel";
 import { EmptyState, PageHeader } from "../components/Page";
 import { TrackList, TrackListSkeleton } from "../components/TrackList";
 import { MD, useMediaQuery } from "../hooks/useMediaQuery";
@@ -193,9 +193,9 @@ export default function Search() {
 
   return (
     <div className="pb-8">
-      <PageHeader title={t.search.title} />
+      <PageHeader title={t.search.title} mobileOnly />
 
-      <div className="flex flex-col gap-3 px-4 pt-1 md:px-6">
+      <div className="sticky top-0 z-10 flex flex-col gap-3 border-b border-line/60 bg-surface-1/95 px-4 pt-2 pb-3 backdrop-blur-xl md:px-6 md:pt-4">
         <form
           role="search"
           onSubmit={(e) => {
@@ -277,8 +277,8 @@ export default function Search() {
           <div className="flex flex-wrap items-center gap-2">
             <div role="tablist" aria-label={t.search.resultType} className="flex gap-2">
               {tab("song", t.search.songs)}
-              {tab("video", t.search.videos)}
               {tab("album", t.search.albums)}
+              {tab("video", t.search.videos)}
             </div>
             <span className="flex-1" />
             <div className="flex items-center gap-1">
@@ -373,8 +373,8 @@ export default function Search() {
         {!linkId && state === "ok" && results && results.length > 0 && <TrackList tracks={results} showAlbum={kind === "song"} />}
 
         {!linkId && state === "idle" && (
-          <div className="px-2 md:px-3">
-            {recent.length > 0 ? (
+          <div className="flex flex-col gap-8 px-2 pt-2 md:px-3">
+            {recent.length > 0 && (
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold tracking-tight">{t.search.recent}</h2>
@@ -405,13 +405,17 @@ export default function Search() {
                   ))}
                 </div>
               </div>
-            ) : (
-              <EmptyState
-                icon={<MagnifyingGlassIcon size={28} />}
-                title={t.search.idleTitle}
-                body={t.search.idleBody}
-              />
             )}
+
+            <div className="flex flex-col gap-3">
+              <h2 className="text-lg font-semibold tracking-tight">{t.home.curatedCollections}</h2>
+              <MoodCollections compact />
+            </div>
+
+            <div className="flex flex-col gap-3">
+              <h2 className="text-lg font-semibold tracking-tight">{t.search.browseAll}</h2>
+              <BrowseAllGrid compact />
+            </div>
           </div>
         )}
       </div>

@@ -1,16 +1,20 @@
-import { ClockCounterClockwiseIcon, HeartIcon, MagnifyingGlassIcon, PlayIcon } from "@phosphor-icons/react";
-import type { ReactNode } from "react";
-import { Link, useNavigate } from "react-router";
+import { CaretDownIcon, CaretUpIcon, ClockCounterClockwiseIcon, HeartIcon, PlayIcon, TrendUpIcon } from "@phosphor-icons/react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Link } from "react-router";
 import { Artwork } from "../components/Artwork";
-import { LogoMark } from "../components/Brand";
+import { BrowseAllGrid, MoodCollections } from "../components/GenrePanel";
 import { PageHeader, Section } from "../components/Page";
 import { TrackList, TrackListSkeleton } from "../components/TrackList";
-import { useT } from "../i18n";
+import { useI18n, useT } from "../i18n";
+import { api } from "../lib/api";
+import { cn } from "../lib/format";
 import { paths } from "../lib/routes";
-import type { Track } from "../lib/types";
+import type { ChartsData, Track } from "../lib/types";
 import { usePlayer } from "../player/player";
 import { useAppearance } from "../stores/appearance";
 import { useLibrary } from "../stores/library";
+
+let chartsMemo: { lang: string; data: ChartsData } | null = null;
 
 function Shortcut({ to, label, tracks, cover }: { to: string; label: string; tracks: Track[]; cover: ReactNode }) {
   const playList = usePlayer((s) => s.playList);
@@ -51,10 +55,122 @@ function RecentCard({ track, onPlay }: { track: Track; onPlay: () => void }) {
   );
 }
 
+function Top50Section() {
+  const t = useT();
+  const lang = useI18n((s) => s.lang);
+  const playList = usePlayer((s) => s.playList);
+  const [charts, setCharts] = useState<ChartsData | null>(() => (chartsMemo?.lang === lang ? chartsMemo.data : null));
+  const [loading, setLoading] = useState(!charts);
+  const [tab, setTab] = useState<"global" | "trending">("global");
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (chartsMemo?.lang === lang) {
+      setCharts(chartsMemo.data);
+      setLoading(false);
+      return;
+    }
+    const ctrl = new AbortController();
+    setLoading(true);
+    api
+      .charts(ctrl.signal)
+      .then((data) => {
+        chartsMemo = { lang, data };
+        setCharts(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!ctrl.signal.aborted) setLoading(false);
+      });
+    return () => ctrl.abort();
+  }, [lang]);
+
+  const activeTracks = (tab === "global" ? charts?.global : charts?.trending) ?? [];
+  const visibleTracks = expanded ? activeTracks : activeTracks.slice(0, 10);
+
+  return (
+    <Section
+      title={t.home.top50Title}
+      action={
+        activeTracks.length > 0 ? (
+          <button
+            type="button"
+            onClick={() => playList(activeTracks, 0)}
+            className="flex h-9 items-center gap-1.5 rounded-full bg-accent px-4 text-xs font-semibold text-accent-ink transition-transform hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <PlayIcon size={14} weight="fill" /> {t.home.playTop50}
+          </button>
+        ) : undefined
+      }
+    >
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 md:px-6">
+          <div role="tablist" aria-label={t.home.top50Title} className="flex gap-2">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "global"}
+              onClick={() => setTab("global")}
+              className={cn(
+                "flex h-9 items-center gap-1.5 rounded-full px-4 text-xs font-semibold transition-colors",
+                tab === "global" ? "bg-fg text-bg" : "bg-surface-2 text-fg-2 ring-1 ring-line hover:bg-surface-3 hover:text-fg",
+              )}
+            >
+              <TrendUpIcon size={15} weight="bold" />
+              {t.home.top50Global}
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === "trending"}
+              onClick={() => setTab("trending")}
+              className={cn(
+                "flex h-9 items-center gap-1.5 rounded-full px-4 text-xs font-semibold transition-colors",
+                tab === "trending" ? "bg-fg text-bg" : "bg-surface-2 text-fg-2 ring-1 ring-line hover:bg-surface-3 hover:text-fg",
+              )}
+            >
+              <TrendUpIcon size={15} weight="bold" />
+              {t.home.top50Trending(charts?.region)}
+            </button>
+          </div>
+        </div>
+
+        {loading ? (
+          <TrackListSkeleton rows={8} />
+        ) : activeTracks.length > 0 ? (
+          <div className="px-2 md:px-3">
+            <TrackList tracks={visibleTracks} context={activeTracks} header={false} showAlbum={false} />
+            {activeTracks.length > 10 && (
+              <div className="mt-2 flex justify-center px-2">
+                <button
+                  type="button"
+                  onClick={() => setExpanded((e) => !e)}
+                  className="flex h-10 items-center gap-1.5 rounded-full bg-surface-2 px-5 text-xs font-semibold text-fg-2 ring-1 ring-line transition-colors hover:bg-surface-3 hover:text-fg"
+                >
+                  {expanded ? (
+                    <>
+                      <CaretUpIcon size={14} weight="bold" />
+                      {t.home.showTop10}
+                    </>
+                  ) : (
+                    <>
+                      <CaretDownIcon size={14} weight="bold" />
+                      {t.home.showAll50(activeTracks.length)}
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+        ) : null}
+      </div>
+    </Section>
+  );
+}
+
 export default function Home() {
   const { favorites, playlists, history, status } = useLibrary();
   const playList = usePlayer((s) => s.playList);
-  const navigate = useNavigate();
   const t = useT();
   const show = useAppearance();
   const empty = status === "ready" && !favorites.length && !playlists.length && !history.length;
@@ -69,58 +185,54 @@ export default function Home() {
 
       {status === "loading" && <TrackListSkeleton rows={6} />}
 
-      {empty && (
-        <div className="mx-4 flex flex-col items-start gap-5 rounded-[20px] bg-surface-2 p-6 ring-1 ring-line md:mx-6 md:flex-row md:items-center md:p-8">
-          <span className="grid size-16 shrink-0 place-items-center rounded-[18px] bg-accent text-accent-ink">
-            <LogoMark className="size-10" />
-          </span>
-          <div className="flex-1">
-            <p className="text-xl font-semibold tracking-tight">{t.home.startTitle}</p>
-            <p className="mt-1 max-w-[52ch] text-sm text-fg-2">{t.home.startBody}</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => navigate(paths.search)}
-            className="flex h-12 items-center gap-2 rounded-full bg-accent pr-6 pl-5 font-semibold text-accent-ink transition-transform active:scale-[0.97]"
-          >
-            <MagnifyingGlassIcon size={20} weight="bold" /> {t.common.searchMusic}
-          </button>
-        </div>
-      )}
-
-      {!empty && status === "ready" && (
+      {status === "ready" && (
         <div className="flex flex-col gap-10">
-          {show.homeShortcuts && <div className="grid grid-cols-2 gap-2 px-4 md:px-6 lg:grid-cols-3 2xl:grid-cols-4">
-            <Shortcut
-              to={paths.favorites}
-              label={t.nav.favorites}
-              tracks={favorites}
-              cover={
-                <span className="grid size-full place-items-center bg-accent-soft text-accent-text">
-                  <HeartIcon size={24} weight="fill" />
-                </span>
-              }
-            />
-            <Shortcut
-              to={paths.history}
-              label={t.nav.recentlyPlayed}
-              tracks={history}
-              cover={
-                <span className="grid size-full place-items-center bg-surface-3 text-fg-2">
-                  <ClockCounterClockwiseIcon size={24} />
-                </span>
-              }
-            />
-            {playlists.slice(0, 6).map((p) => (
+          {!empty && show.homeShortcuts && (
+            <div className="grid grid-cols-2 gap-2 px-4 md:px-6 lg:grid-cols-3 2xl:grid-cols-4">
               <Shortcut
-                key={p.id}
-                to={paths.playlist(p.id)}
-                label={p.name}
-                tracks={p.tracks}
-                cover={<Artwork src={p.tracks[0]?.thumb} className="size-full" />}
+                to={paths.favorites}
+                label={t.nav.favorites}
+                tracks={favorites}
+                cover={
+                  <span className="grid size-full place-items-center bg-accent-soft text-accent-text">
+                    <HeartIcon size={24} weight="fill" />
+                  </span>
+                }
               />
-            ))}
-          </div>}
+              <Shortcut
+                to={paths.history}
+                label={t.nav.recentlyPlayed}
+                tracks={history}
+                cover={
+                  <span className="grid size-full place-items-center bg-surface-3 text-fg-2">
+                    <ClockCounterClockwiseIcon size={24} />
+                  </span>
+                }
+              />
+              {playlists.slice(0, 6).map((p) => (
+                <Shortcut
+                  key={p.id}
+                  to={paths.playlist(p.id)}
+                  label={p.name}
+                  tracks={p.tracks}
+                  cover={<Artwork src={p.tracks[0]?.thumb} className="size-full" />}
+                />
+              ))}
+            </div>
+          )}
+
+          <Top50Section />
+
+          <Section
+            title={t.home.curatedCollections}
+            action={
+              <Link to={paths.search} className="text-sm font-medium text-fg-2 hover:text-fg">
+                {t.home.seeAll}
+              </Link>
+            }
+          >
+            <MoodCollections />
+          </Section>
 
           {show.homeRecent && history.length > 0 && (
             <Section
@@ -153,6 +265,17 @@ export default function Home() {
               </div>
             </Section>
           )}
+
+          <Section
+            title={t.home.exploreGenres}
+            action={
+              <Link to={paths.search} className="text-sm font-medium text-fg-2 hover:text-fg">
+                {t.home.seeAll}
+              </Link>
+            }
+          >
+            <BrowseAllGrid limit={12} />
+          </Section>
         </div>
       )}
     </div>

@@ -5,9 +5,10 @@ import type { Track } from "./types.js";
 import { HttpError, VIDEO_ID } from "./types.js";
 
 export interface Genre {
-  /** YouTube Music's opaque "params" for the genre page. */
+  /** YouTube Music's opaque "params" for the genre/mood page. */
   id: string;
   name: string;
+  kind?: "mood" | "genre";
 }
 
 export interface GenreArtist {
@@ -61,6 +62,12 @@ export interface AlbumPage {
   thumb: string;
   art: string;
   tracks: Track[];
+}
+
+export interface ChartsData {
+  global: Track[];
+  trending: Track[];
+  region: string;
 }
 
 export const ALBUM_ID = /^MPRE[\w-]{6,60}$/;
@@ -144,11 +151,22 @@ const genreList = cached(6 * 60 * MINUTE, async (key): Promise<Genre[]> => {
     throw new HttpError(502, msg("genresUnavailable"));
   });
   const grids = shelvesOf(page);
-  // The page has "moods" then "genres"; match the title in any language, falling back to the last grid.
-  const grid = grids.find((g) => /g[eéê]ne?r/i.test(text(g.header?.title ?? g.title))) ?? grids.at(-1);
-  return itemsOf(grid)
-    .map((b) => ({ id: String(b.endpoint?.payload?.params ?? ""), name: text(b.button_text ?? b.title) }))
-    .filter((g) => GENRE_ID.test(g.id) && g.name);
+  const seen = new Set<string>();
+  const out: Genre[] = [];
+  for (let idx = 0; idx < grids.length; idx++) {
+    const grid = grids[idx];
+    const title = text(grid?.header?.title ?? grid?.title);
+    const isGenreShelf = /g[eéê]ne?r/i.test(title) || (grids.length > 1 && idx === grids.length - 1);
+    const kind: "mood" | "genre" = isGenreShelf ? "genre" : "mood";
+    for (const b of itemsOf(grid)) {
+      const id = String(b.endpoint?.payload?.params ?? "");
+      const name = text(b.button_text ?? b.title);
+      if (!GENRE_ID.test(id) || !name || seen.has(id)) continue;
+      seen.add(id);
+      out.push({ id, name, kind });
+    }
+  }
+  return out;
 });
 
 export const genres = (lang: Lang) => genreList(keyOf(lang));
@@ -399,3 +417,44 @@ export async function searchAlbums(query: string, lang: Lang): Promise<AlbumCard
   const result: any = await withClient((yt) => yt.music.search(query, { type: "album" }), lang);
   return albumCards(itemsOf(result.contents?.[0]));
 }
+
+const GLOBAL_HIT_LIST = "VLRDCLAK5uy_kmPRjHDECIcuVwnKsx2Ng7fyNgFKWNJFs";
+const GLOBAL_TOP_100 = "VLPL4fGSI1pDJn6puJdseH2Rt9sMvt9E2M4i";
+
+const chartsList = cached(60 * MINUTE, async (key): Promise<ChartsData> => {
+  const { lang } = parseKey(key);
+  const [hitListItems, global100Items, chartsPage] = await Promise.all([
+    playlistItems(GLOBAL_HIT_LIST, 60, lang),
+    playlistItems(GLOBAL_TOP_100, 60, lang),
+    withClient((yt) => browse(yt, { browseId: "FEmusic_charts" }), lang).catch(() => null),
+  ]);
+
+  const global = uniqueTracks([...hitListItems, ...global100Items].map((i) => toTrack(i, "song"))).slice(0, 50);
+
+  let region = "";
+  const localPlaylistIds: string[] = [];
+  for (const shelf of shelvesOf(chartsPage)) {
+    for (const item of itemsOf(shelf)) {
+      const bid = String(item?.endpoint?.payload?.browseId ?? item?.id ?? "");
+      const title = text(item?.title);
+      if (bid.startsWith("VL")) {
+        localPlaylistIds.push(bid);
+        if (!region && title) {
+          const m = /(?:-\s*|\bVideos\s+)([A-Z][A-Za-z\s]+)$/.exec(title.trim());
+          if (m?.[1]) region = m[1].trim();
+        }
+      }
+    }
+  }
+
+  const localItems = (await Promise.all(localPlaylistIds.slice(0, 2).map((id) => playlistItems(id, 60, lang)))).flat();
+  const trending = uniqueTracks([...localItems, ...global100Items].map((i) => toTrack(i, "song"))).slice(0, 50);
+
+  return {
+    global: global.length ? global : trending,
+    trending: trending.length ? trending : global,
+    region,
+  };
+});
+
+export const charts = (lang: Lang): Promise<ChartsData> => chartsList(keyOf(lang));

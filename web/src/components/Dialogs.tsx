@@ -176,6 +176,7 @@ const SHORTCUTS: [string | null, keyof Messages["dialogs"]["shortcuts"]][] = [
   ["R", "repeat"],
   ["V", "video"],
   ["F", "theater"],
+  ["E", "equalizer"],
   ["Q", "queue"],
   ["/", "search"],
   ["?", "help"],

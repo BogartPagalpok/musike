@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router";
+import { capabilities } from "../lib/api";
 import { paths } from "../lib/routes";
 import { selectCurrent, usePlayer } from "../player/player";
 import { useLibrary } from "../stores/library";
@@ -67,11 +68,15 @@ export function useShortcuts() {
           break;
         case "v":
         case "V":
-          p.setPreferVideo(!p.preferVideo);
+          if (capabilities.video) p.setPreferVideo(!p.preferVideo);
           break;
         case "f":
         case "F":
-          if (p.mediaKind === "video") ui.setTheater(!ui.theater);
+          if (capabilities.video && p.mediaKind === "video") ui.setTheater(!ui.theater);
+          break;
+        case "e":
+        case "E":
+          ui.setEqualizerOpen(!ui.equalizerOpen);
           break;
         case "q":
         case "Q":

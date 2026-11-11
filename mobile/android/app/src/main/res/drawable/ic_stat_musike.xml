@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Musike's logo for the status bar: Android draws it in a single color. -->
+<!-- Illusive Sounds' logo for the status bar: Android draws it in a single color. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="34"
-    android:viewportHeight="34">
-    <group android:translateX="3" android:translateY="3">
-        <path android:fillColor="#FFFFFFFF" android:pathData="M4,0a4,4 0 0 1 4,4v20a4,4 0 0 1 -8,0v-20a4,4 0 0 1 4,-4z M14,0a4,4 0 0 1 4,4v8a4,4 0 0 1 -8,0v-8a4,4 0 0 1 4,-4z M24,0a4,4 0 0 1 4,4v20a4,4 0 0 1 -8,0v-20a4,4 0 0 1 4,-4z" />
-    </group>
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M14,54 L26,45 L32,36 L38,44 L38,26 C38,20 44,17 50,21 L84,43 C90,47 90,61 84,65 L50,87 C44,91 38,88 38,82 L38,64 L32,72 L26,63 Z M46,34 L46,41 L52,44 L52,37 Z M46,47 L46,75 L52,71 L52,50 Z M56,40 L56,57 L68,57 L68,61 L56,68 L56,70 L74,59 C77,57 77,51 74,49 Z" />
 </vector>

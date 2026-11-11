@@ -40,7 +40,7 @@ android {
     }
     buildTypes {
         release {
-            if (releaseStore) signingConfig signingConfigs.release
+            signingConfig releaseStore ? signingConfigs.release : signingConfigs.debug
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

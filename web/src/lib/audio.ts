@@ -205,11 +205,21 @@ class NativeAudio extends EventTarget {
   }
 }
 
+const host = globalThis as {
+  __musikeSingletonAudio?: HTMLAudioElement;
+};
+
 /** The audio element for this platform: native on iOS, a real `<audio>` everywhere else. */
 export function createAudio(): HTMLAudioElement {
   if (!nativeBridge) {
+    if (host.__musikeSingletonAudio) {
+      host.__musikeSingletonAudio.pause();
+      host.__musikeSingletonAudio.removeAttribute("src");
+      host.__musikeSingletonAudio.load();
+    }
     const audio = new Audio();
     audio.preload = "auto";
+    host.__musikeSingletonAudio = audio;
     return audio;
   }
   return new NativeAudio(nativeBridge) as unknown as HTMLAudioElement;

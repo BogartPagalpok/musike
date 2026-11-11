@@ -2,8 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'" />
-    <title>Musike</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'unsafe-inline'; script-src 'unsafe-inline'" />
+    <title>Illusive Sounds</title>
     <style>
       :root {
         --bg: #0b0c0f;
@@ -11,7 +11,7 @@
         --line: rgb(255 255 255 / 0.08);
         --fg: #eceef2;
         --fg-2: #9ba1ad;
-        --accent: #c3ec52;
+        --accent: #38bdf8;
         --danger: #ff7a6b;
       }
       * {
@@ -40,26 +40,21 @@
       .brand {
         display: flex;
         align-items: center;
-        gap: 10px;
+        gap: 12px;
         font-size: 20px;
         font-weight: 600;
         letter-spacing: -0.02em;
       }
-      .brand svg {
-        width: 34px;
-        height: 34px;
+      .brand img {
+        width: 42px;
+        height: 42px;
+        object-fit: contain;
+        animation: pulse 2s ease-in-out infinite;
       }
-      @keyframes eq {
-        0%, 100% { transform: scaleY(0.35); }
-        50% { transform: scaleY(1); }
+      @keyframes pulse {
+        0%, 100% { transform: scale(0.96); opacity: 0.9; }
+        50% { transform: scale(1.04); opacity: 1; }
       }
-      .brand rect {
-        transform-box: fill-box;
-        transform-origin: top;
-        animation: eq 1s cubic-bezier(0.16, 1, 0.3, 1) infinite;
-      }
-      .brand rect:nth-child(2) { animation-delay: -0.35s; }
-      .brand rect:nth-child(3) { animation-delay: -0.6s; }
       #status {
         color: var(--fg-2);
         min-height: 20px;
@@ -114,14 +109,8 @@
   <body>
     <main>
       <div class="brand">
-        <svg viewBox="10 10 28 28" aria-hidden="true">
-          <g fill="#C3EC52">
-            <rect x="10" y="10" width="8" height="28" rx="4" />
-            <rect x="20" y="10" width="8" height="16" rx="4" />
-            <rect x="30" y="10" width="8" height="28" rx="4" />
-          </g>
-        </svg>
-        musike
+        <img src="../build/icon.png" alt="" aria-hidden="true" />
+        Illusive Sounds
       </div>
       <div id="status"></div>
       <div class="rows" id="rows"></div>

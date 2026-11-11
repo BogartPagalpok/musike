@@ -36,11 +36,17 @@ const loadServer = async () => ({
   HttpError: (await import("../../server/src/types.js")).HttpError,
 });
 
-const THEME = {
+const THEME: Record<string, { color: string; symbolColor: string }> = {
   dark: { color: "#0B0C0F", symbolColor: "#ECEEF2" },
   light: { color: "#E9EBEF", symbolColor: "#12141A" },
+  oled: { color: "#000000", symbolColor: "#F2F4F8" },
+  midnight: { color: "#070B14", symbolColor: "#E8EEF9" },
+  rose: { color: "#130A12", symbolColor: "#F5E9F3" },
+  forest: { color: "#07110D", symbolColor: "#E7F3ED" },
+  sunset: { color: "#140D0A", symbolColor: "#F6ECE6" },
+  nord: { color: "#1E222A", symbolColor: "#ECEFF4" },
+  cream: { color: "#F2ECE1", symbolColor: "#1F1B16" },
 };
-const TITLEBAR_HEIGHT = 40;
 
 interface WindowState {
   width: number;
@@ -99,7 +105,7 @@ function createSplash(): BrowserWindow {
     center: true,
     show: false,
     icon: path.join(here, "icon.png"),
-    backgroundColor: THEME.dark.color,
+    backgroundColor: THEME.dark!.color,
     webPreferences: { preload: path.join(here, "preload.cjs"), sandbox: true, contextIsolation: true },
   });
   void splash.loadFile(path.join(here, "splash.html"), { query: { lang } });
@@ -114,15 +120,10 @@ function createMainWindow(url: string): BrowserWindow {
     minWidth: 380,
     minHeight: 560,
     show: false,
-    title: "Musike",
+    title: "Illusive Sounds",
     icon: path.join(here, "icon.png"),
-    backgroundColor: THEME.dark.color,
-    // Our own title bar (drawn by the web app) with the native window buttons on top of it:
-    // macOS traffic lights on the left, centred in the bar; Windows and Linux controls on the right.
-    titleBarStyle: "hidden",
-    ...(isMac
-      ? { trafficLightPosition: { x: 14, y: (TITLEBAR_HEIGHT - 14) / 2 } }
-      : { titleBarOverlay: { ...THEME.dark, height: TITLEBAR_HEIGHT } }),
+    backgroundColor: THEME.dark!.color,
+    autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(here, "preload.cjs"),
       contextIsolation: true,
@@ -183,10 +184,9 @@ async function launch() {
   mainWindow.once("ready-to-show", () => splash.destroy());
 }
 
-ipcMain.on("musike:theme", (event, theme: "dark" | "light") => {
+ipcMain.on("musike:theme", (event, theme: string) => {
   const win = BrowserWindow.fromWebContents(event.sender);
-  const colors = THEME[theme] ?? THEME.dark;
-  if (!isMac) win?.setTitleBarOverlay({ ...colors, height: TITLEBAR_HEIGHT });
+  const colors = THEME[theme] ?? THEME.dark!;
   win?.setBackgroundColor(colors.color);
 });
 

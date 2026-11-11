@@ -36,7 +36,7 @@ function Entry({ to, name, kind, tracks, sub }: { to: string; name: string; kind
 export default function Library() {
   const { favorites, playlists, history, createPlaylist } = useLibrary();
   const [creating, setCreating] = useState(false);
-  const setSettingsOpen = useUi((s) => s.setSettingsOpen);
+  const setDataOpen = useUi((s) => s.setDataOpen);
   const navigate = useNavigate();
   const t = useT();
 
@@ -46,7 +46,7 @@ export default function Library() {
         title={t.nav.library}
         actions={
           <>
-          <IconButton label={t.library.backup} onClick={() => setSettingsOpen(true)}>
+          <IconButton label={t.library.backup} onClick={() => setDataOpen(true)}>
             <DatabaseIcon size={20} />
           </IconButton>
           <button

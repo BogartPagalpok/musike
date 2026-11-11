@@ -1,25 +1,25 @@
 {
   "name": "musike-desktop",
-  "productName": "Musike",
+  "productName": "Illusive Sounds",
   "version": "1.5.1",
   "description": "Your music, uninterrupted.",
-  "author": "Musike",
+  "author": "Ian Lester Eclevia",
   "homepage": "https://github.com/Ernani1234/musike",
-  "desktopName": "musike.desktop",
+  "desktopName": "illusive-sounds.desktop",
   "private": true,
   "main": "dist/main.mjs",
   "scripts": {
     "bundle": "node scripts/bundle.mjs",
     "start": "pnpm --filter @musike/web build && node scripts/bundle.mjs && electron .",
-    "dist": "pnpm --filter @musike/web build && node scripts/bundle.mjs && electron-builder --win nsis --publish never",
-    "dist:mac": "pnpm --filter @musike/web build && node scripts/bundle.mjs && electron-builder --mac --publish never",
-    "dist:linux": "pnpm --filter @musike/web build && node scripts/bundle.mjs && electron-builder --linux --publish never",
+    "dist": "pnpm --filter @musike/web build && node scripts/bundle.mjs && node --experimental-require-module ./node_modules/electron-builder/cli.js --win nsis --publish never",
+    "dist:mac": "pnpm --filter @musike/web build && node scripts/bundle.mjs && node --experimental-require-module ./node_modules/electron-builder/cli.js --mac --publish never",
+    "dist:linux": "pnpm --filter @musike/web build && node scripts/bundle.mjs && node --experimental-require-module ./node_modules/electron-builder/cli.js --linux --publish never",
     "typecheck": "tsc --noEmit"
   },
   "build": {
-    "appId": "app.musike.desktop",
-    "productName": "Musike",
-    "copyright": "Musike",
+    "appId": "app.illusivesounds.desktop",
+    "productName": "Illusive Sounds",
+    "copyright": "Copyright © 2026 Ian Lester Eclevia",
     "directories": {
       "output": "out",
       "buildResources": "build"
@@ -47,7 +47,7 @@
         }
       ],
       "icon": "build/icon.ico",
-      "artifactName": "Musike-Setup-${version}.${ext}"
+      "artifactName": "Illusive-Sounds-Setup-${version}.${ext}"
     },
     "mac": {
       "target": [
@@ -90,13 +90,13 @@
       "category": "AudioVideo",
       "synopsis": "Your music, uninterrupted.",
       "description": "A personal music player for YouTube's catalog: songs and music videos, with no ads and no account.",
-      "maintainer": "Musike <https://github.com/Ernani1234/musike>"
+      "maintainer": "Ian Lester Eclevia"
     },
     "deb": {
-      "packageName": "musike"
+      "packageName": "illusive-sounds"
     },
     "dmg": {
-      "title": "Musike ${version}"
+      "title": "Illusive Sounds ${version}"
     },
     "nsis": {
       "oneClick": false,
@@ -104,7 +104,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": "always",
       "createStartMenuShortcut": true,
-      "shortcutName": "Musike",
+      "shortcutName": "Illusive Sounds",
       "runAfterFinish": true,
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",

@@ -26,6 +26,7 @@ export interface Library {
 export interface Genre {
   id: string;
   name: string;
+  kind?: "mood" | "genre";
 }
 
 export interface GenreArtist {
@@ -79,4 +80,10 @@ export interface AlbumPage {
   thumb: string;
   art: string;
   tracks: Track[];
+}
+
+export interface ChartsData {
+  global: Track[];
+  trending: Track[];
+  region: string;
 }

@@ -16,7 +16,7 @@ module.exports = function collect(artifact) {
   const system = SYSTEMS[artifact.packager.platform.nodeName];
   // Windows ships one build; macOS and Linux one per processor.
   const arch = system === "Windows" || artifact.arch == null ? "" : `-${ARCHS[artifact.arch]}`;
-  const name = `Musike-Setup-${artifact.packager.appInfo.version}-${system}${arch}${ext}`;
+  const name = `Illusive-Sounds-Setup-${artifact.packager.appInfo.version}-${system}${arch}${ext}`;
   mkdirSync(release, { recursive: true });
   copyFileSync(artifact.file, path.join(release, name));
   console.log(`  • collected       ${path.join("release", name)}`);

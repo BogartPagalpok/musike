@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { getThemeMeta, isTheme, type ThemeId } from "../lib/accent";
 import { desktop } from "../lib/desktop";
 import type { Track } from "../lib/types";
 
@@ -22,8 +23,8 @@ export interface TrackMenuState {
   playlistId?: string;
 }
 
-type Theme = "dark" | "light";
-export type PanelTab = "playing" | "queue";
+export type Theme = ThemeId;
+export type PanelTab = "playing" | "lyrics" | "queue";
 
 interface UiState {
   theme: Theme;
@@ -36,6 +37,8 @@ interface UiState {
   addToPlaylist: Track[] | null;
   shortcutsOpen: boolean;
   settingsOpen: boolean;
+  dataOpen: boolean;
+  equalizerOpen: boolean;
   /** Cinema view: the video maximized over everything. */
   theater: boolean;
   setTheme: (t: Theme) => void;
@@ -52,10 +55,15 @@ interface UiState {
   openAddToPlaylist: (tracks: Track[] | null) => void;
   setShortcutsOpen: (open: boolean) => void;
   setSettingsOpen: (open: boolean) => void;
+  setDataOpen: (open: boolean) => void;
+  setEqualizerOpen: (open: boolean) => void;
   setTheater: (open: boolean) => void;
 }
 
-const readTheme = (): Theme => (document.documentElement.dataset.theme === "light" ? "light" : "dark");
+const readTheme = (): Theme => {
+  const t = document.documentElement.dataset.theme;
+  return isTheme(t) ? t : "dark";
+};
 const readPanel = (): boolean => {
   try {
     return localStorage.getItem("musike:panel") !== "closed";
@@ -76,11 +84,14 @@ export const useUi = create<UiState>((set, get) => ({
   addToPlaylist: null,
   shortcutsOpen: false,
   settingsOpen: false,
+  dataOpen: false,
+  equalizerOpen: false,
   theater: false,
 
   setTheme: (theme) => {
     document.documentElement.dataset.theme = theme;
-    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", theme === "dark" ? "#0B0C0F" : "#E9EBEF");
+    const meta = getThemeMeta(theme);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", meta.bg);
     desktop?.setTheme(theme);
     try {
       localStorage.setItem("musike:theme", theme);
@@ -89,7 +100,7 @@ export const useUi = create<UiState>((set, get) => ({
     }
     set({ theme });
   },
-  toggleTheme: () => get().setTheme(get().theme === "dark" ? "light" : "dark"),
+  toggleTheme: () => get().setTheme(get().theme === "light" ? "dark" : "light"),
 
   openPanel: (panelTab) => {
     if (window.matchMedia("(min-width: 1280px)").matches) set({ panelOpen: true, panelTab });
@@ -132,6 +143,8 @@ export const useUi = create<UiState>((set, get) => ({
   openAddToPlaylist: (addToPlaylist) => set({ addToPlaylist, menu: null }),
   setShortcutsOpen: (shortcutsOpen) => set({ shortcutsOpen }),
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
+  setDataOpen: (dataOpen) => set({ dataOpen }),
+  setEqualizerOpen: (equalizerOpen) => set({ equalizerOpen }),
   setTheater: (theater) => set({ theater }),
 }));
 

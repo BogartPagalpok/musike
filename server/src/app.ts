@@ -2,17 +2,17 @@ import { existsSync } from "node:fs";
 import { createServer } from "node:net";
 import fastifyStatic from "@fastify/static";
 import Fastify from "fastify";
-import { ALBUM_ID, album, ARTIST_ID, artist, GENRE_ID, genre, genreArtists, genres, searchAlbums } from "./browse.js";
+import { ALBUM_ID, album, ARTIST_ID, artist, charts, GENRE_ID, genre, genreArtists, genres, searchAlbums } from "./browse.js";
 import { config } from "./config.js";
 import * as library from "./library.js";
 import { fileStorage } from "./libraryFile.js";
 import { findVideoFor, radio, search, suggestions } from "./search.js";
-import { proxyStream, serveFile } from "./stream.js";
+import { downloadStream, proxyStream, serveFile } from "./stream.js";
 import { langOf, msg, tr } from "./i18n.js";
 import { presentJob, startJob, systemInfo, type Channel } from "./system.js";
 import { refreshTools, type Tools } from "./tools.js";
 import { HttpError, VIDEO_ID } from "./types.js";
-import { downloadHd, pruneCache, resolveStreams } from "./ytdlp.js";
+import { downloadHd, pruneCache, resolveStreams, resolveVideoStream } from "./ytdlp.js";
 
 function videoId(params: unknown): string {
   const id = (params as { id?: string }).id ?? "";
@@ -84,6 +84,8 @@ export async function startServer(opts: StartOptions = {}): Promise<RunningServe
 
   app.get("/api/genres", async (req) => ({ genres: await genres(langOf(req)) }));
 
+  app.get("/api/charts", async (req) => charts(langOf(req)));
+
   app.get("/api/genres/:gid", async (req) => {
     const { gid } = req.params as { gid: string };
     if (!GENRE_ID.test(gid)) throw new HttpError(400, msg("invalidGenre"));
@@ -138,9 +140,22 @@ export async function startServer(opts: StartOptions = {}): Promise<RunningServe
     const id = videoId(req.params);
     const { q } = req.query as { q?: string };
     if (q === "hd") return serveFile(req, reply, await downloadHd(id), "video/mp4");
-    const resolved = await resolveStreams(id);
-    if (!resolved.video) return serveFile(req, reply, await downloadHd(id), "video/mp4");
+    const vid = await resolveVideoStream(id);
+    if (!vid) return serveFile(req, reply, await downloadHd(id), "video/mp4");
     return proxyStream(req, reply, id, "video");
+  });
+
+  app.get("/api/download/:id", (req, reply) => {
+    const id = videoId(req.params);
+    const { title, artist, kind } = req.query as { title?: string; artist?: string; kind?: string };
+    return downloadStream(
+      req,
+      reply,
+      id,
+      (title ?? "").slice(0, 200),
+      (artist ?? "").slice(0, 200),
+      kind === "video" ? "video" : "audio",
+    );
   });
 
   // Library
