@@ -13,7 +13,7 @@ import {
   SidebarSimpleIcon,
 } from "@phosphor-icons/react";
 import { useState, type ReactNode } from "react";
-import { NavLink, useNavigate } from "react-router";
+import { NavLink, useLocation, useNavigate } from "react-router";
 import { useT } from "../i18n";
 import { cn } from "../lib/format";
 import { paths } from "../lib/routes";
@@ -137,10 +137,11 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
   const offlineTracks = useOffline((s) => s.tracks);
   const createPlaylist = useLibrary((s) => s.createPlaylist);
   const navigate = useNavigate();
+  const location = useLocation();
   const [creating, setCreating] = useState(false);
   const [resizing, setResizing] = useState(false);
-  const [dockTab, setDockTab] = useState<"browse" | "collection">("browse");
 
+  const isLibraryActive = location.pathname === paths.library;
   const isExpanded = !compactSidebar;
   const isStageLayout = layoutTemplate === "center-lyrics" && !!embeddedRoutes;
   const effectiveWidth = isExpanded
@@ -289,19 +290,18 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
               <div className="shrink-0 px-3 pt-2 pb-1.5">
                 <nav
                   aria-label={t.nav.main}
-                  className="grid grid-cols-5 gap-0.5 rounded-[10px] bg-fg/[0.07] p-1"
+                  className="grid grid-cols-4 gap-1 rounded-[10px] bg-fg/[0.07] p-1"
                 >
                   {nav.map(({ to, key, Icon, end }) => (
                     <NavLink
                       key={to}
                       to={to}
                       end={end}
-                      onClick={() => setDockTab("browse")}
                       title={t.nav[key]}
                       className={({ isActive }) =>
                         cn(
-                          "flex h-7 items-center justify-center gap-1 rounded-[7px] px-1 text-xs font-medium transition-colors min-w-0 truncate",
-                          isActive && dockTab === "browse"
+                          "flex h-7 items-center justify-center gap-1.5 rounded-[7px] px-1 text-xs font-medium transition-colors min-w-0 truncate",
+                          isActive
                             ? "bg-surface-4 text-fg shadow-2xs font-semibold"
                             : "text-fg-2 hover:text-fg",
                         )
@@ -309,22 +309,12 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
                     >
                       {({ isActive }) => (
                         <>
-                          <Icon size={14} weight={isActive && dockTab === "browse" ? "fill" : "regular"} className="shrink-0" />
+                          <Icon size={14} weight={isActive ? "fill" : "regular"} className="shrink-0" />
                           <span className="truncate">{t.nav[key]}</span>
                         </>
                       )}
                     </NavLink>
                   ))}
-                  <button
-                    type="button"
-                    onClick={() => setDockTab("collection")}
-                    className={cn(
-                      "flex h-7 items-center justify-center gap-1 rounded-[7px] px-1 text-xs font-medium transition-colors min-w-0 truncate",
-                      dockTab === "collection" ? "bg-surface-4 text-fg shadow-2xs font-semibold" : "text-fg-2 hover:text-fg",
-                    )}
-                  >
-                    <span className="truncate">Playlists</span>
-                  </button>
                 </nav>
               </div>
             ) : (
@@ -379,23 +369,19 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
               </>
             )}
 
-            {/* Stage Layout Mode: Embedded Home / Search / Library Browser right inside the Expandable Sidebar */}
+            {/* Stage Layout Mode: Combined Library & Playlists when on Library tab, or embedded page */}
             {isExpanded && isStageLayout ? (
-              <>
-                {dockTab === "browse" ? (
-                  <div className="scroll-area mt-1 min-h-0 flex-1 overflow-y-auto border-t border-line/60 bg-surface-1/40">
-                    {embeddedRoutes}
-                  </div>
-                ) : (
-                  <div className="scroll-area mt-2 flex min-h-0 flex-1 flex-col gap-0.5 overflow-y-auto px-2 pb-2">
-                    <div className="flex items-center justify-between px-2 pb-1">
-                      <span className="text-xs font-medium text-fg-3">{t.nav.yourCollection}</span>
+              <div className="scroll-area min-h-0 flex-1 overflow-y-auto border-t border-line/60 bg-surface-1/40">
+                {isLibraryActive ? (
+                  <div className="flex flex-col gap-0.5 p-2 pb-4">
+                    <div className="flex items-center justify-between px-2 pt-1 pb-2">
+                      <span className="text-xs font-semibold text-fg-3 uppercase tracking-wider">{t.nav.yourCollection}</span>
                       <button
                         type="button"
                         onClick={() => setCreating(true)}
-                        className="flex h-7 items-center gap-1 rounded-full bg-surface-3 px-2.5 text-xs font-medium text-fg hover:bg-surface-4"
+                        className="flex h-7 items-center gap-1.5 rounded-full bg-accent px-3 text-xs font-semibold text-accent-ink transition-transform hover:scale-105 active:scale-95"
                       >
-                        <PlusIcon size={14} />
+                        <PlusIcon size={14} weight="bold" />
                         <span>New</span>
                       </button>
                     </div>
@@ -419,9 +405,16 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
                         <Artwork src={p.tracks[0]?.thumb} className="size-full" iconSize={18} />
                       </RailLink>
                     ))}
+                    {playlists.length === 0 && (
+                      <p className="px-3 pt-3 text-xs text-fg-3 leading-relaxed">
+                        {t.library.noPlaylists}
+                      </p>
+                    )}
                   </div>
+                ) : (
+                  embeddedRoutes
                 )}
-              </>
+              </div>
             ) : (
               <>
                 <div className="mx-3 my-2 h-px bg-line shrink-0" />

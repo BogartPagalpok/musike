@@ -552,8 +552,22 @@ html:is([data-theme="synthwave"], [data-theme="candy"], [data-theme="arcade"], [
   animation: shimmer 1.6s linear infinite;
 }
 
+/* Google Pixel Squiggly Progress Bar Wave Animation */
+@keyframes pixelWave {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-28px);
+  }
+}
+.animate-pixel-wave {
+  animation: pixelWave 2.2s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .eq-live .eq-bar,
+  .animate-pixel-wave,
   .skeleton {
     animation: none;
   }

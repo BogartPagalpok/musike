@@ -17,17 +17,17 @@ function Entry({ to, name, kind, tracks, sub }: { to: string; name: string; kind
     <li>
       <Link
         to={to}
-        className="group flex items-center gap-3 rounded-[16px] p-2 transition-colors hover:bg-surface-2 md:flex-col md:items-stretch md:gap-3 md:p-3"
+        className="group flex items-center gap-3.5 rounded-[14px] p-2.5 transition-colors hover:bg-surface-2 @[460px]:flex-col @[460px]:items-stretch @[460px]:p-3"
       >
         <Cover
           kind={kind}
           tracks={tracks}
           iconSize={26}
-          className="size-16 shrink-0 rounded-[12px] md:aspect-square md:size-auto md:w-full md:rounded-[14px] md:shadow-[0_12px_32px_rgb(0_0_0/0.3)]"
+          className="size-14 shrink-0 rounded-[11px] @[460px]:aspect-square @[460px]:size-auto @[460px]:w-full @[460px]:rounded-[14px] @[460px]:shadow-[0_12px_32px_rgb(0_0_0/0.3)]"
         />
-        <span className="min-w-0">
-          <span className="block truncate font-medium">{name}</span>
-          <span className="block truncate text-sm text-fg-2">{sub}</span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-semibold text-[14px] text-fg leading-snug">{name}</span>
+          <span className="block truncate text-xs text-fg-3 mt-0.5 leading-snug">{sub}</span>
         </span>
       </Link>
     </li>
@@ -43,7 +43,7 @@ export default function Library() {
   const t = useT();
 
   return (
-    <div className="pb-8">
+    <div className="pb-8 @container">
       <PageHeader
         title={t.nav.library}
         actions={
@@ -54,16 +54,16 @@ export default function Library() {
           <button
             type="button"
             onClick={() => setCreating(true)}
-            className="flex h-10 items-center gap-1.5 rounded-full bg-accent pr-4 pl-3 text-sm font-semibold text-accent-ink transition-transform active:scale-[0.97]"
+            className="flex h-9 items-center gap-1.5 rounded-full bg-accent pr-3.5 pl-3 text-xs font-semibold text-accent-ink transition-transform active:scale-[0.97]"
           >
-            <PlusIcon size={18} weight="bold" /> <span className="hidden sm:inline">{t.nav.newPlaylist}</span>
+            <PlusIcon size={16} weight="bold" /> <span className="hidden sm:inline">{t.nav.newPlaylist}</span>
             <span className="sm:hidden">{t.library.newShort}</span>
           </button>
           </>
         }
       />
 
-      <ul className="grid grid-cols-1 gap-1 px-2 pt-2 md:grid-cols-3 md:gap-2 md:px-4 lg:grid-cols-4 2xl:grid-cols-6">
+      <ul className="grid grid-cols-1 gap-1 px-3 pt-2 @[460px]:grid-cols-2 @[700px]:grid-cols-3 @[960px]:grid-cols-4 @[1300px]:grid-cols-6 @[460px]:gap-2.5">
         <Entry to={paths.favorites} name={t.nav.favorites} kind="favorites" tracks={favorites} sub={t.common.tracks(favorites.length)} />
         <Entry to={paths.downloads} name={t.nav.downloads} kind="downloads" tracks={offlineTracks} sub={t.common.tracks(offlineTracks.length)} />
         <Entry to={paths.history} name={t.nav.recentlyPlayed} kind="history" tracks={history} sub={t.common.tracks(history.length)} />

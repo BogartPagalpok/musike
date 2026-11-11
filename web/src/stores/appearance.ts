@@ -36,7 +36,7 @@ export const DEFAULT_APPEARANCE: Appearance = {
   homeShortcuts: true,
   homeRecent: true,
   homeFavorites: true,
-  layoutTemplate: "default",
+  layoutTemplate: "center-lyrics",
 };
 
 /** Ready-made accents. "volt" is Musike's own. */

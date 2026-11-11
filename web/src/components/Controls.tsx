@@ -72,7 +72,7 @@ export function Transport({ big = false }: { big?: boolean }) {
       </IconButton>
       <PlayDisc
         label={p.status === "playing" ? t.common.pause : t.common.play}
-        px={big ? 72 : 40}
+        px={big ? 72 : 42}
         onClick={p.toggle}
         disabled={!hasTrack}
       >
@@ -100,17 +100,31 @@ export function Scrubber({ touch = false, className }: { touch?: boolean; classN
   const position = usePlayer((s) => s.position);
   const duration = usePlayer((s) => s.duration);
   const buffered = usePlayer((s) => s.buffered);
+  const status = usePlayer((s) => s.status);
   const seek = usePlayer((s) => s.seek);
   const [scrub, setScrub] = useState<number | null>(null);
   const shown = scrub ?? position;
+  const isPlaying = status === "playing";
 
-  const time = <span className="w-10 shrink-0 font-mono text-[11px] text-fg-3 tabular-nums">{formatTime(shown)}</span>;
-  const total = <span className="w-10 shrink-0 text-right font-mono text-[11px] text-fg-3 tabular-nums">{formatTime(duration)}</span>;
+  const time = <span className="w-10 shrink-0 font-mono text-[11.5px] text-fg-3 tabular-nums">{formatTime(shown)}</span>;
+  const total = <span className="w-10 shrink-0 text-right font-mono text-[11.5px] text-fg-3 tabular-nums">{formatTime(duration)}</span>;
 
   if (touch) {
     return (
       <div className={className}>
-        <Slider label={t.player.progress} value={position} max={duration} buffered={buffered} onChange={seek} onScrub={setScrub} showThumb step={5} valueText={formatTime} />
+        <Slider
+          variant="pixel"
+          isPlaying={isPlaying}
+          label={t.player.progress}
+          value={position}
+          max={duration}
+          buffered={buffered}
+          onChange={seek}
+          onScrub={setScrub}
+          showThumb
+          step={5}
+          valueText={formatTime}
+        />
         <div className="mt-0.5 flex justify-between">
           {time}
           {total}
@@ -119,9 +133,21 @@ export function Scrubber({ touch = false, className }: { touch?: boolean; classN
     );
   }
   return (
-    <div className={cn("flex items-center gap-2", className)}>
+    <div className={cn("flex items-center gap-2.5", className)}>
       <span className="text-right">{time}</span>
-      <Slider label={t.player.progress} value={position} max={duration} buffered={buffered} onChange={seek} onScrub={setScrub} step={5} valueText={formatTime} className="flex-1" />
+      <Slider
+        variant="pixel"
+        isPlaying={isPlaying}
+        label={t.player.progress}
+        value={position}
+        max={duration}
+        buffered={buffered}
+        onChange={seek}
+        onScrub={setScrub}
+        step={5}
+        valueText={formatTime}
+        className="flex-1"
+      />
       {total}
     </div>
   );
