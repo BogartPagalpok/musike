@@ -187,8 +187,8 @@ public class PlaybackService extends Service {
 
     @Override
     public void onTaskRemoved(Intent rootIntent) {
-        // Swiping Musike away closes the page that plays the music, so the controls have nothing left to control.
-        stopSelf();
+        // Keep playback alive when Android removes the app task from recents. The foreground service and its
+        // media notification remain the user's way back to the currently playing track.
     }
 
     @Override
