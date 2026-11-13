@@ -180,9 +180,9 @@ function Top50Section() {
   const playList = usePlayer((s) => s.playList);
   const [region, setRegion] = useState<string>(() => {
     try {
-      return localStorage.getItem("musike:chart-region") || "PH";
+      return localStorage.getItem("musike:chart-region") || "GLOBAL";
     } catch {
-      return "PH";
+      return "GLOBAL";
     }
   });
   const cacheKey = `${lang}:${region}`;
@@ -218,9 +218,9 @@ function Top50Section() {
   const visibleTracks = expanded ? activeTracks : activeTracks.slice(0, defaultCount);
 
   const countries = [
-    { id: "PH", label: "Philippines" },
     { id: "GLOBAL", label: "Global" },
     { id: "US", label: "United States" },
+    { id: "PH", label: "Philippines" },
     { id: "GB", label: "UK" },
   ];
 

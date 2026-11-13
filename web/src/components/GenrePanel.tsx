@@ -8,6 +8,7 @@ import {
   HeadphonesIcon,
   HeartIcon,
   PlayIcon,
+  SparkleIcon,
   SunHorizonIcon,
 } from "@phosphor-icons/react";
 import { useState } from "react";
@@ -16,9 +17,10 @@ import { useRemote } from "../hooks/useRemote";
 import { useI18n, useT } from "../i18n";
 import { api } from "../lib/api";
 import { cn } from "../lib/format";
-import { paths } from "../lib/routes";
-import type { Genre } from "../lib/types";
+import { NOW_PLAYING_HASH, paths } from "../lib/routes";
+import type { Genre, Track } from "../lib/types";
 import { usePlayer } from "../player/player";
+import { useLibrary } from "../stores/library";
 
 const ACCENT_VARS = [
   "var(--c1, var(--accent))",
@@ -40,16 +42,35 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
   const t = useT();
   const navigate = useNavigate();
   const playList = usePlayer((s) => s.playList);
+  const history = useLibrary((s) => s.history);
+  const favorites = useLibrary((s) => s.favorites);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
 
+  const seenSeeds = new Set<string>();
+  const activitySeeds = [...favorites.slice(0, 10), ...history.slice(0, 15)].filter(
+    (tr) => !seenSeeds.has(tr.id) && !!seenSeeds.add(tr.id),
+  );
+
   const cards = [
+    ...(activitySeeds.length > 0
+      ? [
+          {
+            key: "activity",
+            genreId: undefined as string | undefined,
+            title: "Your Activity Mix",
+            sub: "Based on songs & artists you always play",
+            query: "",
+            Icon: SparkleIcon,
+          },
+        ]
+      : []),
     { key: "chill", genreId: "ggMPOg1uX1JOQWZFeDByc2Jm", ...t.home.collections.chill, Icon: CoffeeIcon },
     {
       key: "sad",
       genreId: "ggMPOg1uX3NISTh4UmtWcFgz",
       title: "Sad & Heartbreak",
-      sub: "Emotional ballads, OPM hugot & acoustic heartbreak",
-      query: "sad heartbreak songs opm ballads",
+      sub: "Emotional ballads, acoustic & heartbreak songs",
+      query: "sad heartbreak emotional songs",
       Icon: CloudRainIcon,
     },
     { key: "focus", genreId: "ggMPOg1uX0NvNGNhWThMYWRh", ...t.home.collections.focus, Icon: HeadphonesIcon },
@@ -66,6 +87,25 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
     if (loadingKey) return;
     setLoadingKey(key);
     try {
+      if (key === "activity" && activitySeeds.length > 0) {
+        const radios = await Promise.all(
+          activitySeeds.slice(0, 2).map((s) => api.radio(s.id).catch(() => [] as Track[])),
+        );
+        const related = radios.flat();
+        const combined: Track[] = [];
+        const seen = new Set<string>();
+        const maxLen = Math.max(activitySeeds.length, related.length);
+        for (let i = 0; i < maxLen && combined.length < 50; i++) {
+          for (const candidate of [activitySeeds[i], related[i]]) {
+            if (candidate && !seen.has(candidate.id)) {
+              seen.add(candidate.id);
+              combined.push(candidate);
+            }
+          }
+        }
+        playList(combined.length > 0 ? combined : activitySeeds, 0);
+        return;
+      }
       if (genreId) {
         const page = await api.genre(genreId);
         if (page.tracks.length > 0) {
@@ -76,7 +116,11 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
       const tracks = await api.search(query, "song");
       if (tracks.length > 0) playList(tracks, 0);
     } catch {
-      navigate(genreId ? paths.genre(genreId) : `${paths.search}?q=${encodeURIComponent(query)}`);
+      if (key === "activity" && activitySeeds.length > 0) {
+        playList(activitySeeds, 0);
+      } else {
+        navigate(genreId ? `${paths.genre(genreId)}?view=songs` : `${paths.search}?q=${encodeURIComponent(query)}`);
+      }
     } finally {
       setLoadingKey(null);
     }
@@ -89,16 +133,25 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
           const busy = loadingKey === key;
           const tone = ACCENT_VARS[idx % ACCENT_VARS.length]!;
           const targetUrl = genreId ? `${paths.genre(genreId)}?view=songs` : `${paths.search}?q=${encodeURIComponent(query)}`;
+          const openCard = (e: React.MouseEvent | React.KeyboardEvent) => {
+            if (key === "activity") {
+              void handlePlayMix(key, genreId, query, e as unknown as React.MouseEvent).then(() =>
+                navigate({ hash: NOW_PLAYING_HASH }),
+              );
+              return;
+            }
+            navigate(targetUrl, { state: { name: title } });
+          };
           return (
             <div
               key={key}
               role="button"
               tabIndex={0}
-              onClick={() => navigate(targetUrl, { state: { name: title } })}
+              onClick={openCard}
               onKeyDown={(e) => {
                 if (e.key === "Enter" || e.key === " ") {
                   e.preventDefault();
-                  navigate(targetUrl, { state: { name: title } });
+                  openCard(e);
                 }
               }}
               style={{

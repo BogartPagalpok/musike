@@ -1,5 +1,6 @@
 import type { Innertube } from "youtubei.js";
 import { isLang, msg, type Lang } from "./i18n.js";
+import { getActivityProfile } from "./library.js";
 import { isUnwantedRegionalTrack, radio, search, sized, text, toTrack, withClient } from "./search.js";
 import type { Track } from "./types.js";
 import { HttpError, VIDEO_ID } from "./types.js";
@@ -151,47 +152,55 @@ const UNWANTED_SHELF_OR_PLAYLIST =
   /\b(bollywood|indian|hindi|punjabi|tollywood|kollywood|mollywood|desi|bhangra|chai|qawwali|ghazal|sufi|dangdut|galau|turkish|arabesk|arabic|iraqi|khaleeji|dabkeh|sertanejo|pagode|schlager|russian|ukrainian|thai|jiwang|honsul|salsa|triste|a solas|11 no\.?\s*ki bus|sad bangers|brazilian)\b|[\u0600-\u06FF\u0900-\u0DFF\u0E00-\u0E7F\u0400-\u04FF]/i;
 
 const MOOD_PRIORITY_PLAYLISTS: Record<string, string[]> = {
-  // Sad: #sadforever, Wallow, Lonely Hearts Club, OPM Ballads, Burn the Photos, Classic R&B Breakup
+  // Sad: #sadforever, Wallow, Lonely Hearts Club, Burn the Photos, Classic R&B Breakup
   ggMPOg1uX3NISTh4UmtWcFgz: [
     "VLRDCLAK5uy_lp8LtelM9GiSwRFGGQjctKaGoHcrgQVEU",
     "VLRDCLAK5uy_lcM4s2QvgekvNoHcX6dmb0pCl2aMgFxdc",
     "VLRDCLAK5uy_lsdV5oBPFEC87QS1yTL1UFbqzVmKNAisE",
-    "VLRDCLAK5uy_mNTLbK4aDbRYx9ZXc6s1Yhk7l8CwSN_m8",
     "VLRDCLAK5uy_nRFKmL13urbE-A89oJfnt1-u1hfiCLriA",
     "VLRDCLAK5uy_k_rqLx4HcwIPeuLQHuda_ZahMCB6_Rt2A",
   ],
-  // Chill: Super Chill, Coffee Shop Blend, OPM Unwind, Chill R&B, OPM Acoustic
+  // Chill: Super Chill, Coffee Shop Blend, Chill R&B, Unwind
   ggMPOg1uX1JOQWZFeDByc2Jm: [
     "VLRDCLAK5uy_mYa86YJNGqE4Jl5jG7DZP9NKdflw0hQL0",
     "VLRDCLAK5uy_nBE4bLuBHUXWZrF59ZrkPEToKt8M_I3Vc",
-    "VLRDCLAK5uy_k2f_-SF4oCrVKPcgHNVifHzjEHkNbvszU",
     "VLRDCLAK5uy_mX4JK0m7lhZ8Egv1E7bbXox_e0k6rGejo",
-    "VLRDCLAK5uy_kGHYAi69KWgIEaGH9-sYOJKbvhuUovJUM",
+    "VLRDCLAK5uy_np_soSTj6w3-N7Dh_xmdDpQINJ8LsVpa8",
   ],
-  // Romance: Sweetheart Pop, Ultimate Love Songs, OPM Romance, Pop Ballads, Cuddle Weather
+  // Romance: Sweetheart Pop, Ultimate Love Songs, Pop Ballads, Cuddle Weather
   ggMPOg1uX1JCQnB2QXVYVEIz: [
     "VLRDCLAK5uy_l1oO11DBO4FD8U7bOrqUKK5Y_PkISUMQM",
     "VLRDCLAK5uy_kW-moSFMAFOKAIVYn9IDrZKWEJA3cP9UU",
-    "VLRDCLAK5uy_kbN8FIUVsK_JmyaVGsJYGFskQ-PVSz9dc",
     "VLRDCLAK5uy_mibxs1G4XQF8vFFlnlyBimkbFP7fKUh3U",
     "VLRDCLAK5uy_mKB2zduLwMALlWPw98K0857E9c1HYkitI",
   ],
-  // Feel good: Bubble Pop, Sunshine Indie, OPM Happiness, OPM Pop
+  // Feel good: Bubble Pop, Sunshine Indie, Feel-Good Hip Hop & R&B
   ggMPOg1uXzZQbDB5eThLRTQ3: [
     "VLRDCLAK5uy_lGEOjy5U8xV41C8_LyqNnAZKOH6sGyutI",
     "VLRDCLAK5uy_l808wsTOCKs6u9c1bqeLIpzTUOfns2BMs",
-    "VLRDCLAK5uy_k0W_afZwZDRb51Z85q3U3A9Boml5BbTqk",
-    "VLRDCLAK5uy_mdEVy902mNjvVH_ubg9PgdJlkdQT6fT6w",
+    "VLRDCLAK5uy_mkEwQuegHYB8_aAzBO8Q__6gGoaFblISw",
   ],
-  // Late Night / R&B & soul: Chill R&B, OPM R&B Soul, Neo Soul Essentials, Essential '90s R&B
+  // Late Night / R&B & soul: Chill R&B, Neo Soul Essentials, Essential '90s R&B, Soothing Soul
   ggMPOg1uX2JxQ2hxc2J5UFhR: [
     "VLRDCLAK5uy_mX4JK0m7lhZ8Egv1E7bbXox_e0k6rGejo",
-    "VLRDCLAK5uy_kYUaBqUZxA0VpgN2xsHNUnVoLu8-JGXk8",
     "VLRDCLAK5uy_nxZ3Bp0gO6_Wkb3bp9jESFoOz6bANXw4s",
     "VLRDCLAK5uy_ne3DJMol0EVIfwcuZnx2hQak0q6EbeBlY",
+    "VLRDCLAK5uy_k0oJ5JQqsSSQQvYS8xzcAh29CFryqs0mc",
   ],
-  // Commute: OPM Commute
-  ggMPOg1uX044Z2o5WERLckpU: ["VLRDCLAK5uy_nQUUdRSxb6HFpsXnOvexL_BcjHt5vj9PE"],
+};
+
+const MOOD_SEARCH_HINTS: Record<string, string> = {
+  ggMPOg1uX3NISTh4UmtWcFgz: "sad emotional acoustic",
+  ggMPOg1uX1JOQWZFeDByc2Jm: "chill acoustic relax",
+  ggMPOg1uX1JCQnB2QXVYVEIz: "love song romantic",
+  ggMPOg1uXzZQbDB5eThLRTQ3: "upbeat feel good",
+  ggMPOg1uX0NvNGNhWThMYWRh: "chill study focus",
+  ggMPOg1uXzIxYkNac21YZ2Z0: "upbeat energy hype",
+  ggMPOg1uX2w1aW1CRDFTSUNo: "party dance hits",
+  ggMPOg1uX2JxQ2hxc2J5UFhR: "late night r&b chill",
+  ggMPOg1uX044Z2o5WERLckpU: "drive hits",
+  ggMPOg1uX2lRZUZiMnNrQnJW: "energetic hits",
+  ggMPOg1uX1MxaFQ3Z0JMZkN4: "calm sleep acoustic",
 };
 
 const genreList = cached(6 * 60 * MINUTE, async (key): Promise<Genre[]> => {
@@ -348,7 +357,55 @@ const genreState = cached(30 * MINUTE, async (key): Promise<GenreState> => {
   };
 });
 
-export const genre = async (id: string, lang: Lang): Promise<GenrePage> => (await genreState(keyOf(lang, id))).page;
+const activitySeedTracks = cached(5 * MINUTE, async (key): Promise<Track[]> => {
+  const [langRaw = "en", id = ""] = key.split("|");
+  const lang: Lang = isLang(langRaw) ? langRaw : "en";
+  const activity = await getActivityProfile();
+  const hint = MOOD_SEARCH_HINTS[id];
+  const batches = await Promise.all([
+    ...activity.topArtists.slice(0, 3).map((artist) =>
+      search(`${artist} ${hint ?? ""}`.trim(), "song", lang)
+        .then((res) =>
+          res
+            .filter(
+              (t) =>
+                !isUnwantedRegionalTrack(t) &&
+                (t.duration === 0 || (t.duration >= 25 && t.duration <= 15 * 60)),
+            )
+            .slice(0, 5),
+        )
+        .catch(() => [] as Track[]),
+    ),
+    ...(!hint
+      ? activity.topTracks.slice(0, 2).map((seed) =>
+          radio(seed.id)
+            .then((res) => res.filter((t) => !isUnwantedRegionalTrack(t)).slice(0, 6))
+            .catch(() => [] as Track[]),
+        )
+      : []),
+  ]);
+  return roundRobin(batches);
+});
+
+export const genre = async (id: string, lang: Lang): Promise<GenrePage> => {
+  const [state, activity] = await Promise.all([genreState(keyOf(lang, id)), getActivityProfile()]);
+  const base = state.page;
+  if (!activity.topArtists.length && !activity.topTracks.length) return base;
+
+  const matchesKnownArtist = (artist: string) =>
+    artist.split(",").some((a) => activity.knownArtists.has(a.trim().toLowerCase()));
+  const familiarBase = base.tracks.filter((t) => matchesKnownArtist(t.artist));
+  const discoveryBase = base.tracks.filter((t) => !matchesKnownArtist(t.artist));
+
+  const sig = `${lang}|${id}|${activity.topArtists.slice(0, 4).join(",")}|${activity.topTracks[0]?.id ?? ""}`;
+  const activityTracks = await activitySeedTracks(sig).catch(() => [] as Track[]);
+
+  const merged = uniqueTracks([...roundRobin([activityTracks, familiarBase, discoveryBase]), ...base.tracks])
+    .filter((t) => !isUnwantedRegionalTrack(t))
+    .slice(0, MAX_GENRE_TRACKS);
+
+  return { ...base, tracks: merged };
+};
 
 /** Reads the next few playlists of the genre and appends the artists they bring. */
 async function extend(state: GenreState): Promise<void> {
@@ -527,8 +584,8 @@ const REGION_CHARTS: Record<string, { name: string; playlistId: string }> = {
 
 const chartsList = cached(60 * MINUTE, async (key): Promise<ChartsData> => {
   const { lang, id: regionCode } = parseKey(key);
-  const targetRegion = regionCode && REGION_CHARTS[regionCode.toUpperCase()] ? regionCode.toUpperCase() : "PH";
-  const regionalConfig = REGION_CHARTS[targetRegion] ?? REGION_CHARTS.PH!;
+  const targetRegion = regionCode && REGION_CHARTS[regionCode.toUpperCase()] ? regionCode.toUpperCase() : "GLOBAL";
+  const regionalConfig = REGION_CHARTS[targetRegion] ?? REGION_CHARTS.GLOBAL!;
 
   const [hitListItems, regionalItems, chartsPage] = await Promise.all([
     playlistItems(GLOBAL_HIT_LIST, 60, lang).catch(() => []),
@@ -568,4 +625,4 @@ const chartsList = cached(60 * MINUTE, async (key): Promise<ChartsData> => {
   };
 });
 
-export const charts = (lang: Lang, region?: string): Promise<ChartsData> => chartsList(keyOf(lang, region || "PH"));
+export const charts = (lang: Lang, region?: string): Promise<ChartsData> => chartsList(keyOf(lang, region || "GLOBAL"));

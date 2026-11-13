@@ -3,7 +3,11 @@ import { HttpError, VIDEO_ID, type Library, type Playlist, type Track } from "./
 
 // No Node-only imports here: the Android app runs this same module, with its own storage.
 
-const HISTORY_LIMIT = 60;
+const HISTORY_LIMIT = 120;
+
+interface StoredLibrary extends Library {
+  plays?: Record<string, number>;
+}
 
 /** Where the library is kept: a file on the server and the desktop app, app storage on Android. */
 export interface LibraryStorage {
@@ -12,7 +16,7 @@ export interface LibraryStorage {
 }
 
 let storage: LibraryStorage | null = null;
-let state: Library | null = null;
+let state: StoredLibrary | null = null;
 let writeChain: Promise<void> = Promise.resolve();
 
 /** Set once at startup, before any request. */
@@ -23,11 +27,11 @@ export function useLibraryStorage(s: LibraryStorage) {
 
 const randomUUID = () => globalThis.crypto.randomUUID();
 
-async function load(): Promise<Library> {
+async function load(): Promise<StoredLibrary> {
   if (state) return state;
   if (!storage) throw new Error("Library storage not configured");
   const json = await storage.read();
-  state = json ? (JSON.parse(json) as Library) : { favorites: [], playlists: [], history: [] };
+  state = json ? (JSON.parse(json) as StoredLibrary) : { favorites: [], playlists: [], history: [], plays: {} };
   return state;
 }
 
@@ -67,7 +71,8 @@ function findPlaylist(lib: Library, pid: string): Playlist {
 }
 
 export async function getLibrary(): Promise<Library> {
-  return load();
+  const lib = await load();
+  return { favorites: lib.favorites, playlists: lib.playlists, history: lib.history };
 }
 
 export async function addFavorite(track: Track): Promise<Track[]> {
@@ -97,6 +102,8 @@ export async function removeFavorite(id: string): Promise<Track[]> {
 export async function pushHistory(track: Track): Promise<Track[]> {
   const lib = await load();
   lib.history = [track, ...lib.history.filter((t) => t.id !== track.id)].slice(0, HISTORY_LIMIT);
+  lib.plays = lib.plays ?? {};
+  lib.plays[track.id] = (lib.plays[track.id] ?? 0) + 1;
   await persist();
   return lib.history;
 }
@@ -244,4 +251,57 @@ export async function importLibrary(input: unknown, mode: "merge" | "replace"): 
   lib.history = union(lib.history, incoming.history).list.slice(0, HISTORY_LIMIT);
   await persist();
   return result;
+}
+
+export interface ActivityProfile {
+  topArtists: string[];
+  topTracks: Track[];
+  knownArtists: Set<string>;
+}
+
+/** Summarizes the user's most-played artists and tracks across play history, favorites, and playlists. */
+export async function getActivityProfile(): Promise<ActivityProfile> {
+  const lib = await load().catch(() => ({ favorites: [], playlists: [], history: [], plays: {} }) as StoredLibrary);
+  const plays = lib.plays ?? {};
+  const artistScores = new Map<string, { name: string; score: number }>();
+  const trackScores = new Map<string, { track: Track; score: number }>();
+
+  const addTrack = (t: Track, baseScore: number) => {
+    const playBonus = Math.min(20, (plays[t.id] ?? 0) * 2);
+    const score = baseScore + playBonus;
+    const prev = trackScores.get(t.id);
+    if (prev) prev.score += baseScore;
+    else trackScores.set(t.id, { track: t, score });
+
+    for (const raw of t.artist.split(",")) {
+      const name = raw.trim();
+      if (!name || /^(unknown|various|youtube)/i.test(name)) continue;
+      const key = name.toLowerCase();
+      const entry = artistScores.get(key);
+      if (entry) entry.score += score;
+      else artistScores.set(key, { name, score });
+    }
+  };
+
+  lib.favorites.forEach((t, i) => addTrack(t, Math.max(4, 12 - Math.floor(i / 5))));
+  lib.history.forEach((t, i) => addTrack(t, Math.max(3, 14 - Math.floor(i / 4))));
+  for (const p of lib.playlists) {
+    p.tracks.forEach((t) => addTrack(t, 4));
+  }
+
+  const topArtists = [...artistScores.values()]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 8)
+    .map((a) => a.name);
+
+  const topTracks = [...trackScores.values()]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 25)
+    .map((x) => x.track);
+
+  return {
+    topArtists,
+    topTracks,
+    knownArtists: new Set([...artistScores.keys()]),
+  };
 }
