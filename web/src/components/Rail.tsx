@@ -13,7 +13,7 @@ import {
   SidebarSimpleIcon,
 } from "@phosphor-icons/react";
 import { useState, type ReactNode } from "react";
-import { NavLink, useLocation, useNavigate } from "react-router";
+import { NavLink, useNavigate } from "react-router";
 import { useT } from "../i18n";
 import { cn } from "../lib/format";
 import { paths } from "../lib/routes";
@@ -137,11 +137,9 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
   const offlineTracks = useOffline((s) => s.tracks);
   const createPlaylist = useLibrary((s) => s.createPlaylist);
   const navigate = useNavigate();
-  const location = useLocation();
   const [creating, setCreating] = useState(false);
   const [resizing, setResizing] = useState(false);
 
-  const isLibraryActive = location.pathname === paths.library;
   const isExpanded = !compactSidebar;
   const isStageLayout = layoutTemplate === "center-lyrics" && !!embeddedRoutes;
   const effectiveWidth = isExpanded
@@ -286,30 +284,63 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
         {(!isExpanded || !track || sidebarTab === "browse") && (
           <>
             {/* Top Navigation Links */}
-            <nav aria-label={t.nav.main} className="flex shrink-0 flex-col gap-0.5 px-2 pt-2">
-              {nav.map(({ to, key, Icon, end }) => (
-                <NavLink
-                  key={to}
-                  to={to}
-                  end={end}
-                  title={t.nav[key]}
-                  className={({ isActive }) =>
-                    cn(
-                      "flex items-center gap-2.5 rounded-[9px] transition-colors duration-150",
-                      isExpanded ? "h-9 justify-start px-3 text-[13.5px]" : "h-10 justify-center px-0",
-                      isActive ? "bg-surface-3 text-fg font-semibold" : "text-fg-2 hover:bg-surface-3/60 hover:text-fg",
-                    )
-                  }
+            {isExpanded && isStageLayout ? (
+              <div className="shrink-0 px-3 pt-2 pb-1.5">
+                <nav
+                  aria-label={t.nav.main}
+                  className="grid grid-cols-4 gap-1 rounded-[10px] bg-fg/[0.07] p-1"
                 >
-                  {({ isActive }) => (
-                    <>
-                      <Icon size={19} weight={isActive ? "fill" : "regular"} className={cn("shrink-0", isActive && "text-accent-text")} />
-                      {isExpanded && <span className="min-w-0 flex-1 truncate">{t.nav[key]}</span>}
-                    </>
-                  )}
-                </NavLink>
-              ))}
-            </nav>
+                  {nav.map(({ to, key, Icon, end }) => (
+                    <NavLink
+                      key={to}
+                      to={to}
+                      end={end}
+                      title={t.nav[key]}
+                      className={({ isActive }) =>
+                        cn(
+                          "flex h-7 items-center justify-center gap-1.5 rounded-[7px] px-1 text-xs font-medium transition-colors min-w-0 truncate",
+                          isActive
+                            ? "bg-surface-4 text-fg shadow-2xs font-semibold"
+                            : "text-fg-2 hover:text-fg",
+                        )
+                      }
+                    >
+                      {({ isActive }) => (
+                        <>
+                          <Icon size={14} weight={isActive ? "fill" : "regular"} className="shrink-0" />
+                          <span className="truncate">{t.nav[key]}</span>
+                        </>
+                      )}
+                    </NavLink>
+                  ))}
+                </nav>
+              </div>
+            ) : (
+              <nav aria-label={t.nav.main} className="flex shrink-0 flex-col gap-0.5 px-2 pt-2">
+                {nav.map(({ to, key, Icon, end }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    end={end}
+                    title={t.nav[key]}
+                    className={({ isActive }) =>
+                      cn(
+                        "flex items-center gap-2.5 rounded-[9px] transition-colors duration-150",
+                        isExpanded ? "h-9 justify-start px-3 text-[13.5px]" : "h-10 justify-center px-0",
+                        isActive ? "bg-surface-3 text-fg font-semibold" : "text-fg-2 hover:bg-surface-3/60 hover:text-fg",
+                      )
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        <Icon size={19} weight={isActive ? "fill" : "regular"} className={cn("shrink-0", isActive && "text-accent-text")} />
+                        {isExpanded && <span className="min-w-0 flex-1 truncate">{t.nav[key]}</span>}
+                      </>
+                    )}
+                  </NavLink>
+                ))}
+              </nav>
+            )}
 
             {/* In Collapsed Icon Rail Mode: Quick Now Playing & Lyrics buttons if track active */}
             {!isExpanded && track && (
@@ -336,51 +367,10 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
               </>
             )}
 
-            {/* Stage Layout Mode: Combined Library & Playlists when on Library tab, or embedded page */}
+            {/* Stage Layout Mode: Embedded routes (Home, Podcasts, Search, Library) right inside the sidebar */}
             {isExpanded && isStageLayout ? (
               <div className="scroll-area min-h-0 flex-1 overflow-y-auto border-t border-line/60 bg-surface-1/40">
-                {isLibraryActive ? (
-                  <div className="flex flex-col gap-0.5 p-2 pb-4">
-                    <div className="flex items-center justify-between px-2 pt-1 pb-2">
-                      <span className="text-xs font-semibold text-fg-3 uppercase tracking-wider">{t.nav.yourCollection}</span>
-                      <button
-                        type="button"
-                        onClick={() => setCreating(true)}
-                        className="flex h-7 items-center gap-1.5 rounded-full bg-accent px-3 text-xs font-semibold text-accent-ink transition-transform hover:scale-105 active:scale-95"
-                      >
-                        <PlusIcon size={14} weight="bold" />
-                        <span>New</span>
-                      </button>
-                    </div>
-                    <RailLink to={paths.favorites} label={t.nav.favorites} sub={t.common.tracks(favorites.length)} isExpanded={true}>
-                      <span className="grid size-full place-items-center bg-accent-soft text-accent-text">
-                        <HeartIcon size={20} weight="fill" />
-                      </span>
-                    </RailLink>
-                    <RailLink to={paths.downloads} label={t.nav.downloads} sub={t.common.tracks(offlineTracks.length)} isExpanded={true}>
-                      <span className="grid size-full place-items-center bg-surface-3 text-accent-text">
-                        <DownloadSimpleIcon size={20} weight="bold" />
-                      </span>
-                    </RailLink>
-                    <RailLink to={paths.history} label={t.nav.recentlyPlayed} sub={t.nav.history} isExpanded={true}>
-                      <span className="grid size-full place-items-center bg-surface-3 text-fg-2">
-                        <ClockCounterClockwiseIcon size={20} />
-                      </span>
-                    </RailLink>
-                    {playlists.map((p) => (
-                      <RailLink key={p.id} to={paths.playlist(p.id)} label={p.name} sub={t.common.tracks(p.tracks.length)} isExpanded={true}>
-                        <Artwork src={p.tracks[0]?.thumb} className="size-full" iconSize={18} />
-                      </RailLink>
-                    ))}
-                    {playlists.length === 0 && (
-                      <p className="px-3 pt-3 text-xs text-fg-3 leading-relaxed">
-                        {t.library.noPlaylists}
-                      </p>
-                    )}
-                  </div>
-                ) : (
-                  embeddedRoutes
-                )}
+                {embeddedRoutes}
               </div>
             ) : (
               <>

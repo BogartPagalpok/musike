@@ -19,7 +19,7 @@ interface Props {
   isPlaying?: boolean;
 }
 
-function makeWavePath(totalWidth: number, wavelength = 28, amp = 3.5, cy = 12) {
+function makeWavePath(totalWidth: number, wavelength = 32, amp = 4.5, cy = 12) {
   if (totalWidth <= 0) return "";
   let d = `M -${wavelength} ${cy}`;
   for (let x = -wavelength; x <= totalWidth + wavelength * 2; x += wavelength) {
@@ -180,7 +180,7 @@ export function Slider({
                   d={
                     drag !== null
                       ? `M 0 12 L ${trackWidth} 12`
-                      : makeWavePath(trackWidth, 28, isPlaying ? 3.5 : 2, 12)
+                      : makeWavePath(trackWidth, 32, isPlaying ? 4.5 : 2, 12)
                   }
                   fill="none"
                   stroke="var(--accent)"

@@ -558,11 +558,11 @@ html:is([data-theme="synthwave"], [data-theme="candy"], [data-theme="arcade"], [
     transform: translateX(0);
   }
   to {
-    transform: translateX(-28px);
+    transform: translateX(-32px);
   }
 }
 .animate-pixel-wave {
-  animation: pixelWave 2.2s linear infinite;
+  animation: pixelWave 1.8s linear infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {

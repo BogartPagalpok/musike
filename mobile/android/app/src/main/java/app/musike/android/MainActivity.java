@@ -19,8 +19,15 @@ import java.util.ArrayList;
 
 public class MainActivity extends BridgeActivity {
 
+    private static MainActivity instance;
+
+    public static MainActivity getInstance() {
+        return instance;
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        instance = this;
         registerPlugin(MusikePlaybackPlugin.class);
         registerPlugin(MusikeDevicePlugin.class);
         super.onCreate(savedInstanceState);
@@ -85,13 +92,13 @@ public class MainActivity extends BridgeActivity {
         PendingIntent nextPending = PendingIntent.getService(this, 203, nextIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         actions.add(new RemoteAction(Icon.createWithResource(this, R.drawable.ic_media_next), "Next", "Next", nextPending));
 
-        // 4. Audio Mode (Minimize to audio)
+        // 4. Listen Button (Minimize video to continuous background audio)
         Intent audioIntent = new Intent(this, PlaybackService.class).setAction("app.musike.android.action.audio_mode");
         PendingIntent audioPending = PendingIntent.getService(this, 204, audioIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         actions.add(new RemoteAction(
             Icon.createWithResource(this, R.drawable.ic_audio_mode),
-            "Audio Mode",
-            "Switch to Audio Mode",
+            "Listen",
+            "Listen in background (Minimize)",
             audioPending
         ));
 
@@ -149,5 +156,19 @@ public class MainActivity extends BridgeActivity {
                 webView.onResume();
             }
         }
+    }
+
+    public void exitPipToBackground() {
+        runOnUiThread(() -> {
+            try {
+                moveTaskToBack(true);
+            } catch (Exception ignored) {}
+        });
+    }
+
+    @Override
+    public void onDestroy() {
+        if (instance == this) instance = null;
+        super.onDestroy();
     }
 }

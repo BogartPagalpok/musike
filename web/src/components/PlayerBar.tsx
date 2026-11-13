@@ -35,8 +35,8 @@ export function PlayerBar() {
 
   return (
     <div className="shrink-0 border-t border-line/40 bg-bg/95 backdrop-blur-xl">
-      <div className="grid h-[90px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 px-3 py-1.5">
-        <div className="flex min-w-0 items-center gap-3">
+      <div className="grid h-[100px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-5 px-4 py-2">
+        <div className="flex min-w-0 items-center gap-3.5">
           {track ? (
             <>
               <button
@@ -45,10 +45,10 @@ export function PlayerBar() {
                 aria-label={t.player.showNowPlaying}
                 className="group relative shrink-0 rounded-[10px] transition-transform active:scale-[0.96]"
               >
-                <Artwork src={track.thumb} className="size-15 rounded-[8px] shadow-md" />
+                <Artwork src={track.thumb} className="size-16 rounded-[10px] shadow-md" />
               </button>
               <div className="min-w-0">
-                <p className="truncate text-[14.5px] font-semibold tracking-tight">{track.title}</p>
+                <p className="truncate text-[15px] font-semibold tracking-tight">{track.title}</p>
                 <p className={cn("truncate text-[13px] mt-0.5", status === "error" ? "text-danger" : "text-fg-2")}>
                   {statusText ?? track.artist}
                 </p>
@@ -61,7 +61,7 @@ export function PlayerBar() {
           )}
         </div>
 
-        <div className="flex w-[min(46vw,600px)] flex-col items-center gap-1.5">
+        <div className="flex w-[min(48vw,640px)] flex-col items-center gap-2">
           <Transport />
           <Scrubber className="w-full" />
         </div>

@@ -177,6 +177,9 @@ public class PlaybackService extends Service {
             } else if (name.equals("audio_mode")) {
                 state.isVideo = false;
                 emit("audio_mode", -1);
+                if (MainActivity.getInstance() != null) {
+                    MainActivity.getInstance().exitPipToBackground();
+                }
             } else {
                 emit(name, -1);
             }

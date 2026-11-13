@@ -4,7 +4,7 @@ import {
   ArrowsOutSimpleIcon,
   CornersInIcon,
   CornersOutIcon,
-  MusicNotesIcon,
+  HeadphonesIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -92,9 +92,10 @@ export function VideoSlot({
   );
 }
 
-/** Android native Picture-in-Picture display surface. */
+/** Android native Picture-in-Picture display surface with Listen button. */
 export function PipVideoSlot() {
   const isVideo = usePlayer((s) => s.mediaKind === "video");
+  const setPreferVideo = usePlayer((s) => s.setPreferVideo);
   const [isPip, setIsPip] = useState(() => typeof document !== "undefined" && document.documentElement.dataset.pip === "1");
 
   useEffect(() => {
@@ -110,8 +111,21 @@ export function PipVideoSlot() {
 
   if (!isPip || !isVideo) return null;
   return (
-    <div className="fixed inset-0 z-[999999] size-full bg-black">
+    <div className="fixed inset-0 z-[999999] size-full bg-black group/pip">
       <VideoSlot priority={SLOT.pip} className="size-full object-contain" />
+      {/* Tap-to-minimize Listen button directly on the PiP frame */}
+      <div className="absolute top-3 left-3 z-20 flex items-center">
+        <button
+          type="button"
+          onClick={() => setPreferVideo(false)}
+          aria-label="Listen in background (Minimize video)"
+          title="Listen in background (Minimize video to audio)"
+          className="flex items-center gap-1.5 rounded-full bg-black/85 px-3 py-1.5 text-xs font-semibold text-accent border border-white/20 shadow-2xl backdrop-blur-md transition-transform active:scale-95 hover:bg-black"
+        >
+          <HeadphonesIcon size={15} weight="fill" />
+          <span>Listen</span>
+        </button>
+      </div>
     </div>
   );
 }
@@ -137,24 +151,24 @@ export function FloatingVideo() {
             "group fixed z-30 overflow-hidden rounded-2xl border border-line-strong bg-black shadow-[0_16px_40px_rgb(0_0_0/0.5)]",
             isMd
               ? "right-4 bottom-[112px] w-72"
-              : "right-3 bottom-[calc(140px+env(safe-area-inset-bottom))] w-44",
+              : "right-3 bottom-[calc(140px+env(safe-area-inset-bottom))] w-48",
           )}
         >
           <VideoSlot priority={SLOT.floating} className="aspect-video w-full" />
           
           {/* Floating overlay controls */}
           <div className="absolute inset-0 flex flex-col justify-between p-2 pointer-events-none opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
-            {/* Top row: Minimize to Audio mode and Fullscreen */}
+            {/* Top row: Listen button (Minimize to Audio mode) and Fullscreen */}
             <div className="flex items-center justify-between w-full">
               <button
                 type="button"
                 onClick={() => setPreferVideo(false)}
-                aria-label="Switch to Audio mode"
-                title="Switch to Audio mode (Minimize video)"
-                className="pointer-events-auto flex items-center gap-1 rounded-full bg-black/75 px-2.5 py-1 text-[11px] font-semibold text-white shadow-md backdrop-blur-md transition-all hover:bg-black/95 hover:scale-105 active:scale-95"
+                aria-label="Listen in background (Minimize video)"
+                title="Listen in background (Minimize video to audio, continues when screen is off)"
+                className="pointer-events-auto flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-ink shadow-lg backdrop-blur-md transition-all hover:scale-105 active:scale-95"
               >
-                <MusicNotesIcon size={13} weight="bold" />
-                <span>Audio</span>
+                <HeadphonesIcon size={14} weight="fill" />
+                <span>Listen</span>
               </button>
 
               <div className="flex items-center gap-1.5 pointer-events-auto">
@@ -171,7 +185,7 @@ export function FloatingVideo() {
                   type="button"
                   onClick={() => setPreferVideo(false)}
                   aria-label="Minimize video"
-                  title="Minimize to audio mode"
+                  title="Minimize to continuous background audio"
                   className="grid size-7 place-items-center rounded-full bg-black/75 text-white shadow-md backdrop-blur-md transition-all hover:bg-black/95 hover:scale-105 active:scale-95"
                 >
                   <CornersInIcon size={14} />
@@ -179,15 +193,11 @@ export function FloatingVideo() {
               </div>
             </div>
 
-            {/* Bottom click-to-expand helper */}
+            {/* Bottom helper */}
             <div className="flex items-center justify-between w-full pointer-events-auto pt-1">
-              <button
-                type="button"
-                onClick={openTheater}
-                className="w-full text-left text-[11px] text-white/80 hover:text-white truncate drop-shadow"
-              >
-                Tap to expand
-              </button>
+              <span className="text-[10.5px] font-medium text-white/85 drop-shadow">
+                Tap Listen for continuous screen-off audio
+              </span>
             </div>
           </div>
         </motion.div>
