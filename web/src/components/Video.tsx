@@ -1,17 +1,13 @@
 import {
   ArrowsInIcon,
   ArrowsOutIcon,
-  ArrowsOutSimpleIcon,
   CornersInIcon,
   CornersOutIcon,
-  HeadphonesIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";
-import { create } from "zustand";
-import { MD, useMediaQuery } from "../hooks/useMediaQuery";
 import { useT } from "../i18n";
 import { cn } from "../lib/format";
 import { selectCurrent, usePlayer, useStatusText, videoEl } from "../player/player";
@@ -23,7 +19,7 @@ import { IconButton } from "./IconButton";
  * One <video> element serves every place video can appear. It is re-parented into the highest-priority
  * mounted slot; moving a media element within the document does not interrupt playback.
  */
-export const SLOT = { pip: 100, theater: 50, sheet: 30, center: 25, panel: 20, floating: 5 } as const;
+export const SLOT = { pip: 100, theater: 50, sheet: 30, center: 25, panel: 20 } as const;
 
 const slots = new Map<number, { el: HTMLElement; priority: number }>();
 let seq = 0;
@@ -35,13 +31,10 @@ holder.style.cssText = "position:fixed;left:0;bottom:0;width:2px;height:2px;opac
 document.body.appendChild(holder);
 holder.appendChild(videoEl);
 
-const useSlots = create<{ top: number }>(() => ({ top: 0 }));
-
 function place() {
   const best = [...slots.values()].sort((a, b) => b.priority - a.priority)[0];
   const target = best?.el ?? holder;
   if (videoEl.parentElement !== target) target.appendChild(videoEl);
-  useSlots.setState({ top: best?.priority ?? 0 });
 }
 
 const openTheater = () => useUi.getState().setTheater(true);
@@ -92,10 +85,9 @@ export function VideoSlot({
   );
 }
 
-/** Android native Picture-in-Picture display surface with Listen button. */
+/** Android native Picture-in-Picture display surface. Controls live in the OS PiP RemoteAction bar. */
 export function PipVideoSlot() {
   const isVideo = usePlayer((s) => s.mediaKind === "video");
-  const setPreferVideo = usePlayer((s) => s.setPreferVideo);
   const [isPip, setIsPip] = useState(() => typeof document !== "undefined" && document.documentElement.dataset.pip === "1");
 
   useEffect(() => {
@@ -111,99 +103,15 @@ export function PipVideoSlot() {
 
   if (!isPip || !isVideo) return null;
   return (
-    <div className="fixed inset-0 z-[999999] size-full bg-black group/pip">
+    <div className="fixed inset-0 z-[999999] size-full bg-black">
       <VideoSlot priority={SLOT.pip} className="size-full object-contain" />
-      {/* Tap-to-minimize Listen button directly on the PiP frame */}
-      <div className="absolute top-3 left-3 z-20 flex items-center">
-        <button
-          type="button"
-          onClick={() => setPreferVideo(false)}
-          aria-label="Listen in background (Minimize video)"
-          title="Listen in background (Minimize video to audio)"
-          className="flex items-center gap-1.5 rounded-full bg-black/85 px-3 py-1.5 text-xs font-semibold text-accent border border-white/20 shadow-2xl backdrop-blur-md transition-transform active:scale-95 hover:bg-black"
-        >
-          <HeadphonesIcon size={15} weight="fill" />
-          <span>Listen</span>
-        </button>
-      </div>
     </div>
   );
 }
 
-/** Small floating player shown when video is playing but no larger video surface is on screen. */
+/** In-app floating PiP window intentionally disabled per user request; OS PiP handles background video. */
 export function FloatingVideo() {
-  const isVideo = usePlayer((s) => s.mediaKind === "video" && s.queue.length > 0);
-  const setPreferVideo = usePlayer((s) => s.setPreferVideo);
-  const top = useSlots((s) => s.top);
-  const t = useT();
-  const isMd = useMediaQuery(MD);
-  const show = isVideo && top < SLOT.panel;
-
-  return (
-    <AnimatePresence>
-      {show && (
-        <motion.div
-          initial={{ opacity: 0, y: 16, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 16, scale: 0.96 }}
-          transition={{ type: "spring", stiffness: 420, damping: 36 }}
-          className={cn(
-            "group fixed z-30 overflow-hidden rounded-2xl border border-line-strong bg-black shadow-[0_16px_40px_rgb(0_0_0/0.5)]",
-            isMd
-              ? "right-4 bottom-[112px] w-72"
-              : "right-3 bottom-[calc(132px+env(safe-area-inset-bottom))] w-52",
-          )}
-        >
-          <VideoSlot priority={SLOT.floating} className="aspect-video w-full" />
-          
-          {/* Floating overlay controls */}
-          <div className="absolute inset-0 flex flex-col justify-between p-2 pointer-events-none opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
-            {/* Top row: Listen button (Minimize to Audio mode) and Fullscreen */}
-            <div className="flex items-center justify-between w-full">
-              <button
-                type="button"
-                onClick={() => setPreferVideo(false)}
-                aria-label="Listen in background (Minimize video)"
-                title="Listen in background (Minimize video to audio, continues when screen is off)"
-                className="pointer-events-auto flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-xs font-semibold text-accent-ink shadow-lg backdrop-blur-md transition-all hover:scale-105 active:scale-95"
-              >
-                <HeadphonesIcon size={14} weight="fill" />
-                <span>Listen</span>
-              </button>
-
-              <div className="flex items-center gap-1.5 pointer-events-auto">
-                <button
-                  type="button"
-                  onClick={openTheater}
-                  aria-label={t.video.maximize}
-                  title={t.video.maximize}
-                  className="grid size-7 place-items-center rounded-full bg-black/75 text-white shadow-md backdrop-blur-md transition-all hover:bg-black/95 hover:scale-105 active:scale-95"
-                >
-                  <ArrowsOutSimpleIcon size={14} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPreferVideo(false)}
-                  aria-label="Minimize video"
-                  title="Minimize to continuous background audio"
-                  className="grid size-7 place-items-center rounded-full bg-black/75 text-white shadow-md backdrop-blur-md transition-all hover:bg-black/95 hover:scale-105 active:scale-95"
-                >
-                  <CornersInIcon size={14} />
-                </button>
-              </div>
-            </div>
-
-            {/* Bottom helper */}
-            <div className="flex items-center justify-between w-full pointer-events-auto pt-1">
-              <span className="text-[10.5px] font-medium text-white/85 drop-shadow">
-                Tap Listen for continuous screen-off audio
-              </span>
-            </div>
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
+  return null;
 }
 
 const IDLE_MS = 2800;

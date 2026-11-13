@@ -20,6 +20,7 @@ import java.util.ArrayList;
 public class MainActivity extends BridgeActivity {
 
     private static MainActivity instance;
+    private boolean exitingPipToBackground = false;
 
     public static MainActivity getInstance() {
         return instance;
@@ -125,6 +126,16 @@ public class MainActivity extends BridgeActivity {
     }
 
     @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        if (exitingPipToBackground && (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isInPictureInPictureMode())) {
+            exitingPipToBackground = false;
+            moveTaskToBack(true);
+        }
+    }
+
+    @Override
     public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode, Configuration newConfig) {
         super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig);
         WebView webView = getBridge() != null ? getBridge().getWebView() : null;
@@ -133,16 +144,30 @@ public class MainActivity extends BridgeActivity {
                             "window.dispatchEvent(new CustomEvent('pipchange', { detail: { active: " + isInPictureInPictureMode + " } }));";
             webView.evaluateJavascript(script, null);
         }
+        if (!isInPictureInPictureMode && exitingPipToBackground) {
+            exitingPipToBackground = false;
+            moveTaskToBack(true);
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (exitingPipToBackground && (Build.VERSION.SDK_INT < Build.VERSION_CODES.O || !isInPictureInPictureMode())) {
+            exitingPipToBackground = false;
+            moveTaskToBack(true);
+        }
     }
 
     @Override
     public void onPause() {
         super.onPause();
         // Keep WebView rendering & JS loop alive so background playback continues uninterrupted
-        if (PlaybackService.state.playing) {
+        if (PlaybackService.state.playing || exitingPipToBackground) {
             WebView webView = getBridge() != null ? getBridge().getWebView() : null;
             if (webView != null) {
                 webView.onResume();
+                webView.resumeTimers();
             }
         }
     }
@@ -150,10 +175,11 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onStop() {
         super.onStop();
-        if (PlaybackService.state.playing) {
+        if (PlaybackService.state.playing || exitingPipToBackground) {
             WebView webView = getBridge() != null ? getBridge().getWebView() : null;
             if (webView != null) {
                 webView.onResume();
+                webView.resumeTimers();
             }
         }
     }
@@ -161,8 +187,21 @@ public class MainActivity extends BridgeActivity {
     public void exitPipToBackground() {
         runOnUiThread(() -> {
             try {
-                moveTaskToBack(true);
-            } catch (Exception ignored) {}
+                PlaybackService.state.isVideo = false;
+                updatePipParams();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isInPictureInPictureMode()) {
+                    exitingPipToBackground = true;
+                    Intent unpin = new Intent(this, MainActivity.class);
+                    unpin.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP | Intent.FLAG_ACTIVITY_NO_ANIMATION);
+                    startActivity(unpin);
+                    moveTaskToBack(true);
+                } else {
+                    exitingPipToBackground = false;
+                    moveTaskToBack(true);
+                }
+            } catch (Exception ignored) {
+                exitingPipToBackground = false;
+            }
         });
     }
 

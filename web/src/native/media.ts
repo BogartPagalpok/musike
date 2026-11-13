@@ -39,24 +39,31 @@ const iosBridge = (
 ).webkit?.messageHandlers?.musikeMedia;
 
 // The system advances the position on its own while playing; only real changes need sending.
-let last = { playing: false, position: 0, at: 0 };
+let last = { playing: false, position: 0, at: 0, isVideo: false };
 
 /** Whether this state is news to the system: a real change, not the clock moving. */
-function worthSending(playing: boolean, position: number): boolean {
+function worthSending(playing: boolean, position: number, isVideo = false): boolean {
   const now = Date.now();
   const expected = last.playing ? last.position + (now - last.at) / 1000 : last.position;
-  if (playing === last.playing && Math.abs(position - expected) < 2 && now - last.at < 15_000) return false;
-  last = { playing, position, at: now };
+  if (
+    playing === last.playing &&
+    isVideo === last.isVideo &&
+    Math.abs(position - expected) < 2 &&
+    now - last.at < 15_000
+  ) {
+    return false;
+  }
+  last = { playing, position, at: now, isVideo };
   return true;
 }
 
 const androidMedia: SystemMedia = {
   setTrack(track) {
-    last = { playing: last.playing, position: 0, at: Date.now() };
+    last = { playing: last.playing, position: 0, at: Date.now(), isVideo: !!track.isVideo };
     void Playback.update({ ...track, position: 0 });
   },
   setState({ playing, position, duration, isVideo }) {
-    if (!worthSending(playing, position)) return;
+    if (!worthSending(playing, position, !!isVideo)) return;
     void Playback.update({ playing, position, duration: Number.isFinite(duration) ? duration : 0, isVideo });
   },
   onAction(handler) {
@@ -66,11 +73,11 @@ const androidMedia: SystemMedia = {
 
 const iosMedia: SystemMedia = {
   setTrack(track) {
-    last = { playing: last.playing, position: 0, at: Date.now() };
+    last = { playing: last.playing, position: 0, at: Date.now(), isVideo: !!track.isVideo };
     iosBridge?.postMessage({ type: "track", ...track, position: 0 });
   },
   setState({ playing, position, duration, isVideo }) {
-    if (!worthSending(playing, position)) return;
+    if (!worthSending(playing, position, !!isVideo)) return;
     iosBridge?.postMessage({ type: "state", playing, position, duration: Number.isFinite(duration) ? duration : 0, isVideo });
   },
   onAction(handler) {

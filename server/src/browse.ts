@@ -572,56 +572,123 @@ export async function searchAlbums(query: string, lang: Lang): Promise<AlbumCard
   return albumCards(itemsOf(result.contents?.[0]), true);
 }
 
-const GLOBAL_HIT_LIST = "VLRDCLAK5uy_kmPRjHDECIcuVwnKsx2Ng7fyNgFKWNJFs";
-const GLOBAL_POP_HITS = "VLRDCLAK5uy_kPX0g3hZ9R0j11N3vPj0E2gQo32P5A";
+interface RegionChartConfig {
+  name: string;
+  countryCode: string;
+  topPlaylists: string[];
+  trendingPlaylists: string[];
+}
 
-const REGION_CHARTS: Record<string, { name: string; playlistId: string }> = {
-  US: { name: "United States", playlistId: "VLPL4fGSI1pDJn68CQ3wSuhzcL6H78uP_" },
-  PH: { name: "Philippines", playlistId: "VLPL4fGSI1pDJn68W-r1k_H3nSbgqfE01" },
-  GB: { name: "United Kingdom", playlistId: "VLPL4fGSI1pDJn67W9b7W3YkG0l0zS2n_" },
-  GLOBAL: { name: "Global", playlistId: GLOBAL_POP_HITS },
+const REGION_CHARTS: Record<string, RegionChartConfig> = {
+  GLOBAL: {
+    name: "Global",
+    countryCode: "ZZ",
+    topPlaylists: [
+      "VLRDCLAK5uy_kmPRjHDECIcuVwnKsx2Ng7fyNgFKWNJFs",
+      "VLPL4fGSI1pDJn5kI81J1fYWK5eZRl1zJ5kM",
+    ],
+    trendingPlaylists: [
+      "VLPL4fGSI1pDJn6t3TXLGiiJdD-sZbrG3tG0",
+      "VLRDCLAK5uy_kPX0g3hZ9R0j11N3vPj0E2gQo32P5A",
+    ],
+  },
+  US: {
+    name: "United States",
+    countryCode: "US",
+    topPlaylists: [
+      "VLPL4fGSI1pDJn69On1f-8NAvX_CYlx7QyZc",
+      "VLPL4fGSI1pDJn77aK7sAW2AT0oOzo5inWY8",
+      "VLPL4fGSI1pDJn4fmCoF1vKHLtivI0f9yHiF",
+    ],
+    trendingPlaylists: [
+      "VLOLAK5uy_kNWGJvgWVqlt5LsFDL9Sdluly4M8TvGkM",
+      "VLPL4fGSI1pDJn61unMfmrUSz68RT8IFFnks",
+    ],
+  },
+  GB: {
+    name: "United Kingdom",
+    countryCode: "GB",
+    topPlaylists: [
+      "VLPL4fGSI1pDJn688ebB8czINn0_nov50e3A",
+      "VLPL4fGSI1pDJn6vTu7hGDifnY39hfhuNTgt",
+    ],
+    trendingPlaylists: [
+      "VLOLAK5uy_l20GN5f5o5iub9vasQj2Jz5r5uEBcLqPI",
+      "VLPL4fGSI1pDJn6vTu7hGDifnY39hfhuNTgt",
+    ],
+  },
+  PH: {
+    name: "Philippines",
+    countryCode: "PH",
+    topPlaylists: [
+      "VLPL4fGSI1pDJn77tAbm8_DdZ0KdWSWYJlS4",
+      "VLPL4fGSI1pDJn6Om_YVOh3AFFutgCzWQkk2",
+    ],
+    trendingPlaylists: [
+      "VLOLAK5uy_nN8piXt8hZIPgs8INtq87-E3qGs9G3x04",
+      "VLPL4fGSI1pDJn6Om_YVOh3AFFutgCzWQkk2",
+    ],
+  },
 };
 
 const chartsList = cached(60 * MINUTE, async (key): Promise<ChartsData> => {
   const { lang, id: regionCode } = parseKey(key);
   const targetRegion = regionCode && REGION_CHARTS[regionCode.toUpperCase()] ? regionCode.toUpperCase() : "GLOBAL";
-  const regionalConfig = REGION_CHARTS[targetRegion] ?? REGION_CHARTS.GLOBAL!;
+  const cfg = REGION_CHARTS[targetRegion] ?? REGION_CHARTS.GLOBAL!;
 
-  const [hitListItems, regionalItems, chartsPage] = await Promise.all([
-    playlistItems(GLOBAL_HIT_LIST, 60, lang).catch(() => []),
-    playlistItems(regionalConfig.playlistId, 60, lang).catch(() => []),
-    withClient((yt) => browse(yt, { browseId: "FEmusic_charts" }), lang).catch(() => null),
+  const [topBatch, trendingBatch, chartsPage] = await Promise.all([
+    Promise.all(cfg.topPlaylists.map((id) => playlistItems(id, 60, lang).catch(() => []))),
+    Promise.all(cfg.trendingPlaylists.map((id) => playlistItems(id, 60, lang).catch(() => []))),
+    withClient(
+      (yt) => browse(yt, { browseId: "FEmusic_charts", formData: { selectedValues: [cfg.countryCode] } }),
+      lang,
+    ).catch(() => null),
   ]);
 
-  const global = uniqueTracks([...hitListItems, ...regionalItems].map((i) => toTrack(i, "song")))
-    .filter((t) => !isUnwantedRegionalTrack(t))
-    .slice(0, 50);
-
-  let detectedRegion = regionalConfig.name;
-  const localPlaylistIds: string[] = [];
+  const dynamicTrendingIds: string[] = [];
+  const dynamicTopIds: string[] = [];
   for (const shelf of shelvesOf(chartsPage)) {
     for (const item of itemsOf(shelf)) {
       const bid = String(item?.endpoint?.payload?.browseId ?? item?.id ?? "");
       const title = text(item?.title);
-      if (bid.startsWith("VL")) {
-        localPlaylistIds.push(bid);
-        if (!detectedRegion && title) {
-          const m = /(?:-\s*|\bVideos\s+)([A-Z][A-Za-z\s]+)$/.exec(title.trim());
-          if (m?.[1]) detectedRegion = m[1].trim();
-        }
-      }
+      if (!bid.startsWith("VL") || /live performances/i.test(title)) continue;
+      if (/trending|daily top/i.test(title)) dynamicTrendingIds.push(bid);
+      else dynamicTopIds.push(bid);
     }
   }
 
-  const localItems = (await Promise.all(localPlaylistIds.slice(0, 2).map((id) => playlistItems(id, 60, lang).catch(() => [])))).flat();
-  const trending = uniqueTracks([...regionalItems, ...localItems, ...hitListItems].map((i) => toTrack(i, "song")))
-    .filter((t) => !isUnwantedRegionalTrack(t))
-    .slice(0, 50);
+  let rawTop = topBatch.flat();
+  if (rawTop.length < 30 && dynamicTopIds.length > 0) {
+    const extra = await Promise.all(
+      dynamicTopIds
+        .filter((id) => !cfg.topPlaylists.includes(id))
+        .slice(0, 2)
+        .map((id) => playlistItems(id, 60, lang).catch(() => [])),
+    );
+    rawTop = [...rawTop, ...extra.flat()];
+  }
+
+  let rawTrending = trendingBatch.flat();
+  if (rawTrending.length < 30 && dynamicTrendingIds.length > 0) {
+    const extra = await Promise.all(
+      dynamicTrendingIds
+        .filter((id) => !cfg.trendingPlaylists.includes(id))
+        .slice(0, 2)
+        .map((id) => playlistItems(id, 60, lang).catch(() => [])),
+    );
+    rawTrending = [...rawTrending, ...extra.flat()];
+  }
+
+  const filterRegion = (tracks: Track[]) =>
+    targetRegion === "PH" ? tracks : tracks.filter((t) => !isUnwantedRegionalTrack(t));
+
+  const global = filterRegion(uniqueTracks(rawTop.map((i) => toTrack(i, "song")))).slice(0, 50);
+  const trending = filterRegion(uniqueTracks(rawTrending.map((i) => toTrack(i, "song")))).slice(0, 50);
 
   return {
     global: global.length ? global : trending,
     trending: trending.length ? trending : global,
-    region: detectedRegion || regionalConfig.name,
+    region: cfg.name,
   };
 });
 

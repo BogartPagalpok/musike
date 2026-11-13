@@ -9,12 +9,13 @@ const RADIO_PATH_2 =
 
 /** The Illusive Sounds brand mark: radio symbol only, dynamically colored by the active theme. */
 export function LogoMark({ className }: { className?: string }) {
+  const hasTextColor = /\btext-/.test(className ?? "");
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="3 0 128 122"
       aria-hidden="true"
-      className={cn("select-none text-accent-text transition-colors duration-200", className)}
+      className={cn("select-none transition-colors duration-200", !hasTextColor && "text-accent-text", className)}
     >
       <path d={RADIO_PATH_1} fill="currentColor" fillRule="evenodd" />
       <path d={RADIO_PATH_2} fill="currentColor" fillRule="evenodd" />

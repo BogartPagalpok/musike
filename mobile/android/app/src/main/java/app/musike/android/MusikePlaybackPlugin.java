@@ -1,5 +1,6 @@
 package app.musike.android;
 
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -57,7 +58,11 @@ public class MusikePlaybackPlugin extends Plugin {
             else if (title != null) state.durationMs = 0; // a new track, not loaded yet
             PlaybackService.refresh(getContext());
             if (getActivity() instanceof MainActivity) {
-                ((MainActivity) getActivity()).updatePipParams();
+                MainActivity mainActivity = (MainActivity) getActivity();
+                mainActivity.updatePipParams();
+                if (Boolean.FALSE.equals(isVideo) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && mainActivity.isInPictureInPictureMode()) {
+                    mainActivity.exitPipToBackground();
+                }
             }
         });
         call.resolve();

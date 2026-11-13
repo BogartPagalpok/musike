@@ -155,9 +155,9 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
                 }
               }}
               style={{
-                backgroundImage: `radial-gradient(circle at 100% 0%, color-mix(in srgb, ${tone} 14%, transparent), transparent 65%)`,
+                backgroundImage: `radial-gradient(circle at 100% 0%, color-mix(in srgb, ${tone} 18%, transparent), transparent 65%)`,
               }}
-              className="group relative flex flex-col justify-between gap-2 overflow-hidden rounded-[12px] bg-fg/[0.05] p-3.5 text-left transition-colors duration-150 hover:bg-surface-3"
+              className="group relative flex flex-col justify-between gap-2 overflow-hidden rounded-[12px] bg-surface-2 p-3.5 text-left ring-1 ring-line transition-colors duration-150 hover:bg-surface-3"
             >
               <div className="flex items-center justify-between gap-2">
                 <span style={{ color: tone }} className=" inline-flex items-center">
@@ -268,9 +268,9 @@ function CategoryTile({ genre }: { genre: Genre }) {
       to={genre.kind === "mood" ? `${paths.genre(genre.id)}?view=songs` : paths.genre(genre.id)}
       state={{ name: genre.name }}
       style={{
-        backgroundImage: `linear-gradient(135deg, color-mix(in srgb, ${tone} 12%, transparent), transparent 65%)`,
+        backgroundImage: `linear-gradient(135deg, color-mix(in srgb, ${tone} 16%, transparent), transparent 65%)`,
       }}
-      className="group relative flex h-13 items-center gap-2.5 overflow-hidden rounded-[11px] bg-fg/[0.05] px-3.5 text-fg transition-colors duration-150 hover:bg-surface-3"
+      className="group relative flex h-13 items-center gap-2.5 overflow-hidden rounded-[11px] bg-surface-2 px-3.5 text-fg ring-1 ring-line transition-colors duration-150 hover:bg-surface-3"
     >
       <span style={{ backgroundColor: tone }} className="h-5 w-1 shrink-0 rounded-full opacity-85 transition-transform duration-150 group-hover:scale-y-125" />
       <span className="truncate text-[13px] font-semibold tracking-tight">{genre.name}</span>

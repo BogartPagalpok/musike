@@ -12,7 +12,7 @@ import { Rail } from "./components/Rail";
 import { SettingsDialog } from "./components/SettingsDialog";
 import { Toasts } from "./components/Toasts";
 import { TrackMenu } from "./components/TrackMenu";
-import { FloatingVideo, PipVideoSlot, Theater } from "./components/Video";
+import { PipVideoSlot, Theater } from "./components/Video";
 import { MD, useMediaQuery } from "./hooks/useMediaQuery";
 import { useShortcuts } from "./hooks/useShortcuts";
 import { getT } from "./i18n";
@@ -179,7 +179,6 @@ export default function App() {
       {capabilities.video && (
         <>
           <PipVideoSlot />
-          <FloatingVideo />
           <Theater />
         </>
       )}

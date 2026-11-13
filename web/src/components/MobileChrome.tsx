@@ -20,7 +20,7 @@ export function TabBar() {
   return (
     <nav
       aria-label={t.nav.main}
-      className="safe-bottom fixed inset-x-0 bottom-0 z-20 border-t border-white/[0.08] bg-bg/80 backdrop-blur-2xl"
+      className="safe-bottom fixed inset-x-0 bottom-0 z-20 border-t border-line-strong bg-surface-1/92 backdrop-blur-2xl"
     >
       <ul className="mx-auto grid h-[54px] max-w-md grid-cols-4">
         {tabs.map(({ to, key, Icon, end }) => (
@@ -31,7 +31,7 @@ export function TabBar() {
               className={({ isActive }) =>
                 cn(
                   "relative flex h-full flex-col items-center justify-center gap-0.5 text-[10.5px] font-medium transition-all active:scale-90",
-                  isActive ? "text-accent-text" : "text-fg-3",
+                  isActive ? "font-semibold text-accent-text" : "text-fg-2",
                 )
               }
             >
@@ -93,7 +93,7 @@ export function MiniPlayer() {
       <div
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
-        className="relative flex h-14 items-center gap-3 overflow-hidden rounded-[14px] bg-surface-2/85 pr-1 pl-2 shadow-[0_8px_28px_rgb(0_0_0/0.35)] ring-1 ring-line backdrop-blur-2xl"
+        className="relative flex h-14 items-center gap-3 overflow-hidden rounded-[14px] bg-surface-2/95 pr-1 pl-2 shadow-[0_8px_28px_rgb(0_0_0/0.38)] ring-1 ring-line-strong backdrop-blur-2xl"
       >
         <button
           type="button"
@@ -131,8 +131,8 @@ export function MiniPlayer() {
         >
           <SkipForwardIcon size={22} weight="fill" />
         </button>
-        <span className="absolute inset-x-0 bottom-0 h-[2px] bg-fg/10">
-          <span className="block h-full bg-fg/80" style={{ width: `${pct}%` }} />
+        <span className="absolute inset-x-0 bottom-0 h-[2.5px] bg-line">
+          <span className="block h-full bg-accent" style={{ width: `${pct}%` }} />
         </span>
       </div>
     </div>

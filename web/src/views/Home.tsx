@@ -32,7 +32,7 @@ function Shortcut({ to, label, tracks, cover }: { to: string; label: string; tra
   const playList = usePlayer((s) => s.playList);
   const t = useT();
   return (
-    <div className="group relative flex h-14 items-center gap-2.5 overflow-hidden rounded-[12px] bg-fg/[0.05] pr-2 transition-all hover:bg-surface-3 active:scale-[0.98] sm:gap-3 sm:pr-2.5">
+    <div className="group relative flex h-14 items-center gap-2.5 overflow-hidden rounded-[12px] bg-surface-2 pr-2 ring-1 ring-line transition-all hover:bg-surface-3 active:scale-[0.98] sm:gap-3 sm:pr-2.5">
       <Link to={to} className="absolute inset-0" aria-label={label} />
       <span className="pointer-events-none size-14 shrink-0 overflow-hidden">{cover}</span>
       <span className="pointer-events-none min-w-0 flex-1 truncate text-[13px] font-semibold tracking-tight">{label}</span>
@@ -128,14 +128,14 @@ function ChartTrackCell({
       <span
         className={cn(
           "pointer-events-none w-5 shrink-0 text-center text-[13px] font-semibold tabular-nums",
-          isCurrent ? "text-accent-text" : "text-fg-3",
+          isCurrent ? "text-accent-text" : "text-fg-2",
         )}
       >
         {rank}
       </span>
 
       {/* Title & Artist */}
-      <div className="pointer-events-none min-w-0 flex-1 border-b border-line/50 py-1.5 group-hover:border-transparent">
+      <div className="pointer-events-none min-w-0 flex-1 border-b border-line/70 py-1.5 group-hover:border-transparent">
         <p className={cn("truncate text-[13.5px] leading-snug font-medium tracking-tight", isCurrent ? "text-accent-text" : "text-fg")}>
           {track.title}
         </p>
@@ -147,7 +147,7 @@ function ChartTrackCell({
 
       {/* Right metadata / hover actions */}
       <div className="relative z-10 flex shrink-0 items-center gap-0.5">
-        <span className="pointer-events-none hidden pr-1 font-mono text-[11.5px] text-fg-3 tabular-nums sm:inline group-hover:hidden">
+        <span className="pointer-events-none hidden pr-1 font-mono text-[11.5px] text-fg-2 tabular-nums sm:inline group-hover:hidden">
           {track.duration ? formatTime(track.duration) : ""}
         </span>
         <button
@@ -223,6 +223,7 @@ function Top50Section() {
     { id: "PH", label: "Philippines" },
     { id: "GB", label: "UK" },
   ];
+  const primaryTabLabel = region === "GLOBAL" ? t.home.top50Global : (charts?.region || region);
 
   return (
     <Section
@@ -232,7 +233,7 @@ function Top50Section() {
           <div
             role="tablist"
             aria-label="Country Filter"
-            className="no-scrollbar flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-fg/[0.07] p-1"
+            className="no-scrollbar flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-surface-2 p-1 ring-1 ring-line"
           >
             {countries.map((c) => (
               <button
@@ -249,8 +250,10 @@ function Top50Section() {
                   }
                 }}
                 className={cn(
-                  "h-6.5 shrink-0 rounded-full px-3 text-xs font-medium whitespace-nowrap transition-colors",
-                  region === c.id ? "bg-surface-4 text-fg shadow-2xs font-semibold" : "text-fg-2 hover:text-fg",
+                  "h-7 shrink-0 rounded-full px-3 text-xs font-medium whitespace-nowrap transition-colors",
+                  region === c.id
+                    ? "bg-accent font-semibold text-accent-ink shadow-xs"
+                    : "text-fg-2 hover:bg-surface-3 hover:text-fg",
                 )}
               >
                 {c.label}
@@ -276,7 +279,7 @@ function Top50Section() {
           <div
             role="tablist"
             aria-label={t.home.top50Title}
-            className="flex items-center rounded-lg bg-fg/[0.07] p-0.5 shrink-0"
+            className="flex items-center rounded-lg bg-surface-2 p-0.5 ring-1 ring-line shrink-0"
           >
             <button
               type="button"
@@ -285,10 +288,10 @@ function Top50Section() {
               onClick={() => setTab("global")}
               className={cn(
                 "h-7 rounded-[6px] px-2.5 text-xs font-medium whitespace-nowrap transition-colors",
-                tab === "global" ? "bg-surface-4 text-fg shadow-2xs" : "text-fg-2 hover:text-fg",
+                tab === "global" ? "bg-surface-4 font-semibold text-fg shadow-2xs" : "text-fg-2 hover:text-fg",
               )}
             >
-              {t.home.top50Global}
+              {primaryTabLabel}
             </button>
             <button
               type="button"
@@ -297,10 +300,10 @@ function Top50Section() {
               onClick={() => setTab("trending")}
               className={cn(
                 "h-7 rounded-[6px] px-2.5 text-xs font-medium whitespace-nowrap transition-colors",
-                tab === "trending" ? "bg-surface-4 text-fg shadow-2xs" : "text-fg-2 hover:text-fg",
+                tab === "trending" ? "bg-surface-4 font-semibold text-fg shadow-2xs" : "text-fg-2 hover:text-fg",
               )}
             >
-              {t.home.top50Trending(charts?.region)}
+              Trending
             </button>
           </div>
         </div>

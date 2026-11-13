@@ -33,9 +33,9 @@ export const DEFAULT_APPEARANCE: Appearance = {
   rightPanelCollapsed: false,
   albumColumn: true,
   texture: true,
-  homeShortcuts: true,
-  homeRecent: true,
-  homeFavorites: true,
+  homeShortcuts: false,
+  homeRecent: false,
+  homeFavorites: false,
   layoutTemplate: "center-lyrics",
 };
 
@@ -79,9 +79,18 @@ export function cleanAppearance(input: unknown): Appearance {
   return out;
 }
 
+const HOME_DEFAULTS_V2 = "musike:home-defaults-v2";
+
 function read(): Appearance {
   try {
-    return cleanAppearance(JSON.parse(localStorage.getItem(KEY) ?? "{}"));
+    const parsed = cleanAppearance(JSON.parse(localStorage.getItem(KEY) ?? "{}"));
+    if (localStorage.getItem(HOME_DEFAULTS_V2) !== "1") {
+      parsed.homeShortcuts = false;
+      parsed.homeRecent = false;
+      parsed.homeFavorites = false;
+      localStorage.setItem(HOME_DEFAULTS_V2, "1");
+    }
+    return parsed;
   } catch {
     return { ...DEFAULT_APPEARANCE };
   }

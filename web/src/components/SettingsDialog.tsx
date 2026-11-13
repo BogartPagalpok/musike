@@ -43,9 +43,9 @@ const LAYOUTS = [
 function Group({ title, footer, children, className }: { title?: string; footer?: ReactNode; children: ReactNode; className?: string }) {
   return (
     <section className="flex flex-col gap-1.5">
-      {title && <h3 className="px-4 text-[12px] font-medium tracking-wide text-fg-3 uppercase">{title}</h3>}
-      <div className={cn("overflow-hidden rounded-[12px] bg-surface-2", className)}>{children}</div>
-      {footer && <p className="px-4 text-[12px] leading-snug text-fg-3">{footer}</p>}
+      {title && <h3 className="px-4 text-[12px] font-semibold tracking-wide text-fg-2 uppercase">{title}</h3>}
+      <div className={cn("overflow-hidden rounded-[12px] bg-surface-2 ring-1 ring-line", className)}>{children}</div>
+      {footer && <p className="px-4 text-[12px] leading-snug text-fg-2">{footer}</p>}
     </section>
   );
 }
@@ -94,11 +94,11 @@ function Row({
       <span className="flex min-h-[50px] min-w-0 flex-1 items-center gap-2 border-b border-line py-2.5 pr-4 group-last/row:border-b-0">
         <span className="min-w-0 flex-1">
           <span className={cn("block text-[15px] leading-tight", danger ? "text-danger" : "text-fg")}>{label}</span>
-          {sub && <span className="mt-0.5 block text-[12.5px] leading-snug text-fg-3">{sub}</span>}
+          {sub && <span className="mt-0.5 block text-[12.5px] leading-snug text-fg-2">{sub}</span>}
         </span>
-        {value !== undefined && <span className="shrink-0 truncate text-[15px] text-fg-3">{value}</span>}
+        {value !== undefined && <span className="shrink-0 truncate text-[15px] text-fg-2">{value}</span>}
         {right}
-        {chevron && <CaretRightIcon size={15} weight="bold" className="shrink-0 text-fg-3/70" />}
+        {chevron && <CaretRightIcon size={15} weight="bold" className="shrink-0 text-fg-2" />}
       </span>
     </Tag>
   );
@@ -408,13 +408,13 @@ function RootPage({ go }: { go: (p: Page) => void }) {
   return (
     <>
       {/* App card */}
-      <div className="flex items-center gap-3.5 rounded-[12px] bg-surface-2 p-4">
-        <span className="grid size-14 place-items-center rounded-[14px] bg-accent text-accent-ink">
-          <LogoMark className="size-8" />
+      <div className="flex items-center gap-3.5 rounded-[12px] bg-surface-2 p-4 ring-1 ring-line">
+        <span className="grid size-14 shrink-0 place-items-center rounded-[14px] bg-accent text-accent-ink shadow-xs">
+          <LogoMark className="size-8 text-accent-ink" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-[17px] font-semibold tracking-tight">Illusive Sounds</p>
-          <p className="text-[13px] text-fg-3">
+          <p className="text-[17px] font-semibold tracking-tight text-fg">Illusive Sounds</p>
+          <p className="text-[13px] text-fg-2">
             v{__APP_VERSION__} · {t.settings.developer} Ian Lester Eclevia
           </p>
         </div>
