@@ -12,6 +12,7 @@ import {
   RowsIcon,
   SidebarSimpleIcon,
   SparkleIcon,
+  StorefrontIcon,
   TerminalWindowIcon,
   WaveformIcon,
   type Icon,
@@ -19,12 +20,15 @@ import {
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useNavigate } from "react-router";
 import { MD, useMediaQuery } from "../hooks/useMediaQuery";
 import { useT } from "../i18n";
 import { CLASSIC_THEMES, DEFAULT_ACCENT, inkFor, PLAYFUL_THEMES, THEME_PALETTES, type ThemeMeta } from "../lib/accent";
 import { capabilities, type Channel } from "../lib/api";
 import { cn } from "../lib/format";
+import { paths } from "../lib/routes";
 import { ACCENTS, useAppearance } from "../stores/appearance";
+import { SKIN_PACKS, useThemeStore } from "../stores/themeStore";
 import { useSystem } from "../stores/system";
 import { useUi } from "../stores/ui";
 import { LogoMark } from "./Brand";
@@ -396,15 +400,19 @@ function EnginePage() {
 
 function RootPage({ go }: { go: (p: Page) => void }) {
   const t = useT();
+  const navigate = useNavigate();
   const isMd = useMediaQuery(MD);
   const a = useAppearance();
   const theme = useUi((s) => s.theme);
+  const activePackId = useThemeStore((s) => s.activePackId);
   const panelOpen = useUi((s) => s.panelOpen);
   const setPanelDocked = useUi((s) => s.setPanelDocked);
   const info = useSystem((s) => s.info);
   const y = info?.ytdlp;
   const engineValue = !info ? "…" : !y?.path ? t.settings.chipMissing : y.updateAvailable ? t.settings.chipUpdate : y.version ?? "";
   const badgeInk = inkFor(a.accent);
+  const activePackName =
+    SKIN_PACKS.find((p) => p.id === activePackId)?.name ?? (activePackId === "custom-mix" ? "Custom Mix" : undefined);
 
   return (
     <>
@@ -425,6 +433,17 @@ function RootPage({ go }: { go: (p: Page) => void }) {
       </div>
 
       <Group title={t.settings.appearance}>
+        <Row
+          icon={StorefrontIcon}
+          color="#f97316"
+          label="Theme Store & Skins"
+          value={activePackName}
+          chevron
+          onClick={() => {
+            useUi.getState().setSettingsOpen(false);
+            navigate(paths.themes);
+          }}
+        />
         <Row icon={PaletteIcon} color="#5e5ce6" label={t.settings.theme} value={t.settings.themes[theme]} chevron onClick={() => go("theme")} />
         <Row
           icon={DropIcon}

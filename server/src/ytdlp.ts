@@ -23,6 +23,7 @@ export interface Resolved {
   audio: StreamFormat;
   video?: StreamFormat;
   hdVideoUrl?: string;
+  fhdVideoUrl?: string;
   expiresAt: number;
 }
 
@@ -126,7 +127,7 @@ function pickAudio(formats: RawFormat[]): RawFormat | undefined {
 }
 
 function pickVideo(formats: RawFormat[]): RawFormat | undefined {
-  const muxed = formats.filter((f) => isMuxed(f) && isHttps(f) && f.ext === "mp4");
+  const muxed = formats.filter((f) => isMuxed(f) && isHttps(f) && f.ext === "mp4" && (f.height ?? 0) <= 1080);
   return muxed.find((f) => f.format_id === "18") ?? muxed.sort((a, b) => (b.height ?? 0) - (a.height ?? 0))[0];
 }
 
@@ -188,8 +189,9 @@ export async function resolveWithYtdlp(id: string): Promise<Resolved> {
 export async function resolveVideoStream(id: string): Promise<StreamFormat | undefined> {
   const resolved = await resolveStreams(id);
   if (resolved.video) return resolved.video;
-  const vid = await directVideo(id).catch(() => ({ sdUrl: undefined, hdVideoUrl: undefined }));
+  const vid = await directVideo(id).catch(() => ({ sdUrl: undefined, hdVideoUrl: undefined, fhdVideoUrl: undefined }));
   if (vid.hdVideoUrl) resolved.hdVideoUrl = vid.hdVideoUrl;
+  if (vid.fhdVideoUrl) resolved.fhdVideoUrl = vid.fhdVideoUrl;
   if (vid.sdUrl) {
     resolved.video = { formatId: "direct-video", url: vid.sdUrl, headers: {}, mime: "video/mp4" };
     return resolved.video;
@@ -225,10 +227,19 @@ export function invalidate(id: string) {
 
 const downloads = new Map<string, Promise<string>>();
 
+/** Returns the path to an already cached 1080p or 720p video file if present on disk. */
+export function getCachedVideoFile(id: string): string | null {
+  for (const height of [1080, 720]) {
+    const file = path.join(config.cacheDir, `${id}.${height}.mp4`);
+    if (existsSync(file)) return file;
+  }
+  return null;
+}
+
 /** Keeps the video cache under `config.cacheMaxBytes`, evicting least recently played files first. */
 export async function pruneCache(): Promise<void> {
   if (!existsSync(config.cacheDir)) return;
-  const names = (await readdir(config.cacheDir)).filter((n) => n.endsWith(".720.mp4"));
+  const names = (await readdir(config.cacheDir)).filter((n) => n.endsWith(".720.mp4") || n.endsWith(".1080.mp4"));
   const files = await Promise.all(
     names.map(async (n) => {
       const p = path.join(config.cacheDir, n);
@@ -289,12 +300,15 @@ async function fastDownloadUrl(url: string, destPath: string): Promise<void> {
   await writeFile(destPath, Buffer.concat([firstBuf, ...parts]));
 }
 
-async function mergeDirectHd(id: string, tmp: string): Promise<void> {
+async function mergeDirectHd(id: string, tmp: string, maxHeight: 720 | 1080): Promise<void> {
   const { ffmpeg, env } = tools();
   if (!ffmpeg) throw new HttpError(503, msg("ytdlpMissing"), "tool_missing");
   const resolved = await resolveStreams(id);
-  const vid = resolved.hdVideoUrl ? { hdVideoUrl: resolved.hdVideoUrl, audioUrl: resolved.audio.url } : await directVideo(id);
-  const videoUrl = vid.hdVideoUrl;
+  const cachedVideoUrl = maxHeight === 1080 ? (resolved.fhdVideoUrl ?? resolved.hdVideoUrl) : (resolved.hdVideoUrl ?? resolved.fhdVideoUrl);
+  const vid = cachedVideoUrl
+    ? { hdVideoUrl: resolved.hdVideoUrl, fhdVideoUrl: resolved.fhdVideoUrl, audioUrl: resolved.audio.url }
+    : await directVideo(id);
+  const videoUrl = maxHeight === 1080 ? (vid.fhdVideoUrl ?? vid.hdVideoUrl) : (vid.hdVideoUrl ?? vid.fhdVideoUrl);
   const audioUrl = vid.audioUrl ?? resolved.audio.url;
   if (!videoUrl || !audioUrl) throw new HttpError(404, msg("noSdVideo"));
 
@@ -329,24 +343,25 @@ async function mergeDirectHd(id: string, tmp: string): Promise<void> {
   }
 }
 
-/** Downloads and merges a 720p H.264 + AAC MP4 into the cache, for HD video playback with seeking. */
-export function downloadHd(id: string): Promise<string> {
-  const file = path.join(config.cacheDir, `${id}.720.mp4`);
+/** Downloads and merges up to 1080p/720p H.264 + AAC MP4 into the cache, for HD video playback with seeking. */
+export function downloadHd(id: string, maxHeight: 720 | 1080 = 1080): Promise<string> {
+  const key = `${id}:${maxHeight}`;
+  const file = path.join(config.cacheDir, `${id}.${maxHeight}.mp4`);
   if (existsSync(file)) {
     // Mark as recently used for cache eviction.
     const now = new Date();
     utimes(file, now, now).catch(() => {});
     return Promise.resolve(file);
   }
-  const inflight = downloads.get(id);
+  const inflight = downloads.get(key);
   if (inflight) return inflight;
 
-  const tmp = path.join(config.cacheDir, `${id}.720.part.mp4`);
+  const tmp = path.join(config.cacheDir, `${id}.${maxHeight}.part.mp4`);
   // Merging video + audio needs FFmpeg; the desktop app fetches it on first use if it isn't there yet.
   const job = (tools().ffmpeg || !config.binDir ? Promise.resolve() : ensureComponent("ffmpeg"))
     .then(() => mkdir(config.cacheDir, { recursive: true }))
     .then(() =>
-      mergeDirectHd(id, tmp).catch((err) => {
+      mergeDirectHd(id, tmp, maxHeight).catch((err) => {
         if (!tools().ytdlp) throw err;
         return run(
           [
@@ -356,7 +371,7 @@ export function downloadHd(id: string): Promise<string> {
             "-N",
             "4",
             "-f",
-            "bv*[height<=720][vcodec^=avc1]+ba[ext=m4a]/b[ext=mp4][height<=720]/bv*[height<=720]+ba",
+            `bv*[height<=${maxHeight}][vcodec^=avc1]+ba[ext=m4a]/b[ext=mp4][height<=${maxHeight}]/bv*[height<=${maxHeight}]+ba`,
             "--merge-output-format",
             "mp4",
             "-o",
@@ -376,9 +391,9 @@ export function downloadHd(id: string): Promise<string> {
       await rm(tmp, { force: true });
       throw err;
     })
-    .finally(() => downloads.delete(id));
+    .finally(() => downloads.delete(key));
 
-  downloads.set(id, job);
+  downloads.set(key, job);
   return job;
 }
 

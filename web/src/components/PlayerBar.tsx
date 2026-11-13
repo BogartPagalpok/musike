@@ -34,7 +34,7 @@ export function PlayerBar() {
   };
 
   return (
-    <div className="shrink-0 border-t border-line/40 bg-bg/95 backdrop-blur-xl">
+    <div className="app-playerbar relative z-[2] shrink-0 border-t border-line/40 bg-bg/95 backdrop-blur-xl">
       <div className="grid h-[100px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-5 px-4 py-2">
         <div className="flex min-w-0 items-center gap-3.5">
           {track ? (

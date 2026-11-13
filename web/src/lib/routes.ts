@@ -9,6 +9,7 @@ export const paths = {
   album: (id: string) => `/search/album/${id}`,
   library: "/library",
   device: "/device",
+  themes: "/themes",
   favorites: "/favorites",
   downloads: "/downloads",
   history: "/history",

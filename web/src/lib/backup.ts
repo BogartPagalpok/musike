@@ -22,7 +22,7 @@ export interface Backup {
     lang?: string;
     appearance?: Partial<Appearance>;
     preferVideo?: boolean;
-    quality?: "sd" | "hd";
+    quality?: "auto" | "sd" | "hd" | "1080p";
     autoRadio?: boolean;
     volume?: number;
   };
@@ -90,7 +90,7 @@ export async function restoreBackup(backup: Backup, mode: "merge" | "replace", a
     if (s.appearance && typeof s.appearance === "object") useAppearance.getState().set(cleanAppearance(s.appearance));
     if (typeof s.autoRadio === "boolean") player.setAutoRadio(s.autoRadio);
     if (typeof s.volume === "number") player.setVolume(s.volume);
-    if (s.quality === "sd" || s.quality === "hd") player.setQuality(s.quality);
+    if (s.quality === "auto" || s.quality === "sd" || s.quality === "hd" || s.quality === "1080p") player.setQuality(s.quality);
     if (typeof s.preferVideo === "boolean") player.setPreferVideo(s.preferVideo);
   }
   await useLibrary.getState().load();

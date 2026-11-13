@@ -69,6 +69,7 @@ export default function Library() {
         <Entry to={paths.favorites} name={t.nav.favorites} kind="favorites" tracks={favorites} sub={t.common.tracks(favorites.length)} />
         <Entry to={paths.downloads} name={t.nav.downloads} kind="downloads" tracks={offlineTracks} sub={t.common.tracks(offlineTracks.length)} />
         <Entry to={paths.device} name={t.device.title} kind="device" tracks={deviceTracks} sub={t.common.tracks(deviceTracks.length)} />
+        <Entry to={paths.themes} name={t.nav.themes} kind="themes" tracks={[]} sub="Naruto, One Piece & Custom Vibes" />
         <Entry to={paths.history} name={t.nav.recentlyPlayed} kind="history" tracks={history} sub={t.common.tracks(history.length)} />
         {playlists.map((p) => (
           <Entry

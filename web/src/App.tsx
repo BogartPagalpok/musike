@@ -10,6 +10,7 @@ import { CenterLyricsPlayer } from "./components/CenterLyricsPlayer";
 import { PlayerBar } from "./components/PlayerBar";
 import { Rail } from "./components/Rail";
 import { SettingsDialog } from "./components/SettingsDialog";
+import { ThemeSceneBackdrop } from "./components/ThemeSceneBackdrop";
 import { Toasts } from "./components/Toasts";
 import { TrackMenu } from "./components/TrackMenu";
 import { PipVideoSlot, Theater } from "./components/Video";
@@ -36,6 +37,7 @@ import Home from "./views/Home";
 import Library from "./views/Library";
 import Podcasts from "./views/Podcasts";
 import Search from "./views/Search";
+import ThemeStore from "./views/ThemeStore";
 
 const SHEET_HASH = `#${NOW_PLAYING_HASH}`;
 
@@ -129,6 +131,7 @@ export default function App() {
       <Route path="/search/album/:id" element={<Album />} />
       <Route path={paths.library} element={<Library />} />
       <Route path={paths.device} element={<Device />} />
+      <Route path={paths.themes} element={<ThemeStore />} />
       <Route path={paths.favorites} element={<Collection kind="favorites" />} />
       <Route path={paths.downloads} element={<Collection kind="downloads" />} />
       <Route path={paths.history} element={<Collection kind="history" />} />
@@ -138,14 +141,15 @@ export default function App() {
   );
 
   return (
-    <div className="grain flex h-dvh flex-col bg-bg md:p-2 md:pb-0">
+    <div className="grain app-shell relative flex h-dvh flex-col bg-bg md:p-2 md:pb-0">
+      <ThemeSceneBackdrop />
       <OpeningSplash />
-      <div className="flex min-h-0 flex-1 md:gap-2">
+      <div className="relative z-[2] flex min-h-0 flex-1 md:gap-2">
         <Rail embeddedRoutes={layoutTemplate === "center-lyrics" && isMd ? appRoutes : undefined} />
         <main
           ref={main}
           className={cn(
-            "scroll-area relative min-h-0 min-w-0 flex-1 md:rounded-[12px] md:bg-surface-1",
+            "scroll-area app-main relative min-h-0 min-w-0 flex-1 md:rounded-[12px] md:bg-surface-1",
             (layoutTemplate === "center-lyrics" || layoutTemplate === "cinema") && isMd
               ? "flex flex-col overflow-hidden"
               : "overflow-y-auto",

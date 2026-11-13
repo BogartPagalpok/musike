@@ -16,7 +16,7 @@ export type Repeat = "off" | "all" | "one";
 export type StatusNote = "findingClip" | "preparingHd" | "loadingVideo" | "fetchingRadio" | { error: string };
 export type Status = "idle" | "loading" | "playing" | "paused" | "error";
 type Kind = "audio" | "video";
-type Quality = "sd" | "hd";
+export type Quality = "auto" | "sd" | "hd" | "1080p";
 
 interface PlayerState {
   queue: Track[];
@@ -133,6 +133,21 @@ function readSaved(): Partial<Saved> {
   }
 }
 
+const QUALITY_AUTO_V1 = "musike:video-quality-auto-v1";
+
+function initialQuality(): Quality {
+  try {
+    if (localStorage.getItem(QUALITY_AUTO_V1) !== "1") {
+      localStorage.setItem(QUALITY_AUTO_V1, "1");
+      return "auto";
+    }
+  } catch {
+    /* ignore */
+  }
+  const q = saved.quality;
+  return q === "auto" || q === "sd" || q === "hd" || q === "1080p" ? q : "auto";
+}
+
 const saved = readSaved();
 
 /**
@@ -223,8 +238,8 @@ export const usePlayer = create<PlayerState>((set, get) => {
       mediaKind: kind,
       activeMediaId: mediaId,
       status: autoplay ? "loading" : "paused",
-      // Video may need a server-side download first (HD, or videos without a combined SD stream).
-      statusText: kind === "video" ? (s.quality === "hd" ? "preparingHd" : "loadingVideo") : null,
+      // Video may need a server-side download first (720p/1080p merge, or videos without a combined fast stream).
+      statusText: kind === "video" ? (s.quality === "hd" || s.quality === "1080p" ? "preparingHd" : "loadingVideo") : null,
       videoNote: noteFor(track),
       position: pendingSeek,
       duration: track.duration,
@@ -488,7 +503,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     repeat: saved.repeat ?? "off",
     // Builds without video (Android) always play audio, whatever a backup or an old session says.
     preferVideo: capabilities.video && (saved.preferVideo ?? false),
-    quality: saved.quality ?? "hd",
+    quality: initialQuality(),
     autoRadio: saved.autoRadio ?? true,
 
     playList: (tracks, start = 0) => {

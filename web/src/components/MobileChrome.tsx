@@ -7,6 +7,7 @@ import { NOW_PLAYING_HASH, paths } from "../lib/routes";
 import { selectCurrent, usePlayer, useStatusText } from "../player/player";
 import { Artwork } from "./Artwork";
 import { PlayPauseIcon } from "./Controls";
+import { PlayDisc } from "./IconButton";
 
 const tabs = [
   { to: paths.home, key: "home", Icon: HouseIcon, end: true },
@@ -116,14 +117,13 @@ export function MiniPlayer() {
             </span>
           </span>
         </button>
-        <button
-          type="button"
+        <PlayDisc
+          label={status === "playing" ? t.common.pause : t.common.play}
+          px={40}
           onClick={toggle}
-          aria-label={status === "playing" ? t.common.pause : t.common.play}
-          className="grid size-10 shrink-0 place-items-center rounded-full bg-accent text-accent-ink shadow-xs transition-transform active:scale-90"
         >
-          <PlayPauseIcon size={20} />
-        </button>
+          <PlayPauseIcon size={19} />
+        </PlayDisc>
         <button
           type="button"
           onClick={next}

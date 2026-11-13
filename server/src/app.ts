@@ -12,7 +12,7 @@ import { langOf, msg, tr } from "./i18n.js";
 import { presentJob, startJob, systemInfo, type Channel } from "./system.js";
 import { refreshTools, type Tools } from "./tools.js";
 import { HttpError, VIDEO_ID } from "./types.js";
-import { downloadHd, pruneCache, resolveStreams, resolveVideoStream } from "./ytdlp.js";
+import { downloadHd, getCachedVideoFile, pruneCache, resolveStreams, resolveVideoStream } from "./ytdlp.js";
 
 function videoId(params: unknown): string {
   const id = (params as { id?: string }).id ?? "";
@@ -143,13 +143,24 @@ export async function startServer(opts: StartOptions = {}): Promise<RunningServe
 
   app.get("/api/stream/:id/video", async (req, reply) => {
     const id = videoId(req.params);
-    const { q } = req.query as { q?: string };
-    // Default video streaming to at least 720p HD merged stream
+    const { q = "auto" } = req.query as { q?: string };
+    if (q === "1080p") {
+      return serveFile(req, reply, await downloadHd(id, 1080), "video/mp4");
+    }
+    if (q === "hd") {
+      return serveFile(req, reply, await downloadHd(id, 720), "video/mp4");
+    }
     if (q === "sd") {
       const vid = await resolveVideoStream(id);
       if (vid) return proxyStream(req, reply, id, "video");
+      return serveFile(req, reply, await downloadHd(id, 720), "video/mp4");
     }
-    return serveFile(req, reply, await downloadHd(id), "video/mp4");
+    // "auto": instant playback via cached HD/FHD MP4 or direct muxed stream (<= 1080p), with 720p merge fallback.
+    const cached = getCachedVideoFile(id);
+    if (cached) return serveFile(req, reply, cached, "video/mp4");
+    const vid = await resolveVideoStream(id);
+    if (vid) return proxyStream(req, reply, id, "video");
+    return serveFile(req, reply, await downloadHd(id, 720), "video/mp4");
   });
 
   app.get("/api/download/:id", (req, reply) => {

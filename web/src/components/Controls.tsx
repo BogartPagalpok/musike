@@ -24,6 +24,7 @@ import type { Track } from "../lib/types";
 import { usePlayer } from "../player/player";
 import { useLibrary } from "../stores/library";
 import { useOffline } from "../stores/offline";
+import { useThemeStore } from "../stores/themeStore";
 import { IconButton, PlayDisc } from "./IconButton";
 import { Slider } from "./Slider";
 
@@ -102,6 +103,7 @@ export function Scrubber({ touch = false, className }: { touch?: boolean; classN
   const buffered = usePlayer((s) => s.buffered);
   const status = usePlayer((s) => s.status);
   const seek = usePlayer((s) => s.seek);
+  const playheadStyle = useThemeStore((s) => s.playheadStyle);
   const [scrub, setScrub] = useState<number | null>(null);
   const shown = scrub ?? position;
   const isPlaying = status === "playing";
@@ -113,7 +115,7 @@ export function Scrubber({ touch = false, className }: { touch?: boolean; classN
     return (
       <div className={className}>
         <Slider
-          variant="pixel"
+          variant={playheadStyle}
           isPlaying={isPlaying}
           label={t.player.progress}
           value={position}
@@ -136,7 +138,7 @@ export function Scrubber({ touch = false, className }: { touch?: boolean; classN
     <div className={cn("flex items-center gap-2.5", className)}>
       <span className="text-right">{time}</span>
       <Slider
-        variant="pixel"
+        variant={playheadStyle}
         isPlaying={isPlaying}
         label={t.player.progress}
         value={position}
@@ -247,19 +249,32 @@ export function ModeSwitch({ className }: { className?: string }) {
           <VideoCameraIcon size={15} /> {t.player.video}
         </button>
       </div>
-      {showingVideo && capabilities.engineSettings && (
-        <button
-          type="button"
-          onClick={() => setQuality(quality === "sd" ? "hd" : "sd")}
-          title={quality === "sd" ? t.player.toHd : t.player.toSd}
-          className={cn(
-            "h-9 rounded-full px-3 font-mono text-[12px] font-semibold ring-1 transition-colors",
-            quality === "hd" ? "bg-accent-soft text-accent-text ring-accent/40" : "text-fg-2 ring-line hover:text-fg",
-          )}
-        >
-          {quality === "hd" ? "HD" : "SD"}
-        </button>
-      )}
+      {showingVideo && capabilities.engineSettings && (() => {
+        const order = ["auto", "sd", "hd", "1080p"] as const;
+        const labels = { auto: "AUTO", sd: "360p", hd: "720p", "1080p": "1080p" } as const;
+        const titles = {
+          auto: "Video resolution: Auto (best performance, max 1080p) — click to switch",
+          sd: "Video resolution: 360p (fastest start) — click to switch",
+          hd: "Video resolution: 720p HD — click to switch",
+          "1080p": "Video resolution: 1080p Full HD (max) — click to switch",
+        } as const;
+        const nextQuality = order[(order.indexOf(quality) + 1) % order.length]!;
+        return (
+          <button
+            type="button"
+            onClick={() => setQuality(nextQuality)}
+            title={titles[quality]}
+            className={cn(
+              "h-9 rounded-full px-3 font-mono text-[12px] font-semibold ring-1 transition-colors",
+              quality === "auto" || quality === "1080p" || quality === "hd"
+                ? "bg-accent-soft text-accent-text ring-accent/40"
+                : "text-fg-2 ring-line hover:text-fg",
+            )}
+          >
+            {labels[quality]}
+          </button>
+        );
+      })()}
     </div>
   );
 }

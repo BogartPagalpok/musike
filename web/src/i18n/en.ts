@@ -50,6 +50,7 @@ export const en = {
     search: "Search",
     library: "Library",
     device: "Device",
+    themes: "Theme Store",
     settings: "Settings",
     settingsAttention: "Settings (needs attention)",
     settingsUpdate: "Settings (yt-dlp update available)",

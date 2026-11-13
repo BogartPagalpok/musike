@@ -568,6 +568,45 @@ html:is([data-theme="synthwave"], [data-theme="candy"], [data-theme="arcade"], [
   animation: shimmer 1.6s linear infinite;
 }
 
+/* Animated scene floaters & custom background scene translucency */
+@keyframes sceneFloat {
+  0%,
+  100% {
+    transform: translateY(0px) translateX(0px);
+  }
+  50% {
+    transform: translateY(-10px) translateX(6px);
+  }
+}
+.animate-scene-float {
+  animation: sceneFloat 7s ease-in-out infinite;
+}
+.animate-scene-float-slow {
+  animation: sceneFloat 11s ease-in-out infinite reverse;
+}
+
+html[data-scene]:not([data-scene="none"]) .app-shell {
+  background: transparent;
+}
+html[data-scene]:not([data-scene="none"]) .island {
+  background: color-mix(in srgb, var(--surface-1) 76%, transparent);
+  backdrop-filter: blur(22px) saturate(1.25);
+  box-shadow: inset 0 0 0 1px var(--line);
+}
+html[data-scene]:not([data-scene="none"]) .app-main {
+  background: color-mix(in srgb, var(--surface-1) 72%, transparent);
+  backdrop-filter: blur(22px) saturate(1.2);
+}
+@media (width >= 48rem) {
+  html[data-scene]:not([data-scene="none"]) .app-main {
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
+}
+html[data-scene]:not([data-scene="none"]) .app-playerbar {
+  background: color-mix(in srgb, var(--bg) 74%, transparent);
+  backdrop-filter: blur(24px) saturate(1.25);
+}
+
 /* Google Pixel Squiggly Progress Bar Wave Animation */
 @keyframes pixelWave {
   from {

@@ -39,7 +39,7 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
         </div>
         <h2 className="text-xl font-bold tracking-tight text-fg">Center Stage & Karaoke Studio</h2>
         <p className="mt-1 max-w-md text-sm text-fg-2">
-          Select any song from the sidebar to launch the 720p HD video stage and auto-centered karaoke lyrics here.
+          Select any song from the sidebar to launch the 1080p HD video stage and auto-centered karaoke lyrics here.
         </p>
         {starter.length > 0 && (
           <button
@@ -74,7 +74,7 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
       </div>
 
       <div className="flex h-full min-h-0 w-full flex-1 flex-col gap-6 overflow-hidden lg:flex-row lg:items-center lg:gap-10">
-        {/* Left Stage: Floating 720p HD Video / Artwork + Apple Music Track Header */}
+        {/* Left Stage: Floating 1080p HD Video / Artwork + Apple Music Track Header */}
         <div
           className={cn(
             "flex shrink-0 flex-col justify-center gap-4 overflow-hidden",

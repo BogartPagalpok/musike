@@ -12,6 +12,8 @@ import {
   PlusIcon,
   QueueIcon,
   SidebarSimpleIcon,
+  StorefrontIcon,
+  SwatchesIcon,
 } from "@phosphor-icons/react";
 import { useState, type ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router";
@@ -174,6 +176,15 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
             <>
               <Logo className="min-w-0 truncate" />
               <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => navigate(paths.themes)}
+                  aria-label={t.nav.themes}
+                  title={t.nav.themes}
+                  className="grid size-8 place-items-center rounded-lg text-fg-2 transition-colors hover:bg-surface-3 hover:text-accent-text"
+                >
+                  <SwatchesIcon size={17} weight="duotone" />
+                </button>
                 <button
                   type="button"
                   onClick={() =>
@@ -412,6 +423,11 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
                   <RailLink to={paths.history} label={t.nav.recentlyPlayed} sub={t.nav.history} isExpanded={isExpanded}>
                     <span className="grid size-full place-items-center bg-surface-3 text-fg-2">
                       <ClockCounterClockwiseIcon size={19} />
+                    </span>
+                  </RailLink>
+                  <RailLink to={paths.themes} label={t.nav.themes} sub="Naruto, One Piece & More" isExpanded={isExpanded}>
+                    <span className="grid size-full place-items-center bg-accent-soft text-accent-text">
+                      <StorefrontIcon size={19} weight="fill" />
                     </span>
                   </RailLink>
                   {sidebarPlaylists &&

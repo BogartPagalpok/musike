@@ -81,21 +81,23 @@ export async function directAudio(id: string, clients: string[], lang?: Lang): P
 }
 
 export interface DirectVideo {
-  /** Muxed 360p MP4 (video+audio) for immediate SD playback. */
+  /** Muxed MP4 (video+audio, capped at 1080p) for immediate fast playback. */
   sdUrl?: string;
-  /** Adaptive 720p H.264 MP4 video-only + AAC audio for HD merging via FFmpeg. */
+  /** Adaptive 720p H.264 MP4 video-only for HD merging via FFmpeg. */
   hdVideoUrl?: string;
+  /** Adaptive up to 1080p H.264 MP4 video-only for Full HD merging via FFmpeg. */
+  fhdVideoUrl?: string;
   audioUrl?: string;
 }
 
-/** Resolves direct SD and HD video stream URLs on demand without touching audio resolution. */
+/** Resolves direct video stream URLs (max 1080p) on demand without touching audio resolution. */
 export async function directVideo(id: string, lang?: Lang): Promise<DirectVideo> {
   const out: DirectVideo = {};
   try {
     const androidInfo: any = await withClient((yt) => yt.getBasicInfo(id, { client: "ANDROID" as never }), lang);
     if (androidInfo.playability_status?.status === "OK") {
       const muxed = (androidInfo.streaming_data?.formats ?? [])
-        .filter((f: any) => f.has_video && f.has_audio && typeof f.url === "string" && f.mime_type?.startsWith("video/mp4"))
+        .filter((f: any) => f.has_video && f.has_audio && typeof f.url === "string" && f.mime_type?.startsWith("video/mp4") && (f.height ?? 0) <= 1080)
         .sort((a: any, b: any) => (b.height ?? 0) - (a.height ?? 0))[0];
       if (muxed) out.sdUrl = muxed.url;
     }
@@ -106,21 +108,25 @@ export async function directVideo(id: string, lang?: Lang): Promise<DirectVideo>
     const visionInfo: any = await withClient((yt) => yt.getBasicInfo(id, { client: "VISIONOS" as never }), lang);
     if (visionInfo.playability_status?.status === "OK") {
       const adaptive: any[] = visionInfo.streaming_data?.adaptive_formats ?? [];
-      const hd = adaptive
-        .filter(
-          (f) =>
-            f.has_video &&
-            !f.has_audio &&
-            typeof f.url === "string" &&
-            f.mime_type?.startsWith("video/mp4") &&
-            /avc1/i.test(f.mime_type) &&
-            (f.height ?? 0) <= 720,
-        )
+      const h264 = adaptive.filter(
+        (f) =>
+          f.has_video &&
+          !f.has_audio &&
+          typeof f.url === "string" &&
+          f.mime_type?.startsWith("video/mp4") &&
+          /avc1/i.test(f.mime_type) &&
+          (f.height ?? 0) <= 1080,
+      );
+      const hd = h264
+        .filter((f) => (f.height ?? 0) <= 720)
+        .sort((a, b) => (b.height ?? 0) - (a.height ?? 0) || (b.bitrate ?? 0) - (a.bitrate ?? 0))[0];
+      const fhd = h264
         .sort((a, b) => (b.height ?? 0) - (a.height ?? 0) || (b.bitrate ?? 0) - (a.bitrate ?? 0))[0];
       const audio = adaptive
         .filter((f) => f.has_audio && !f.has_video && typeof f.url === "string")
         .sort((a, b) => Number(b.mime_type?.startsWith("audio/mp4")) - Number(a.mime_type?.startsWith("audio/mp4")) || (b.bitrate ?? 0) - (a.bitrate ?? 0))[0];
       if (hd) out.hdVideoUrl = hd.url;
+      if (fhd) out.fhdVideoUrl = fhd.url;
       if (audio) out.audioUrl = audio.url;
     }
   } catch {
