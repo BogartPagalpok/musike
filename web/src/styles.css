@@ -419,7 +419,21 @@ html:is([data-theme="synthwave"], [data-theme="candy"], [data-theme="arcade"], [
       -webkit-font-smoothing: antialiased;
       -webkit-tap-highlight-color: transparent;
       overscroll-behavior: none;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      touch-action: manipulation;
       font-feature-settings: "ss01";
+    }
+    input,
+    textarea {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    img,
+    a {
+      -webkit-user-drag: none;
+      -webkit-touch-callout: none;
     }
     button {
       cursor: pointer;
@@ -447,6 +461,8 @@ html:is([data-theme="synthwave"], [data-theme="candy"], [data-theme="arcade"], [
     }
 
     .scroll-area {
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
       scrollbar-width: thin;
       scrollbar-color: var(--surface-4) transparent;
     }

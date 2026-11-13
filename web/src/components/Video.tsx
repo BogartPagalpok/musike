@@ -137,7 +137,7 @@ export function FloatingVideo() {
   const top = useSlots((s) => s.top);
   const t = useT();
   const isMd = useMediaQuery(MD);
-  const show = isVideo && isMd && top < SLOT.panel;
+  const show = isVideo && top < SLOT.panel;
 
   return (
     <AnimatePresence>
@@ -151,7 +151,7 @@ export function FloatingVideo() {
             "group fixed z-30 overflow-hidden rounded-2xl border border-line-strong bg-black shadow-[0_16px_40px_rgb(0_0_0/0.5)]",
             isMd
               ? "right-4 bottom-[112px] w-72"
-              : "right-3 bottom-[calc(140px+env(safe-area-inset-bottom))] w-48",
+              : "right-3 bottom-[calc(132px+env(safe-area-inset-bottom))] w-52",
           )}
         >
           <VideoSlot priority={SLOT.floating} className="aspect-video w-full" />

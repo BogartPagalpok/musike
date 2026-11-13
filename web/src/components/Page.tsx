@@ -27,7 +27,7 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "safe-top sticky top-0 z-10 bg-bg/95 backdrop-blur-xl md:bg-surface-1/95",
+        "safe-top sticky top-0 z-10 border-b border-line/50 bg-bg/80 backdrop-blur-2xl md:border-b-0 md:bg-surface-1/95",
         // Without a title or actions the header only exists for the phone brand bar.
         ((!title && !actions) || mobileOnly) && "md:hidden",
         className,
@@ -35,8 +35,11 @@ export function PageHeader({
     >
       <div className="flex h-14 items-center gap-3 px-4 md:h-16 md:px-6">
         <LogoMark className="size-7 shrink-0 text-accent-text md:hidden" />
-        {title && <h1 className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight md:text-xl">{title}</h1>}
-        {!title && <span className="flex-1" />}
+        {title ? (
+          <h1 className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight md:text-xl">{title}</h1>
+        ) : (
+          <span className="min-w-0 flex-1 truncate text-[17px] font-semibold tracking-tight md:hidden">Illusive Sounds</span>
+        )}
         {actions}
         <IconButton
           label={attention ? t.nav.settingsUpdate : t.nav.settings}
@@ -54,8 +57,8 @@ export function PageHeader({
 export function Section({ title, action, children, className }: { title: ReactNode; action?: ReactNode; children: ReactNode; className?: string }) {
   return (
     <section className={cn("flex flex-col gap-3", className)}>
-      <div className="flex items-end justify-between gap-4 px-4 md:px-6">
-        <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 md:px-6">
+        <h2 className="min-w-0 text-lg font-bold tracking-tight md:text-xl">{title}</h2>
         {action}
       </div>
       {children}

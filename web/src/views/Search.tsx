@@ -2,6 +2,7 @@ import {
   ArrowRightIcon,
   ArrowUpLeftIcon,
   FunnelSimpleIcon,
+  GearSixIcon,
   LinkIcon,
   ListBulletsIcon,
   MagnifyingGlassIcon,
@@ -13,8 +14,10 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { AlbumGrid } from "../components/AlbumTiles";
 import { Artwork } from "../components/Artwork";
+import { LogoMark } from "../components/Brand";
 import { BrowseAllGrid, GenrePanel, MoodCollections } from "../components/GenrePanel";
-import { EmptyState, PageHeader } from "../components/Page";
+import { IconButton } from "../components/IconButton";
+import { EmptyState } from "../components/Page";
 import { TrackList, TrackListSkeleton } from "../components/TrackList";
 import { MD, useMediaQuery } from "../hooks/useMediaQuery";
 import { api } from "../lib/api";
@@ -23,6 +26,8 @@ import { cn } from "../lib/format";
 import { paths } from "../lib/routes";
 import type { AlbumCard, Track } from "../lib/types";
 import { usePlayer } from "../player/player";
+import { needsAttention, useSystem } from "../stores/system";
+import { useUi } from "../stores/ui";
 import { parseList } from "./BatchSearch";
 
 const RECENT_KEY = "musike:recent-searches";
@@ -183,6 +188,9 @@ export default function Search() {
     if (isMd && !q) input.current?.focus();
   }, []);
 
+  const setSettingsOpen = useUi((s) => s.setSettingsOpen);
+  const attention = useSystem((s) => needsAttention(s.info));
+
   const tab = (k: Kind, label: string) => (
     <button
       type="button"
@@ -190,7 +198,7 @@ export default function Search() {
       aria-selected={kind === k}
       onClick={() => setQuery(text || q, k)}
       className={cn(
-        "h-9 rounded-full px-4 text-sm font-medium transition-colors duration-200",
+        "h-9 shrink-0 rounded-full px-4 text-sm font-medium transition-colors duration-200",
         kind === k ? "bg-fg text-bg" : "bg-surface-3 text-fg-2 hover:text-fg",
       )}
     >
@@ -200,9 +208,19 @@ export default function Search() {
 
   return (
     <div className="pb-8">
-      <PageHeader title={t.search.title} mobileOnly />
-
-      <div className="sticky top-0 z-10 flex flex-col gap-3 border-b border-line/60 bg-surface-1/95 px-4 pt-2 pb-3 backdrop-blur-xl md:px-6 md:pt-4">
+      <div className="safe-top sticky top-0 z-10 flex flex-col gap-2.5 border-b border-line/60 bg-bg/85 px-4 pt-2 pb-3 backdrop-blur-2xl md:gap-3 md:bg-surface-1/95 md:px-6 md:pt-4">
+        <div className="flex h-11 items-center gap-3 md:hidden">
+          <LogoMark className="size-7 shrink-0 text-accent-text" />
+          <h1 className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight">{t.search.title}</h1>
+          <IconButton
+            label={attention ? t.nav.settingsUpdate : t.nav.settings}
+            onClick={() => setSettingsOpen(true)}
+            className="-mr-2"
+          >
+            <GearSixIcon size={22} />
+            {attention && <span className="absolute top-2 right-2 size-2 rounded-full bg-accent ring-2 ring-bg" />}
+          </IconButton>
+        </div>
         <form
           role="search"
           onSubmit={(e) => {
@@ -281,15 +299,15 @@ export default function Search() {
         )}
 
         {!linkId && (
-          <div className="flex flex-wrap items-center gap-2">
-            <div role="tablist" aria-label={t.search.resultType} className="flex flex-wrap gap-2">
+          <div className="no-scrollbar -mx-4 flex items-center gap-2 overflow-x-auto px-4 md:mx-0 md:flex-wrap md:overflow-visible md:px-0">
+            <div role="tablist" aria-label={t.search.resultType} className="flex shrink-0 gap-2 md:flex-wrap">
               {tab("song", t.search.songs)}
               {tab("album", t.search.albums)}
               {tab("video", t.search.videos)}
               {tab("podcast", t.search.podcasts)}
             </div>
-            <span className="flex-1" />
-            <div className="flex items-center gap-1">
+            <span className="min-w-2 flex-1" />
+            <div className="flex shrink-0 items-center gap-1">
               <button
                 type="button"
                 aria-expanded={genresOpen}

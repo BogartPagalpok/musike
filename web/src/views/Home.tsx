@@ -32,7 +32,7 @@ function Shortcut({ to, label, tracks, cover }: { to: string; label: string; tra
   const playList = usePlayer((s) => s.playList);
   const t = useT();
   return (
-    <div className="group relative flex h-14 items-center gap-3 overflow-hidden rounded-[12px] bg-fg/[0.05] pr-2.5 transition-colors hover:bg-surface-3">
+    <div className="group relative flex h-14 items-center gap-2.5 overflow-hidden rounded-[12px] bg-fg/[0.05] pr-2 transition-all hover:bg-surface-3 active:scale-[0.98] sm:gap-3 sm:pr-2.5">
       <Link to={to} className="absolute inset-0" aria-label={label} />
       <span className="pointer-events-none size-14 shrink-0 overflow-hidden">{cover}</span>
       <span className="pointer-events-none min-w-0 flex-1 truncate text-[13px] font-semibold tracking-tight">{label}</span>
@@ -100,7 +100,7 @@ function ChartTrackCell({
     <li
       onContextMenu={menuAt}
       className={cn(
-        "group relative flex items-center gap-2.5 rounded-[10px] px-2 py-1.5 transition-colors duration-150 hover:bg-fg/[0.05]",
+        "group relative flex items-center gap-2.5 rounded-[10px] px-2 py-1.5 transition-all duration-150 hover:bg-fg/[0.05] active:scale-[0.99] active:bg-fg/[0.08]",
         isCurrent && "bg-surface-2/80",
       )}
     >
@@ -147,7 +147,7 @@ function ChartTrackCell({
 
       {/* Right metadata / hover actions */}
       <div className="relative z-10 flex shrink-0 items-center gap-0.5">
-        <span className="pointer-events-none pr-1 font-mono text-[11.5px] text-fg-3 tabular-nums group-hover:hidden">
+        <span className="pointer-events-none hidden pr-1 font-mono text-[11.5px] text-fg-3 tabular-nums sm:inline group-hover:hidden">
           {track.duration ? formatTime(track.duration) : ""}
         </span>
         <button
@@ -155,8 +155,8 @@ function ChartTrackCell({
           onClick={() => void toggleFavorite(track)}
           aria-label={isFavorite ? t.common.removeFromFavorites : t.common.addToFavorites}
           className={cn(
-            "hidden size-7 place-items-center rounded-full transition-colors group-hover:grid",
-            isFavorite ? "text-accent-text" : "text-fg-2 hover:bg-surface-3 hover:text-fg",
+            "size-8 place-items-center rounded-full transition-colors md:size-7 md:group-hover:grid",
+            isFavorite ? "grid text-accent-text" : "hidden text-fg-2 hover:bg-surface-3 hover:text-fg",
           )}
         >
           <HeartIcon size={15} weight={isFavorite ? "fill" : "regular"} />
@@ -165,7 +165,7 @@ function ChartTrackCell({
           type="button"
           onClick={menuAt}
           aria-label={t.trackList.moreFor(track.title)}
-          className="hidden size-7 place-items-center rounded-full text-fg-2 transition-colors group-hover:grid hover:bg-surface-3 hover:text-fg"
+          className="grid size-8 place-items-center rounded-full text-fg-2 transition-colors md:hidden md:size-7 md:group-hover:grid hover:bg-surface-3 hover:text-fg"
         >
           <DotsThreeIcon size={18} weight="bold" />
         </button>
@@ -178,7 +178,13 @@ function Top50Section() {
   const t = useT();
   const lang = useI18n((s) => s.lang);
   const playList = usePlayer((s) => s.playList);
-  const [region, setRegion] = useState<string>("US");
+  const [region, setRegion] = useState<string>(() => {
+    try {
+      return localStorage.getItem("musike:chart-region") || "PH";
+    } catch {
+      return "PH";
+    }
+  });
   const cacheKey = `${lang}:${region}`;
   const [charts, setCharts] = useState<ChartsData | null>(() => chartsCache.get(cacheKey) ?? null);
   const [loading, setLoading] = useState(!charts);
@@ -212,21 +218,21 @@ function Top50Section() {
   const visibleTracks = expanded ? activeTracks : activeTracks.slice(0, defaultCount);
 
   const countries = [
+    { id: "PH", label: "Philippines" },
     { id: "GLOBAL", label: "Global" },
     { id: "US", label: "United States" },
-    { id: "PH", label: "Philippines" },
     { id: "GB", label: "UK" },
   ];
 
   return (
     <Section
       title={
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex max-w-full flex-wrap items-center gap-2.5 sm:gap-3">
           <span className="whitespace-nowrap">{t.home.top50Title}</span>
           <div
             role="tablist"
             aria-label="Country Filter"
-            className="flex items-center gap-1 rounded-full bg-fg/[0.07] p-1 shrink-0"
+            className="no-scrollbar flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-fg/[0.07] p-1"
           >
             {countries.map((c) => (
               <button
@@ -234,9 +240,16 @@ function Top50Section() {
                 type="button"
                 role="tab"
                 aria-selected={region === c.id}
-                onClick={() => setRegion(c.id)}
+                onClick={() => {
+                  setRegion(c.id);
+                  try {
+                    localStorage.setItem("musike:chart-region", c.id);
+                  } catch {
+                    /* ignore */
+                  }
+                }}
                 className={cn(
-                  "h-6.5 rounded-full px-3 text-xs font-medium whitespace-nowrap transition-colors",
+                  "h-6.5 shrink-0 rounded-full px-3 text-xs font-medium whitespace-nowrap transition-colors",
                   region === c.id ? "bg-surface-4 text-fg shadow-2xs font-semibold" : "text-fg-2 hover:text-fg",
                 )}
               >
@@ -361,7 +374,7 @@ export default function Home() {
       {status === "ready" && (
         <div className="flex flex-col gap-8">
           {!empty && show.homeShortcuts && (
-            <div className="grid grid-cols-1 gap-2.5 px-4 @[420px]/home:grid-cols-2 @[720px]/home:grid-cols-3 @[1040px]/home:grid-cols-4 md:px-6">
+            <div className="grid grid-cols-2 gap-2 px-4 sm:gap-2.5 @[720px]/home:grid-cols-3 @[1040px]/home:grid-cols-4 md:px-6">
               <Shortcut
                 to={paths.favorites}
                 label={t.nav.favorites}

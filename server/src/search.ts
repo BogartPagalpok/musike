@@ -285,10 +285,20 @@ function pickClip(candidates: Track[], title: string, artist: string, duration: 
   return best?.track ?? null;
 }
 
+const UNWANTED_TRACK_SCRIPT = /[\u0900-\u0DFF\u0600-\u06FF\u0E00-\u0E7F\u0400-\u04FF]/;
+const UNWANTED_TRACK_KEYWORDS =
+  /\b(bollywood|tollywood|kollywood|mollywood|punjabi|bhangra|jhankar|qawwali|ghazal|arijit singh|rahat fateh ali khan|jubin nautiyal|shreya ghoshal|vishal mishra|pritam|anuv jain|b praak|sunidhi chauhan|a\.?\s*r\.?\s*rahman|atif aslam|neha kakkar|badshah|yo yo honey singh|diljit dosanjh|ap dhillon|karan aujla|sidhu moose wala|darshan raval|arman malik|armaan malik|sonu nigam|udit narayan|alka yagnik|kumar sanu|mohit chauhan|himesh reshammiya|mithoon|sayeed quadri|irshad kamil|jaani|tanishk bagchi|sachin-jigar|amit trivedi|jasleen royal|asees kaur|parampara tandon|sachet tandon|tulsi kumar|dhvani bhanushali|guru randhawa|hardy sandhu|harrdy sandhu|jass manak|ammy virk|gurnazar|jasmine sandlas|jyoti nooran|faheem abdullah|shafqat amanat ali|mustafa zahid|garvit-priyansh|tere|tera|teri|tumko|tumhe|mohabbat|ishq|pyaar|pyar|zindagi|sanam|sajana|sajni|raanjhan|saiyaara|barbaad|zaroori|darmiyaan|chaahunga|yaadon|aakhri|awarapan)\b/i;
+
+/** Filters out Bollywood / Indian / unrelated regional scripts and artists from curated moods, charts, and auto-radio. */
+export function isUnwantedRegionalTrack(t: { title: string; artist: string; album?: string }): boolean {
+  const hay = `${t.title} ${t.artist} ${t.album ?? ""}`;
+  return UNWANTED_TRACK_SCRIPT.test(hay) || UNWANTED_TRACK_KEYWORDS.test(hay);
+}
+
 /** YouTube Music "radio" for a track: related songs to continue playback. */
 export async function radio(id: string): Promise<Track[]> {
   const panel = await withClient((yt) => yt.music.getUpNext(id, true));
   return (panel.contents ?? [])
     .map((i) => toTrack(i, "song"))
-    .filter((t): t is Track => !!t && t.id !== id);
+    .filter((t): t is Track => !!t && t.id !== id && !isUnwantedRegionalTrack(t));
 }

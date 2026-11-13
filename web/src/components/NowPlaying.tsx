@@ -1,5 +1,6 @@
 import {
   CaretDownIcon,
+  DotsThreeIcon,
   EqualizerIcon,
   ListBulletsIcon,
   MagnifyingGlassIcon,
@@ -550,6 +551,15 @@ export function NowPlayingSheet({ open, onClose }: { open: boolean; onClose: () 
                   </div>
                   <OfflineButton track={track} />
                   <FavoriteButton track={track} />
+                  <IconButton
+                    label={t.trackList.moreFor(track.title)}
+                    onClick={(e) => {
+                      const r = e.currentTarget.getBoundingClientRect();
+                      useUi.getState().openMenu({ track, x: r.right, y: r.bottom + 6 });
+                    }}
+                  >
+                    <DotsThreeIcon size={22} weight="bold" />
+                  </IconButton>
                 </div>
               )}
               <Scrubber touch />

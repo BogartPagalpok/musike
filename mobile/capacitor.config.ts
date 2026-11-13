@@ -18,7 +18,10 @@ const config: CapacitorConfig = {
   ios: {
     // The status bar area is padded by the app itself, like on Android.
     contentInset: "never",
-    scrollEnabled: true,
+    scrollEnabled: false,
+    allowsLinkPreview: false,
+    zoomEnabled: false,
+    preferredContentMode: "mobile",
     backgroundColor: "#0B0C0F",
   },
   ...(serverUrl ? { server: { url: serverUrl, cleartext: false } } : {}),

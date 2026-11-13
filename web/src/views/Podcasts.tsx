@@ -187,7 +187,7 @@ export default function Podcasts() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t.podcasts.searchPlaceholder}
-            className="h-12 w-full rounded-[14px] bg-fg/[0.06] pr-10 pl-11 text-sm text-fg placeholder:text-fg-3 transition-colors focus:bg-fg/[0.09] focus:outline-none focus:ring-1 focus:ring-accent"
+            className="h-12 w-full rounded-[14px] bg-fg/[0.06] pr-10 pl-11 text-[16px] text-fg placeholder:text-fg-3 transition-colors focus:bg-fg/[0.09] focus:outline-none focus:ring-1 focus:ring-accent md:text-sm"
           />
           <MagnifyingGlassIcon
             size={18}
@@ -241,7 +241,7 @@ export default function Podcasts() {
           </h2>
           <span className="text-xs text-fg-3">{t.podcasts.showsCount(POPULAR_SHOWS.length)}</span>
         </div>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+        <div className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 sm:mx-0 sm:grid sm:grid-cols-4 sm:overflow-visible sm:px-0 lg:grid-cols-8">
           {POPULAR_SHOWS.map((show) => {
             const isSelected = selectedShow?.name === show.name;
             return (
@@ -250,7 +250,7 @@ export default function Podcasts() {
                 type="button"
                 onClick={() => handleShowSelect(show)}
                 className={cn(
-                  "group flex flex-col text-left transition-transform active:scale-[0.98] rounded-[16px] p-1.5",
+                  "group flex w-36 shrink-0 snap-start flex-col rounded-[16px] p-1.5 text-left transition-transform active:scale-[0.98] sm:w-auto",
                   isSelected && "bg-accent/15 ring-2 ring-accent",
                 )}
               >

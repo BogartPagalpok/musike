@@ -1,4 +1,5 @@
 import { BooksIcon, BroadcastIcon, HouseIcon, MagnifyingGlassIcon, SkipForwardIcon } from "@phosphor-icons/react";
+import { useRef, type TouchEvent } from "react";
 import { NavLink, useNavigate } from "react-router";
 import { cn } from "../lib/format";
 import { useT } from "../i18n";
@@ -19,9 +20,9 @@ export function TabBar() {
   return (
     <nav
       aria-label={t.nav.main}
-      className="safe-bottom fixed inset-x-0 bottom-0 z-20 border-t border-line bg-bg/85 backdrop-blur-xl"
+      className="safe-bottom fixed inset-x-0 bottom-0 z-20 border-t border-white/[0.08] bg-bg/80 backdrop-blur-2xl"
     >
-      <ul className="mx-auto grid h-16 max-w-md grid-cols-4">
+      <ul className="mx-auto grid h-[54px] max-w-md grid-cols-4">
         {tabs.map(({ to, key, Icon, end }) => (
           <li key={to}>
             <NavLink
@@ -29,20 +30,14 @@ export function TabBar() {
               end={end}
               className={({ isActive }) =>
                 cn(
-                  "relative flex h-full flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors",
-                  isActive ? "text-fg" : "text-fg-3",
+                  "relative flex h-full flex-col items-center justify-center gap-0.5 text-[10.5px] font-medium transition-all active:scale-90",
+                  isActive ? "text-accent-text" : "text-fg-3",
                 )
               }
             >
               {({ isActive }) => (
                 <>
-                  <span
-                    className={cn(
-                      "absolute top-0 h-[3px] w-8 rounded-b-full bg-accent transition-transform duration-300 ease-out-expo",
-                      isActive ? "scale-x-100" : "scale-x-0",
-                    )}
-                  />
-                  <Icon size={24} weight={isActive ? "fill" : "regular"} />
+                  <Icon size={23} weight={isActive ? "fill" : "regular"} />
                   {t.nav[key]}
                 </>
               )}
@@ -62,17 +57,53 @@ export function MiniPlayer() {
   const statusText = useStatusText();
   const toggle = usePlayer((s) => s.toggle);
   const next = usePlayer((s) => s.next);
+  const prev = usePlayer((s) => s.prev);
   const t = useT();
   const navigate = useNavigate();
+  const touch = useRef<{ x: number; y: number } | null>(null);
+  const didSwipe = useRef(false);
   if (!track) return null;
   const pct = duration > 0 ? Math.min(100, (position / duration) * 100) : 0;
 
+  const onTouchStart = (e: TouchEvent<HTMLDivElement>) => {
+    didSwipe.current = false;
+    const pt = e.touches[0];
+    if (pt) touch.current = { x: pt.clientX, y: pt.clientY };
+  };
+
+  const onTouchEnd = (e: TouchEvent<HTMLDivElement>) => {
+    const start = touch.current;
+    touch.current = null;
+    const pt = e.changedTouches[0];
+    if (!start || !pt) return;
+    const dx = pt.clientX - start.x;
+    const dy = pt.clientY - start.y;
+    if (dy < -36 && Math.abs(dy) > Math.abs(dx)) {
+      didSwipe.current = true;
+      navigate({ hash: NOW_PLAYING_HASH });
+    } else if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy)) {
+      didSwipe.current = true;
+      if (dx < 0) next();
+      else prev();
+    }
+  };
+
   return (
-    <div className="fixed inset-x-2 bottom-[calc(70px+env(safe-area-inset-bottom))] z-20">
-      <div className="relative flex h-14 items-center gap-3 overflow-hidden rounded-[14px] bg-surface-2/85 pr-1 pl-2 shadow-[0_8px_28px_rgb(0_0_0/0.35)] ring-1 ring-line backdrop-blur-2xl">
+    <div className="fixed inset-x-2 bottom-[calc(62px+env(safe-area-inset-bottom))] z-20">
+      <div
+        onTouchStart={onTouchStart}
+        onTouchEnd={onTouchEnd}
+        className="relative flex h-14 items-center gap-3 overflow-hidden rounded-[14px] bg-surface-2/85 pr-1 pl-2 shadow-[0_8px_28px_rgb(0_0_0/0.35)] ring-1 ring-line backdrop-blur-2xl"
+      >
         <button
           type="button"
-          onClick={() => navigate({ hash: NOW_PLAYING_HASH })}
+          onClick={() => {
+            if (didSwipe.current) {
+              didSwipe.current = false;
+              return;
+            }
+            navigate({ hash: NOW_PLAYING_HASH });
+          }}
           className="flex min-w-0 flex-1 items-center gap-3 text-left"
           aria-label={t.player.openNowPlaying(track.title)}
         >

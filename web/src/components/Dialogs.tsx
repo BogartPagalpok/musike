@@ -50,7 +50,7 @@ export function AddToPlaylistDialog() {
             maxLength={80}
             onChange={(e) => setName(e.target.value)}
             placeholder={t.dialogs.namePlaceholder}
-            className="h-12 rounded-full border border-line-strong bg-surface-1 px-5 text-[15px] placeholder:text-fg-3 focus:border-accent focus:outline-none"
+            className="h-12 rounded-full border border-line-strong bg-surface-1 px-5 text-[16px] placeholder:text-fg-3 focus:border-accent focus:outline-none"
           />
           <div className="flex justify-end gap-2 pt-1">
             {playlists.length > 0 && (
@@ -149,7 +149,7 @@ export function NamePlaylistDialog({
           maxLength={80}
           onChange={(e) => setName(e.target.value)}
           placeholder={t.dialogs.namePlaceholder}
-          className="h-12 rounded-full border border-line-strong bg-surface-1 px-5 text-[15px] placeholder:text-fg-3 focus:border-accent focus:outline-none"
+          className="h-12 rounded-full border border-line-strong bg-surface-1 px-5 text-[16px] placeholder:text-fg-3 focus:border-accent focus:outline-none"
         />
         <div className="flex justify-end pt-1">
           <button

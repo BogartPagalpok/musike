@@ -2,6 +2,7 @@ import {
   BarbellIcon,
   CarProfileIcon,
   CassetteTapeIcon,
+  CloudRainIcon,
   CoffeeIcon,
   ConfettiIcon,
   HeadphonesIcon,
@@ -43,6 +44,14 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
 
   const cards = [
     { key: "chill", genreId: "ggMPOg1uX1JOQWZFeDByc2Jm", ...t.home.collections.chill, Icon: CoffeeIcon },
+    {
+      key: "sad",
+      genreId: "ggMPOg1uX3NISTh4UmtWcFgz",
+      title: "Sad & Heartbreak",
+      sub: "Emotional ballads, OPM hugot & acoustic heartbreak",
+      query: "sad heartbreak songs opm ballads",
+      Icon: CloudRainIcon,
+    },
     { key: "focus", genreId: "ggMPOg1uX0NvNGNhWThMYWRh", ...t.home.collections.focus, Icon: HeadphonesIcon },
     { key: "energy", genreId: "ggMPOg1uXzIxYkNac21YZ2Z0", ...t.home.collections.energy, Icon: BarbellIcon },
     { key: "feelGood", genreId: "ggMPOg1uXzZQbDB5eThLRTQ3", ...t.home.collections.feelGood, Icon: SunHorizonIcon },
@@ -79,7 +88,7 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
         {cards.map(({ key, genreId, title, sub, query, Icon }, idx) => {
           const busy = loadingKey === key;
           const tone = ACCENT_VARS[idx % ACCENT_VARS.length]!;
-          const targetUrl = genreId ? paths.genre(genreId) : `${paths.search}?q=${encodeURIComponent(query)}`;
+          const targetUrl = genreId ? `${paths.genre(genreId)}?view=songs` : `${paths.search}?q=${encodeURIComponent(query)}`;
           return (
             <div
               key={key}
@@ -108,7 +117,7 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
                   title={t.home.playMix(title)}
                   className={cn(
                     "relative z-10 grid size-7 shrink-0 place-items-center rounded-full bg-accent text-accent-ink shadow-xs transition-all duration-150 hover:scale-105 active:scale-95",
-                    busy ? "animate-pulse opacity-100" : "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+                    busy ? "animate-pulse opacity-100" : "opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100",
                   )}
                 >
                   <PlayIcon size={13} weight="fill" />
@@ -203,7 +212,7 @@ function CategoryTile({ genre }: { genre: Genre }) {
   const tone = ACCENT_VARS[hashIndex(genre.id, ACCENT_VARS.length)]!;
   return (
     <Link
-      to={paths.genre(genre.id)}
+      to={genre.kind === "mood" ? `${paths.genre(genre.id)}?view=songs` : paths.genre(genre.id)}
       state={{ name: genre.name }}
       style={{
         backgroundImage: `linear-gradient(135deg, color-mix(in srgb, ${tone} 12%, transparent), transparent 65%)`,
@@ -254,7 +263,7 @@ export function GenrePanel({ id }: { id: string }) {
                 {moods.map((g) => (
                   <li key={g.id}>
                     <Link
-                      to={paths.genre(g.id)}
+                      to={`${paths.genre(g.id)}?view=songs`}
                       state={{ name: g.name }}
                       className="block h-9 rounded-full bg-surface-3 px-4 text-sm leading-9 transition-colors hover:bg-surface-4"
                     >
@@ -272,7 +281,7 @@ export function GenrePanel({ id }: { id: string }) {
                 {styles.map((g) => (
                   <li key={g.id}>
                     <Link
-                      to={paths.genre(g.id)}
+                      to={`${paths.genre(g.id)}?view=songs`}
                       state={{ name: g.name }}
                       className="block h-9 rounded-full bg-surface-3 px-4 text-sm leading-9 transition-colors hover:bg-surface-4"
                     >
