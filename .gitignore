@@ -20,3 +20,5 @@ server/cache/
 .env
 .DS_Store
 Thumbs.db
+
+.zsign_cache/
