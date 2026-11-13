@@ -49,6 +49,7 @@ export const en = {
     podcasts: "Podcasts",
     search: "Search",
     library: "Library",
+    device: "Device",
     settings: "Settings",
     settingsAttention: "Settings (needs attention)",
     settingsUpdate: "Settings (yt-dlp update available)",
@@ -122,6 +123,20 @@ export const en = {
     deleteBody: (name: string, tracks: number) =>
       `"${name}" and its list of ${count(tracks, "track", "tracks")} will be deleted. This can't be undone.`,
     delete: "Delete",
+  },
+
+  device: {
+    title: "Device Music",
+    subtitle: (n: number, sizeMb: string) => `${count(n, "local file", "local files")} · ${sizeMb} MB stored on this device`,
+    addFiles: "Add Music",
+    addFolder: "Add Folder",
+    clearAll: "Remove All",
+    importing: "Importing audio files…",
+    filterPlaceholder: "Filter local songs…",
+    emptyTitle: "Play your local music",
+    emptyBody: "Import MP3, M4A, FLAC, WAV, AAC, or OGG files from your device to listen offline anytime.",
+    removeFromDevice: "Remove from Device",
+    importedCount: (n: number) => `Imported ${count(n, "song", "songs")}`,
   },
 
   dialogs: {

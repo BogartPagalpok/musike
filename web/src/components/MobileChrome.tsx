@@ -1,4 +1,4 @@
-import { BooksIcon, BroadcastIcon, HouseIcon, MagnifyingGlassIcon, SkipForwardIcon } from "@phosphor-icons/react";
+import { BooksIcon, BroadcastIcon, HardDriveIcon, HouseIcon, MagnifyingGlassIcon, SkipForwardIcon } from "@phosphor-icons/react";
 import { useRef, type TouchEvent } from "react";
 import { NavLink, useNavigate } from "react-router";
 import { cn } from "../lib/format";
@@ -13,6 +13,7 @@ const tabs = [
   { to: paths.podcasts, key: "podcasts", Icon: BroadcastIcon, end: false },
   { to: paths.search, key: "search", Icon: MagnifyingGlassIcon, end: false },
   { to: paths.library, key: "library", Icon: BooksIcon, end: false },
+  { to: paths.device, key: "device", Icon: HardDriveIcon, end: false },
 ] as const;
 
 export function TabBar() {
@@ -20,9 +21,9 @@ export function TabBar() {
   return (
     <nav
       aria-label={t.nav.main}
-      className="safe-bottom fixed inset-x-0 bottom-0 z-20 border-t border-line-strong bg-surface-1/92 backdrop-blur-2xl"
+      className="safe-bottom fixed inset-x-0 bottom-0 z-20 border-t border-line-strong bg-surface-1/96 backdrop-blur-2xl"
     >
-      <ul className="mx-auto grid h-[54px] max-w-md grid-cols-4">
+      <ul className="mx-auto grid h-[56px] max-w-md grid-cols-5">
         {tabs.map(({ to, key, Icon, end }) => (
           <li key={to}>
             <NavLink
@@ -37,7 +38,7 @@ export function TabBar() {
             >
               {({ isActive }) => (
                 <>
-                  <Icon size={23} weight={isActive ? "fill" : "regular"} />
+                  <Icon size={22} weight={isActive ? "fill" : "regular"} />
                   {t.nav[key]}
                 </>
               )}
@@ -89,11 +90,11 @@ export function MiniPlayer() {
   };
 
   return (
-    <div className="fixed inset-x-2 bottom-[calc(62px+env(safe-area-inset-bottom))] z-20">
+    <div className="fixed inset-x-2 bottom-[calc(64px+env(safe-area-inset-bottom))] z-20">
       <div
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
-        className="relative flex h-14 items-center gap-3 overflow-hidden rounded-[14px] bg-surface-2/95 pr-1 pl-2 shadow-[0_8px_28px_rgb(0_0_0/0.38)] ring-1 ring-line-strong backdrop-blur-2xl"
+        className="relative flex h-14 items-center gap-2.5 overflow-hidden rounded-[14px] bg-surface-2/98 pr-1.5 pl-2 shadow-[0_8px_28px_rgb(0_0_0/0.45)] ring-1 ring-line-strong backdrop-blur-2xl"
       >
         <button
           type="button"
@@ -109,7 +110,7 @@ export function MiniPlayer() {
         >
           <Artwork src={track.thumb} className="size-10 rounded-[8px] shadow-sm" />
           <span className="min-w-0">
-            <span className="block truncate text-[14px] font-semibold tracking-tight">{track.title}</span>
+            <span className="block truncate text-[14px] font-semibold tracking-tight text-fg">{track.title}</span>
             <span className={cn("block truncate text-[12px]", status === "error" ? "text-danger" : "text-fg-2")}>
               {statusText ?? track.artist}
             </span>
@@ -119,17 +120,17 @@ export function MiniPlayer() {
           type="button"
           onClick={toggle}
           aria-label={status === "playing" ? t.common.pause : t.common.play}
-          className="grid size-11 shrink-0 place-items-center rounded-full text-fg active:scale-90"
+          className="grid size-10 shrink-0 place-items-center rounded-full bg-accent text-accent-ink shadow-xs transition-transform active:scale-90"
         >
-          <PlayPauseIcon size={24} />
+          <PlayPauseIcon size={20} />
         </button>
         <button
           type="button"
           onClick={next}
           aria-label={t.player.next}
-          className="grid size-11 shrink-0 place-items-center rounded-full text-fg active:scale-90"
+          className="grid size-10 shrink-0 place-items-center rounded-full text-fg active:scale-90"
         >
-          <SkipForwardIcon size={22} weight="fill" />
+          <SkipForwardIcon size={21} weight="fill" />
         </button>
         <span className="absolute inset-x-0 bottom-0 h-[2.5px] bg-line">
           <span className="block h-full bg-accent" style={{ width: `${pct}%` }} />

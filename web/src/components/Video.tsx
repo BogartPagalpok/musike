@@ -3,6 +3,7 @@ import {
   ArrowsOutIcon,
   CornersInIcon,
   CornersOutIcon,
+  HeadphonesIcon,
   XIcon,
 } from "@phosphor-icons/react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -85,9 +86,10 @@ export function VideoSlot({
   );
 }
 
-/** Android native Picture-in-Picture display surface. Controls live in the OS PiP RemoteAction bar. */
+/** Android native Picture-in-Picture display surface with a direct Listen (minimize-to-audio) button. */
 export function PipVideoSlot() {
   const isVideo = usePlayer((s) => s.mediaKind === "video");
+  const setPreferVideo = usePlayer((s) => s.setPreferVideo);
   const [isPip, setIsPip] = useState(() => typeof document !== "undefined" && document.documentElement.dataset.pip === "1");
 
   useEffect(() => {
@@ -103,8 +105,20 @@ export function PipVideoSlot() {
 
   if (!isPip || !isVideo) return null;
   return (
-    <div className="fixed inset-0 z-[999999] size-full bg-black">
+    <div className="fixed inset-0 z-[999999] size-full bg-black group/pip">
       <VideoSlot priority={SLOT.pip} className="size-full object-contain" />
+      <div className="absolute top-3 left-3 z-20 flex items-center">
+        <button
+          type="button"
+          onClick={() => setPreferVideo(false)}
+          aria-label="Listen in background (Minimize video)"
+          title="Listen in background (Minimize video to audio)"
+          className="flex items-center gap-1.5 rounded-full border border-white/25 bg-black/85 px-3 py-1.5 text-xs font-semibold text-accent shadow-2xl backdrop-blur-md transition-transform hover:bg-black active:scale-95"
+        >
+          <HeadphonesIcon size={15} weight="fill" />
+          <span>Listen</span>
+        </button>
+      </div>
     </div>
   );
 }
@@ -124,6 +138,7 @@ export function Theater() {
   const open = useUi((s) => s.theater);
   const setTheater = useUi((s) => s.setTheater);
   const isVideo = usePlayer((s) => s.mediaKind === "video");
+  const setPreferVideo = usePlayer((s) => s.setPreferVideo);
   const playing = usePlayer((s) => s.status === "playing");
   const toggle = usePlayer((s) => s.toggle);
   const track = usePlayer(selectCurrent);
@@ -224,6 +239,19 @@ export function Theater() {
                 <p className="truncate text-lg font-semibold tracking-tight md:text-xl">{track.title}</p>
                 <p className="truncate text-sm text-white/70">{statusText ?? track.artist}</p>
               </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setPreferVideo(false);
+                  setTheater(false);
+                }}
+                aria-label="Listen in background (Minimize video)"
+                title="Listen in background (Switch to continuous audio)"
+                className="flex h-9 items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 text-xs font-semibold text-white backdrop-blur-md transition-colors hover:bg-white/20 active:scale-95"
+              >
+                <HeadphonesIcon size={15} weight="fill" />
+                <span>Listen</span>
+              </button>
               <IconButton
                 label={fullscreen ? t.video.exitFullscreen : t.video.fullscreen}
                 onClick={toggleFullscreen}

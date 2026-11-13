@@ -227,41 +227,7 @@ function Top50Section() {
 
   return (
     <Section
-      title={
-        <div className="flex max-w-full flex-wrap items-center gap-2.5 sm:gap-3">
-          <span className="whitespace-nowrap">{t.home.top50Title}</span>
-          <div
-            role="tablist"
-            aria-label="Country Filter"
-            className="no-scrollbar flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-surface-2 p-1 ring-1 ring-line"
-          >
-            {countries.map((c) => (
-              <button
-                key={c.id}
-                type="button"
-                role="tab"
-                aria-selected={region === c.id}
-                onClick={() => {
-                  setRegion(c.id);
-                  try {
-                    localStorage.setItem("musike:chart-region", c.id);
-                  } catch {
-                    /* ignore */
-                  }
-                }}
-                className={cn(
-                  "h-7 shrink-0 rounded-full px-3 text-xs font-medium whitespace-nowrap transition-colors",
-                  region === c.id
-                    ? "bg-accent font-semibold text-accent-ink shadow-xs"
-                    : "text-fg-2 hover:bg-surface-3 hover:text-fg",
-                )}
-              >
-                {c.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      }
+      title={t.home.top50Title}
       action={
         <div className="flex items-center gap-2 shrink-0">
           {activeTracks.length > 0 && (
@@ -310,21 +276,55 @@ function Top50Section() {
       }
     >
       <div className="flex flex-col gap-3">
+        <div className="px-4 md:px-6">
+          <div
+            role="tablist"
+            aria-label="Country Filter"
+            className="no-scrollbar inline-flex max-w-full items-center gap-1 overflow-x-auto rounded-full bg-surface-2 p-1 ring-1 ring-line"
+          >
+            {countries.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                role="tab"
+                aria-selected={region === c.id}
+                onClick={() => {
+                  setRegion(c.id);
+                  try {
+                    localStorage.setItem("musike:chart-region", c.id);
+                  } catch {
+                    /* ignore */
+                  }
+                }}
+                className={cn(
+                  "h-7 shrink-0 rounded-full px-3 text-xs font-medium whitespace-nowrap transition-colors",
+                  region === c.id
+                    ? "bg-accent font-semibold text-accent-ink shadow-xs"
+                    : "text-fg-2 hover:bg-surface-3 hover:text-fg",
+                )}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
         {loading ? (
           <TrackListSkeleton rows={8} />
         ) : activeTracks.length > 0 ? (
           <div className="px-3 md:px-5">
             {/* Responsive 1 to 5 Column Apple Music Chart Grid adapting to container width */}
-            <ol className="grid grid-cols-1 gap-x-5 gap-y-0.5 @[500px]/home:grid-cols-2 @[780px]/home:grid-cols-3 @[1060px]/home:grid-cols-4 @[1360px]/home:grid-cols-5">
-              {visibleTracks.map((tr, i) => (
-                <ChartTrackCell
-                  key={tr.id}
-                  track={tr}
-                  rank={i + 1}
-                  onPlay={() => playList(activeTracks, i)}
-                />
-              ))}
-            </ol>
+            <div className="rounded-2xl bg-surface-1/90 p-1.5 ring-1 ring-line md:rounded-none md:bg-transparent md:p-0 md:ring-0">
+              <ol className="grid grid-cols-1 gap-x-5 gap-y-0.5 @[500px]/home:grid-cols-2 @[780px]/home:grid-cols-3 @[1060px]/home:grid-cols-4 @[1360px]/home:grid-cols-5">
+                {visibleTracks.map((tr, i) => (
+                  <ChartTrackCell
+                    key={tr.id}
+                    track={tr}
+                    rank={i + 1}
+                    onPlay={() => playList(activeTracks, i)}
+                  />
+                ))}
+              </ol>
+            </div>
 
             {activeTracks.length > defaultCount && (
               <div className="mt-3 flex justify-center">

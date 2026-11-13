@@ -6,6 +6,7 @@ import { shuffled } from "../lib/format";
 import type { Track } from "../lib/types";
 import { attachEqualizer, registerEqMedia, useEqualizer } from "./equalizer";
 import { useLibrary } from "../stores/library";
+import { getDeviceFileBlobUrl, isLocalTrack } from "../stores/deviceFiles";
 import { getOfflineBlobUrl } from "../stores/offline";
 import { openSettings } from "../stores/system";
 import { toast } from "../stores/ui";
@@ -163,11 +164,13 @@ function lookupClip(track: Track): Promise<string | null> {
 }
 
 const needsClipLookup = (track: Track, preferVideo: boolean) =>
-  preferVideo && track.kind === "song" && !clipFor.has(track.id);
+  preferVideo && track.kind === "song" && !isLocalTrack(track.id) && !clipFor.has(track.id);
 
 export const usePlayer = create<PlayerState>((set, get) => {
   const kindFor = (track: Track): Kind =>
-    capabilities.video && get().preferVideo && (track.kind === "video" || !!clipFor.get(track.id)) ? "video" : "audio";
+    capabilities.video && get().preferVideo && !isLocalTrack(track.id) && (track.kind === "video" || !!clipFor.get(track.id))
+      ? "video"
+      : "audio";
   /** The YouTube id to stream: the song itself, or its music video in Video mode. */
   const mediaIdFor = (track: Track, kind: Kind) =>
     kind === "video" && track.kind !== "video" ? clipFor.get(track.id)! : track.id;
@@ -239,10 +242,14 @@ export const usePlayer = create<PlayerState>((set, get) => {
     };
     const mine = token;
     if (kind === "audio") {
-      void getOfflineBlobUrl(track.id).then((offlineSrc) => {
+      void (async () => (await getOfflineBlobUrl(track.id)) ?? (await getDeviceFileBlobUrl(track.id)))().then((offlineSrc) => {
         if (mine !== token) return;
         if (offlineSrc) {
           start(offlineSrc);
+          return;
+        }
+        if (isLocalTrack(track.id)) {
+          report("Local audio file could not be loaded");
           return;
         }
         const source = streamSource(mediaId, kind, s.quality);
@@ -270,7 +277,10 @@ export const usePlayer = create<PlayerState>((set, get) => {
   async function continueWithRadio() {
     const s = get();
     const last = s.queue[s.index];
-    if (!last) return;
+    if (!last || isLocalTrack(last.id)) {
+      set({ status: "paused", statusText: null, position: 0 });
+      return;
+    }
     set({ status: "loading", statusText: "fetchingRadio" });
     try {
       const known = new Set(get().queue.map((t) => t.id));
@@ -295,7 +305,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     useLibrary.getState().recordPlay(track);
     // Warm up the next track (and, in Video mode, find and resolve its clip) so it starts quickly.
     const upcoming = s.queue[s.index + 1];
-    if (!upcoming) return;
+    if (!upcoming || isLocalTrack(upcoming.id)) return;
     if (s.preferVideo) void lookupClip(upcoming).then((id) => api.prepare(id ?? upcoming.id).catch(() => {}));
     else api.prepare(upcoming.id).catch(() => {});
   }
@@ -358,6 +368,23 @@ export const usePlayer = create<PlayerState>((set, get) => {
     });
   }
 
+  let lastVideoPlayAt = 0;
+
+  function switchToAudioInBackground() {
+    const s = get();
+    if (!s.preferVideo && s.mediaKind !== "video") return;
+    const track = s.queue[s.index];
+    const wasPlaying = s.status === "playing" || s.status === "loading" || Date.now() - lastVideoPlayAt < 2500;
+    const pos = Math.max(videoEl.currentTime || 0, s.position || 0);
+    set({ preferVideo: false });
+    if (track && wasPlaying) {
+      load(s.index, { startAt: pos, autoplay: true });
+    } else {
+      reloadIfKindChanged();
+    }
+  }
+  (globalThis as { __musikeSwitchToAudioOnBackground?: () => void }).__musikeSwitchToAudioOnBackground = switchToAudioInBackground;
+
   function wire(media: HTMLMediaElement) {
     const isActive = () => activeMedia() === media;
     media.addEventListener("loadedmetadata", () => {
@@ -382,12 +409,17 @@ export const usePlayer = create<PlayerState>((set, get) => {
     });
     media.addEventListener("playing", () => {
       if (!isActive()) return;
+      if (media === videoEl) lastVideoPlayAt = Date.now();
       if (useEqualizer.getState().enabled) attachEqualizer(media);
       set({ status: "playing", statusText: null });
       onStarted();
       syncPlaybackState();
     });
     media.addEventListener("pause", () => {
+      if (media === videoEl && document.visibilityState === "hidden") {
+        switchToAudioInBackground();
+        return;
+      }
       if (!isActive() || media.ended || get().status === "loading" || get().status === "error") return;
       set({ status: "paused" });
       syncPlaybackState();
@@ -397,6 +429,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     });
     media.addEventListener("timeupdate", () => {
       if (!isActive() || pendingSeek > 0) return;
+      if (media === videoEl && !media.paused) lastVideoPlayAt = Date.now();
       if (Math.abs(media.currentTime - get().position) >= 0.2) set({ position: media.currentTime });
       syncSystemMedia(); // throttled on the other side
     });
@@ -680,7 +713,12 @@ function persist() {
 }
 setInterval(persist, 4000);
 addEventListener("pagehide", persist);
-document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" && persist());
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "hidden") {
+    (globalThis as { __musikeSwitchToAudioOnBackground?: () => void }).__musikeSwitchToAudioOnBackground?.();
+    persist();
+  }
+});
 
 // Media Session: lock-screen, headset and notification controls.
 
@@ -694,17 +732,19 @@ function setMetadata(track: Track) {
     isVideo,
   });
   if (!("mediaSession" in navigator)) return;
+  const artSrc = track.art || track.thumb;
   navigator.mediaSession.metadata = new MediaMetadata({
     title: track.title,
     artist: track.artist,
     album: track.album ?? "",
-    artwork:
-      track.kind === "video"
+    artwork: !artSrc
+      ? []
+      : track.kind === "video"
         ? [
             { src: track.art, sizes: "1280x720", type: "image/jpeg" },
             { src: track.thumb, sizes: "320x180", type: "image/jpeg" },
           ]
-        : [{ src: track.art, sizes: "544x544", type: "image/jpeg" }],
+        : [{ src: artSrc, sizes: "544x544", type: "image/jpeg" }],
   });
 }
 

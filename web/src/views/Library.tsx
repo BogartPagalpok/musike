@@ -8,6 +8,7 @@ import { useT } from "../i18n";
 import { paths } from "../lib/routes";
 import type { Track } from "../lib/types";
 import { IconButton } from "../components/IconButton";
+import { useDeviceFiles } from "../stores/deviceFiles";
 import { useLibrary } from "../stores/library";
 import { useOffline } from "../stores/offline";
 import { useUi } from "../stores/ui";
@@ -17,7 +18,7 @@ function Entry({ to, name, kind, tracks, sub }: { to: string; name: string; kind
     <li>
       <Link
         to={to}
-        className="group flex items-center gap-3.5 rounded-[14px] p-2.5 transition-colors hover:bg-surface-2 @[460px]:flex-col @[460px]:items-stretch @[460px]:p-3"
+        className="group flex items-center gap-3.5 rounded-[14px] bg-surface-2/90 p-2.5 ring-1 ring-line transition-colors hover:bg-surface-3 @[460px]:flex-col @[460px]:items-stretch @[460px]:bg-transparent @[460px]:p-3 @[460px]:ring-0 @[460px]:hover:bg-surface-2"
       >
         <Cover
           kind={kind}
@@ -26,8 +27,8 @@ function Entry({ to, name, kind, tracks, sub }: { to: string; name: string; kind
           className="size-14 shrink-0 rounded-[11px] @[460px]:aspect-square @[460px]:size-auto @[460px]:w-full @[460px]:rounded-[14px] @[460px]:shadow-[0_12px_32px_rgb(0_0_0/0.3)]"
         />
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-semibold text-[14px] text-fg leading-snug">{name}</span>
-          <span className="block truncate text-xs text-fg-3 mt-0.5 leading-snug">{sub}</span>
+          <span className="block truncate font-semibold text-[14.5px] text-fg leading-snug">{name}</span>
+          <span className="block truncate text-xs text-fg-2 mt-0.5 leading-snug">{sub}</span>
         </span>
       </Link>
     </li>
@@ -37,6 +38,7 @@ function Entry({ to, name, kind, tracks, sub }: { to: string; name: string; kind
 export default function Library() {
   const { favorites, playlists, history, createPlaylist } = useLibrary();
   const offlineTracks = useOffline((s) => s.tracks);
+  const deviceTracks = useDeviceFiles((s) => s.tracks);
   const [creating, setCreating] = useState(false);
   const setDataOpen = useUi((s) => s.setDataOpen);
   const navigate = useNavigate();
@@ -63,9 +65,10 @@ export default function Library() {
         }
       />
 
-      <ul className="grid grid-cols-1 gap-1 px-3 pt-2 @[460px]:grid-cols-2 @[700px]:grid-cols-3 @[960px]:grid-cols-4 @[1300px]:grid-cols-6 @[460px]:gap-2.5">
+      <ul className="grid grid-cols-1 gap-2 px-3 pt-2 @[460px]:grid-cols-2 @[700px]:grid-cols-3 @[960px]:grid-cols-4 @[1300px]:grid-cols-6 @[460px]:gap-2.5">
         <Entry to={paths.favorites} name={t.nav.favorites} kind="favorites" tracks={favorites} sub={t.common.tracks(favorites.length)} />
         <Entry to={paths.downloads} name={t.nav.downloads} kind="downloads" tracks={offlineTracks} sub={t.common.tracks(offlineTracks.length)} />
+        <Entry to={paths.device} name={t.device.title} kind="device" tracks={deviceTracks} sub={t.common.tracks(deviceTracks.length)} />
         <Entry to={paths.history} name={t.nav.recentlyPlayed} kind="history" tracks={history} sub={t.common.tracks(history.length)} />
         {playlists.map((p) => (
           <Entry

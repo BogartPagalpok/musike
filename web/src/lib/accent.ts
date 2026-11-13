@@ -210,13 +210,13 @@ export function inkFor(hex: string): string {
   return contrast(base, BLACK) >= contrast(base, WHITE) ? "#0b0c0f" : "#ffffff";
 }
 
-/** CSS that overrides the theme's accent variables across classic themes. Playful multi-color themes keep their native 6-color harmony. */
+/** CSS that overrides the theme's accent variables across all themes. */
 export function accentCss(hex: string): string {
   const base = toRgb(hex);
   const ink = inkFor(hex);
   const rgb = (c: Rgb) => c.map(Math.round).join(" ");
 
-  return CLASSIC_THEMES.map((theme) => {
+  return THEMES.map((theme) => {
     const isLight = theme.scheme === "light";
     const text = readable(base, isLight ? BLACK : WHITE, theme.surfaceRgb);
     const softRgb = isLight ? rgb(text) : rgb(base);

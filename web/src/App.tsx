@@ -22,6 +22,7 @@ import { legacyRedirect, NOW_PLAYING_HASH, paths } from "./lib/routes";
 import { usePlayer } from "./player/player";
 import { useAppearance } from "./stores/appearance";
 import { useLibrary } from "./stores/library";
+import { useDeviceFiles } from "./stores/deviceFiles";
 import { useOffline } from "./stores/offline";
 import { openSettings, useSystem } from "./stores/system";
 import { toast } from "./stores/ui";
@@ -29,6 +30,7 @@ import Album from "./views/Album";
 import Artist from "./views/Artist";
 import BatchSearch from "./views/BatchSearch";
 import Collection from "./views/Collection";
+import Device from "./views/Device";
 import Genre from "./views/Genre";
 import Home from "./views/Home";
 import Library from "./views/Library";
@@ -45,6 +47,7 @@ export default function App() {
   const isMd = useMediaQuery(MD);
   const hasTrack = usePlayer((s) => s.queue.length > 0);
   const loadLibrary = useLibrary((s) => s.load);
+  const loadDeviceFiles = useDeviceFiles((s) => s.load);
   const loadOffline = useOffline((s) => s.load);
   const loadSystem = useSystem((s) => s.load);
   const layoutTemplate = useAppearance((s) => s.layoutTemplate);
@@ -55,7 +58,8 @@ export default function App() {
   useEffect(() => {
     void loadLibrary();
     void loadOffline();
-  }, [loadLibrary, loadOffline]);
+    void loadDeviceFiles();
+  }, [loadLibrary, loadOffline, loadDeviceFiles]);
 
   // Check yt-dlp shortly after start and say so once if something needs doing (not on Android: no yt-dlp there).
   useEffect(() => {
@@ -124,6 +128,7 @@ export default function App() {
       <Route path="/search/artist/:id" element={<Artist />} />
       <Route path="/search/album/:id" element={<Album />} />
       <Route path={paths.library} element={<Library />} />
+      <Route path={paths.device} element={<Device />} />
       <Route path={paths.favorites} element={<Collection kind="favorites" />} />
       <Route path={paths.downloads} element={<Collection kind="downloads" />} />
       <Route path={paths.history} element={<Collection kind="history" />} />

@@ -8,13 +8,14 @@ const RADIO_PATH_2 =
   "M112.525 77.322v21.41a4.582 4.582 0 0 1-4.588 4.588 4.582 4.582 0 0 1-4.588-4.587v-21.41a4.582 4.582 0 0 1 4.588-4.589 4.582 4.582 0 0 1 4.588 4.588m-16.823 0v21.41a4.582 4.582 0 0 1-4.587 4.588 4.582 4.582 0 0 1-4.588-4.587v-21.41a4.582 4.582 0 0 1 4.588-4.589 4.582 4.582 0 0 1 4.587 4.588m-16.822 0v21.41a4.582 4.582 0 0 1-4.588 4.588 4.582 4.582 0 0 1-4.588-4.587v-21.41a4.582 4.582 0 0 1 4.588-4.589 4.582 4.582 0 0 1 4.588 4.588m-39.762-6.117c10.124 0 18.352 8.228 18.352 18.352s-8.228 18.351-18.352 18.351-18.351-8.227-18.351-18.351c0-10.124 8.227-18.352 18.351-18.352m9.176 18.352c0-5.064-4.114-9.176-9.176-9.176s-9.175 4.112-9.175 9.176c0 5.063 4.113 9.176 9.175 9.176s9.176-4.113 9.176-9.176";
 
 /** The Illusive Sounds brand mark: radio symbol only, dynamically colored by the active theme. */
-export function LogoMark({ className }: { className?: string }) {
-  const hasTextColor = /\btext-/.test(className ?? "");
+export function LogoMark({ className, style }: { className?: string; style?: React.CSSProperties }) {
+  const hasTextColor = /\btext-/.test(className ?? "") || Boolean(style?.color);
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
       viewBox="3 0 128 122"
       aria-hidden="true"
+      style={style}
       className={cn("select-none transition-colors duration-200", !hasTextColor && "text-accent-text", className)}
     >
       <path d={RADIO_PATH_1} fill="currentColor" fillRule="evenodd" />

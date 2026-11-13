@@ -17,6 +17,7 @@ import { MD, useMediaQuery } from "../hooks/useMediaQuery";
 import { useT } from "../i18n";
 import { cn } from "../lib/format";
 import { usePlayer } from "../player/player";
+import { isLocalTrack, useDeviceFiles } from "../stores/deviceFiles";
 import { useLibrary } from "../stores/library";
 import { useOffline } from "../stores/offline";
 import { useUi } from "../stores/ui";
@@ -46,6 +47,7 @@ export function TrackMenu() {
   const openAddToPlaylist = useUi((s) => s.openAddToPlaylist);
   const isFavorite = useLibrary((s) => (menu ? s.favorites.some((t) => t.id === menu.track.id) : false));
   const isOffline = useOffline((s) => (menu ? s.tracks.some((t) => t.id === menu.track.id) : false));
+  const local = isLocalTrack(menu?.track.id);
   const isMd = useMediaQuery(MD);
   const box = useRef<HTMLDivElement>(null);
   const t = useT();
@@ -87,9 +89,11 @@ export function TrackMenu() {
       <Item icon={<ListPlusIcon size={18} />} onClick={run(() => usePlayer.getState().addToQueue(menu.track))}>
         {t.trackMenu.addToQueue}
       </Item>
-      <Item icon={<RadioIcon size={18} />} onClick={run(() => void usePlayer.getState().startRadio(menu.track))}>
-        {t.trackMenu.startRadio}
-      </Item>
+      {!local && (
+        <Item icon={<RadioIcon size={18} />} onClick={run(() => void usePlayer.getState().startRadio(menu.track))}>
+          {t.trackMenu.startRadio}
+        </Item>
+      )}
       <div className="mx-3 my-1 h-px bg-line" />
       <Item
         icon={<HeartIcon size={18} weight={isFavorite ? "fill" : "regular"} className={isFavorite ? "text-accent-text" : ""} />}
@@ -109,25 +113,40 @@ export function TrackMenu() {
           {t.trackMenu.removeFromPlaylist}
         </Item>
       )}
-      <div className="mx-3 my-1 h-px bg-line" />
-      <Item
-        icon={
-          isOffline ? (
-            <CheckCircleIcon size={18} weight="fill" className="text-accent-text" />
-          ) : (
-            <DownloadSimpleIcon size={18} />
-          )
-        }
-        onClick={run(() => void useOffline.getState().toggleOffline(menu.track))}
-      >
-        {isOffline ? t.trackMenu.removeOffline : t.trackMenu.download}
-      </Item>
-      <Item
-        icon={<ArrowSquareOutIcon size={18} />}
-        onClick={run(() => window.open(`https://www.youtube.com/watch?v=${menu.track.id}`, "_blank", "noopener"))}
-      >
-        {t.trackMenu.openYoutube}
-      </Item>
+      {local ? (
+        <>
+          <div className="mx-3 my-1 h-px bg-line" />
+          <Item
+            danger
+            icon={<TrashIcon size={18} />}
+            onClick={run(() => void useDeviceFiles.getState().removeFile(menu.track.id))}
+          >
+            {t.device.removeFromDevice}
+          </Item>
+        </>
+      ) : (
+        <>
+          <div className="mx-3 my-1 h-px bg-line" />
+          <Item
+            icon={
+              isOffline ? (
+                <CheckCircleIcon size={18} weight="fill" className="text-accent-text" />
+              ) : (
+                <DownloadSimpleIcon size={18} />
+              )
+            }
+            onClick={run(() => void useOffline.getState().toggleOffline(menu.track))}
+          >
+            {isOffline ? t.trackMenu.removeOffline : t.trackMenu.download}
+          </Item>
+          <Item
+            icon={<ArrowSquareOutIcon size={18} />}
+            onClick={run(() => window.open(`https://www.youtube.com/watch?v=${menu.track.id}`, "_blank", "noopener"))}
+          >
+            {t.trackMenu.openYoutube}
+          </Item>
+        </>
+      )}
     </div>
   );
 

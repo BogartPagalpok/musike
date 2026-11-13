@@ -197,7 +197,7 @@ function ThemePage() {
               active={theme === m.id}
               onPick={() => {
                 setTheme(m.id);
-                setAppearance({ accent: DEFAULT_ACCENT });
+                setAppearance({ accent: THEME_PALETTES[m.id]?.[0] ?? DEFAULT_ACCENT });
               }}
               label={t.settings.themes[m.id]}
             />
@@ -404,13 +404,17 @@ function RootPage({ go }: { go: (p: Page) => void }) {
   const info = useSystem((s) => s.info);
   const y = info?.ytdlp;
   const engineValue = !info ? "…" : !y?.path ? t.settings.chipMissing : y.updateAvailable ? t.settings.chipUpdate : y.version ?? "";
+  const badgeInk = inkFor(a.accent);
 
   return (
     <>
       {/* App card */}
       <div className="flex items-center gap-3.5 rounded-[12px] bg-surface-2 p-4 ring-1 ring-line">
-        <span className="grid size-14 shrink-0 place-items-center rounded-[14px] bg-accent text-accent-ink shadow-xs">
-          <LogoMark className="size-8 text-accent-ink" />
+        <span
+          className="grid size-14 shrink-0 place-items-center rounded-[14px] bg-accent text-accent-ink shadow-xs"
+          style={{ backgroundColor: "var(--accent)", color: badgeInk }}
+        >
+          <LogoMark className="size-8" style={{ color: badgeInk }} />
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-[17px] font-semibold tracking-tight text-fg">Illusive Sounds</p>

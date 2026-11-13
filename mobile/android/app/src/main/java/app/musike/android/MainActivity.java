@@ -47,10 +47,21 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onUserLeaveHint() {
         super.onUserLeaveHint();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            if (PlaybackService.state.playing && PlaybackService.state.isVideo) {
-                enterPictureInPicture();
+        // Automatically switch video playback to continuous background audio when leaving the app.
+        if (PlaybackService.state.playing || PlaybackService.state.isVideo) {
+            WebView webView = getBridge() != null ? getBridge().getWebView() : null;
+            if (webView != null) {
+                if (PlaybackService.state.isVideo) {
+                    PlaybackService.state.isVideo = false;
+                    webView.evaluateJavascript(
+                        "window.__musikeSwitchToAudioOnBackground && window.__musikeSwitchToAudioOnBackground();",
+                        null
+                    );
+                }
+                webView.onResume();
+                webView.resumeTimers();
             }
+            updatePipParams();
         }
     }
 
@@ -106,7 +117,7 @@ public class MainActivity extends BridgeActivity {
         builder.setActions(actions);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            builder.setAutoEnterEnabled(PlaybackService.state.playing && PlaybackService.state.isVideo);
+            builder.setAutoEnterEnabled(false);
             builder.setSeamlessResizeEnabled(true);
         }
 
@@ -162,10 +173,17 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onPause() {
         super.onPause();
-        // Keep WebView rendering & JS loop alive so background playback continues uninterrupted
-        if (PlaybackService.state.playing || exitingPipToBackground) {
+        // Switch video to audio on app exit and keep WebView rendering & JS loop alive for continuous playback.
+        if (PlaybackService.state.playing || PlaybackService.state.isVideo || exitingPipToBackground) {
             WebView webView = getBridge() != null ? getBridge().getWebView() : null;
             if (webView != null) {
+                if (PlaybackService.state.isVideo) {
+                    PlaybackService.state.isVideo = false;
+                    webView.evaluateJavascript(
+                        "window.__musikeSwitchToAudioOnBackground && window.__musikeSwitchToAudioOnBackground();",
+                        null
+                    );
+                }
                 webView.onResume();
                 webView.resumeTimers();
             }

@@ -45,6 +45,9 @@ class NativeAudio extends EventTarget {
   private _bufferedEnd = 0;
   /** Set while a seek is in flight: the native player keeps reporting the old position until it lands. */
   private _seekTarget: number | null = null;
+  /** Local blob:/data: URLs cannot be opened by Swift's AVURLAsset outside WKWebView, so route them to a real <audio>. */
+  private localAudio = new Audio();
+  private usingLocal = false;
 
   readyState = 0;
   networkState = 0;
@@ -54,11 +57,65 @@ class NativeAudio extends EventTarget {
 
   constructor(private bridge: Bridge) {
     super();
+    this.localAudio.preload = "auto";
+    this.localAudio.addEventListener("loadedmetadata", () => {
+      if (!this.usingLocal) return;
+      this._duration = this.localAudio.duration;
+      this.readyState = 4;
+      this.dispatchEvent(new Event("loadedmetadata"));
+      this.dispatchEvent(new Event("durationchange"));
+    });
+    this.localAudio.addEventListener("durationchange", () => {
+      if (!this.usingLocal) return;
+      this._duration = this.localAudio.duration;
+      this.dispatchEvent(new Event("durationchange"));
+    });
+    this.localAudio.addEventListener("timeupdate", () => {
+      if (!this.usingLocal) return;
+      this._position = this.localAudio.currentTime;
+      this.dispatchEvent(new Event("timeupdate"));
+    });
+    this.localAudio.addEventListener("progress", () => {
+      if (!this.usingLocal) return;
+      if (this.localAudio.buffered.length) {
+        this._bufferedEnd = this.localAudio.buffered.end(this.localAudio.buffered.length - 1);
+      }
+      this.dispatchEvent(new Event("progress"));
+    });
+    this.localAudio.addEventListener("seeked", () => {
+      if (!this.usingLocal) return;
+      this._seekTarget = null;
+      this._position = this.localAudio.currentTime;
+      this.dispatchEvent(new Event("seeked"));
+    });
+    this.localAudio.addEventListener("playing", () => {
+      if (!this.usingLocal) return;
+      this._paused = false;
+      this.readyState = 4;
+      this.dispatchEvent(new Event("playing"));
+    });
+    this.localAudio.addEventListener("pause", () => {
+      if (!this.usingLocal || this._paused || this.localAudio.ended || !this.localAudio.getAttribute("src")) return;
+      this._paused = true;
+      this.dispatchEvent(new Event("pause"));
+    });
+    this.localAudio.addEventListener("ended", () => {
+      if (!this.usingLocal) return;
+      this._ended = true;
+      this._paused = true;
+      this.dispatchEvent(new Event("ended"));
+    });
+    this.localAudio.addEventListener("error", () => {
+      if (!this.usingLocal || !this.localAudio.getAttribute("src")) return;
+      this.error = { code: 4, message: "Could not play local audio file" };
+      this.dispatchEvent(new Event("error"));
+    });
+
     const host = globalThis as {
       __musikeAudioEvent?: (event: string, data: NativePayload) => void;
       __musikeAudioEl?: NativeAudio;
     };
-    host.__musikeAudioEvent = (event, data) => this.fromNative(event, data ?? {});
+    host.__musikeAudioEvent = (event, data) => !this.usingLocal && this.fromNative(event, data ?? {});
     // Handy when something needs to poke the player from the console.
     host.__musikeAudioEl = this;
   }
@@ -70,32 +127,53 @@ class NativeAudio extends EventTarget {
   set src(value: string) {
     this._src = value;
     this._ended = false;
+    this._position = 0;
+    this._duration = NaN;
     this.error = null;
     this.readyState = 0;
     this._bufferedEnd = 0;
-    this.bridge.postMessage({ cmd: "load", url: value });
+    const isLocal = value.startsWith("blob:") || value.startsWith("data:");
+    if (isLocal) {
+      if (!this.usingLocal) this.bridge.postMessage({ cmd: "pause" });
+      this.usingLocal = true;
+      this.localAudio.volume = this._volume;
+      this.localAudio.muted = this._muted;
+      this.localAudio.src = value;
+      return;
+    }
+    if (this.usingLocal) {
+      this.localAudio.pause();
+      this.localAudio.removeAttribute("src");
+      this.localAudio.load();
+    }
+    this.usingLocal = false;
+    if (value) this.bridge.postMessage({ cmd: "load", url: value });
   }
 
   get currentTime() {
-    return this._position;
+    return this.usingLocal ? this.localAudio.currentTime : this._position;
   }
 
   set currentTime(value: number) {
     this._position = value;
+    if (this.usingLocal) {
+      this.localAudio.currentTime = value;
+      return;
+    }
     this._seekTarget = value;
     this.bridge.postMessage({ cmd: "seek", to: value });
   }
 
   get duration() {
-    return this._duration;
+    return this.usingLocal ? this.localAudio.duration : this._duration;
   }
 
   get paused() {
-    return this._paused;
+    return this.usingLocal ? this.localAudio.paused : this._paused;
   }
 
   get ended() {
-    return this._ended;
+    return this.usingLocal ? this.localAudio.ended : this._ended;
   }
 
   get volume() {
@@ -104,6 +182,7 @@ class NativeAudio extends EventTarget {
 
   set volume(value: number) {
     this._volume = value;
+    this.localAudio.volume = value;
     this.bridge.postMessage({ cmd: "volume", value });
   }
 
@@ -113,11 +192,12 @@ class NativeAudio extends EventTarget {
 
   set muted(value: boolean) {
     this._muted = value;
+    this.localAudio.muted = value;
     this.bridge.postMessage({ cmd: "muted", value });
   }
 
   get buffered() {
-    return new Buffered(this._bufferedEnd);
+    return this.usingLocal ? this.localAudio.buffered : new Buffered(this._bufferedEnd);
   }
 
   getAttribute(name: string) {
@@ -132,22 +212,36 @@ class NativeAudio extends EventTarget {
     if (name !== "src") return;
     this._src = "";
     this._position = 0;
-    this.bridge.postMessage({ cmd: "load", url: "" });
+    if (this.usingLocal) {
+      this.localAudio.pause();
+      this.localAudio.removeAttribute("src");
+      this.localAudio.load();
+      this.usingLocal = false;
+    } else {
+      this.bridge.postMessage({ cmd: "pause" });
+    }
   }
 
   load() {
-    if (this._src) this.bridge.postMessage({ cmd: "load", url: this._src });
+    if (!this._src) return;
+    if (this.usingLocal) this.localAudio.load();
+    else this.bridge.postMessage({ cmd: "load", url: this._src });
   }
 
   play() {
     this._paused = false;
+    if (this.usingLocal) return this.localAudio.play();
     this.bridge.postMessage({ cmd: "play" });
     return Promise.resolve();
   }
 
   pause() {
     this._paused = true;
-    this.bridge.postMessage({ cmd: "pause" });
+    if (this.usingLocal) {
+      this.localAudio.pause();
+    } else {
+      this.bridge.postMessage({ cmd: "pause" });
+    }
     this.dispatchEvent(new Event("pause"));
   }
 

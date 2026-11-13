@@ -4,6 +4,7 @@ import {
   ClockCounterClockwiseIcon,
   DownloadSimpleIcon,
   GearSixIcon,
+  HardDriveIcon,
   HeartIcon,
   HouseIcon,
   MagnifyingGlassIcon,
@@ -19,6 +20,7 @@ import { cn } from "../lib/format";
 import { paths } from "../lib/routes";
 import { selectCurrent, usePlayer } from "../player/player";
 import { useAppearance } from "../stores/appearance";
+import { useDeviceFiles } from "../stores/deviceFiles";
 import { useLibrary } from "../stores/library";
 import { useOffline } from "../stores/offline";
 import { needsAttention, useSystem } from "../stores/system";
@@ -34,6 +36,7 @@ const nav = [
   { to: paths.podcasts, key: "podcasts", Icon: BroadcastIcon, end: false },
   { to: paths.search, key: "search", Icon: MagnifyingGlassIcon, end: false },
   { to: paths.library, key: "library", Icon: BooksIcon, end: false },
+  { to: paths.device, key: "device", Icon: HardDriveIcon, end: false },
 ] as const;
 
 /** Settings entry. Shows a dot (and on the expanded rail, an "Update" pill) when yt-dlp needs attention. */
@@ -135,6 +138,7 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
   const playlists = useLibrary((s) => s.playlists);
   const favorites = useLibrary((s) => s.favorites);
   const offlineTracks = useOffline((s) => s.tracks);
+  const deviceTracks = useDeviceFiles((s) => s.tracks);
   const createPlaylist = useLibrary((s) => s.createPlaylist);
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
@@ -288,7 +292,7 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
               <div className="shrink-0 px-3 pt-2 pb-1.5">
                 <nav
                   aria-label={t.nav.main}
-                  className="grid grid-cols-4 gap-1 rounded-[10px] bg-fg/[0.07] p-1"
+                  className="grid grid-cols-5 gap-1 rounded-[10px] bg-fg/[0.07] p-1"
                 >
                   {nav.map(({ to, key, Icon, end }) => (
                     <NavLink
@@ -398,6 +402,11 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
                   <RailLink to={paths.downloads} label={t.nav.downloads} sub={t.common.tracks(offlineTracks.length)} isExpanded={isExpanded}>
                     <span className="grid size-full place-items-center bg-surface-3 text-accent-text">
                       <DownloadSimpleIcon size={19} weight="bold" />
+                    </span>
+                  </RailLink>
+                  <RailLink to={paths.device} label={t.nav.device} sub={t.common.tracks(deviceTracks.length)} isExpanded={isExpanded}>
+                    <span className="grid size-full place-items-center bg-surface-3 text-accent-text">
+                      <HardDriveIcon size={19} weight="bold" />
                     </span>
                   </RailLink>
                   <RailLink to={paths.history} label={t.nav.recentlyPlayed} sub={t.nav.history} isExpanded={isExpanded}>
