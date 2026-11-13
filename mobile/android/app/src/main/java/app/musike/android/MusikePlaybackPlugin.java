@@ -35,6 +35,7 @@ public class MusikePlaybackPlugin extends Plugin {
         String album = call.getString("album");
         String artwork = call.getString("artwork");
         Boolean playing = call.getBoolean("playing");
+        Boolean isVideo = call.getBoolean("isVideo");
         Double position = call.getDouble("position");
         Double duration = call.getDouble("duration");
         main.post(() -> {
@@ -51,9 +52,13 @@ public class MusikePlaybackPlugin extends Plugin {
             if (album != null) state.album = album;
             if (artwork != null) state.artwork = artwork;
             if (playing != null) state.playing = playing;
+            if (isVideo != null) state.isVideo = isVideo;
             if (duration != null) state.durationMs = Math.max(0, Math.round(duration * 1000));
             else if (title != null) state.durationMs = 0; // a new track, not loaded yet
             PlaybackService.refresh(getContext());
+            if (getActivity() instanceof MainActivity) {
+                ((MainActivity) getActivity()).updatePipParams();
+            }
         });
         call.resolve();
     }

@@ -85,7 +85,11 @@ export async function startServer(opts: StartOptions = {}): Promise<RunningServe
 
   app.get("/api/genres", async (req) => ({ genres: await genres(langOf(req)) }));
 
-  app.get("/api/charts", async (req) => charts(langOf(req)));
+  app.get("/api/charts", async (req) => {
+    const q = req.query as { region?: string; country?: string } | undefined;
+    const region = q?.country ?? q?.region;
+    return charts(langOf(req), region);
+  });
 
   app.get("/api/genres/:gid", async (req) => {
     const { gid } = req.params as { gid: string };

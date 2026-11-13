@@ -26,7 +26,7 @@ import { useLibrary } from "../stores/library";
 import { useOffline } from "../stores/offline";
 import { useUi } from "../stores/ui";
 
-let chartsMemo: { lang: string; data: ChartsData } | null = null;
+const chartsCache = new Map<string, ChartsData>();
 
 function Shortcut({ to, label, tracks, cover }: { to: string; label: string; tracks: Track[]; cover: ReactNode }) {
   const playList = usePlayer((s) => s.playList);
@@ -178,23 +178,26 @@ function Top50Section() {
   const t = useT();
   const lang = useI18n((s) => s.lang);
   const playList = usePlayer((s) => s.playList);
-  const [charts, setCharts] = useState<ChartsData | null>(() => (chartsMemo?.lang === lang ? chartsMemo.data : null));
+  const [region, setRegion] = useState<string>("US");
+  const cacheKey = `${lang}:${region}`;
+  const [charts, setCharts] = useState<ChartsData | null>(() => chartsCache.get(cacheKey) ?? null);
   const [loading, setLoading] = useState(!charts);
   const [tab, setTab] = useState<"global" | "trending">("global");
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    if (chartsMemo?.lang === lang) {
-      setCharts(chartsMemo.data);
+    const cached = chartsCache.get(cacheKey);
+    if (cached) {
+      setCharts(cached);
       setLoading(false);
       return;
     }
     const ctrl = new AbortController();
     setLoading(true);
     api
-      .charts(ctrl.signal)
+      .charts(ctrl.signal, region)
       .then((data) => {
-        chartsMemo = { lang, data };
+        chartsCache.set(cacheKey, data);
         setCharts(data);
         setLoading(false);
       })
@@ -202,32 +205,65 @@ function Top50Section() {
         if (!ctrl.signal.aborted) setLoading(false);
       });
     return () => ctrl.abort();
-  }, [lang]);
+  }, [cacheKey, region]);
 
   const activeTracks = (tab === "global" ? charts?.global : charts?.trending) ?? [];
   const defaultCount = 20;
   const visibleTracks = expanded ? activeTracks : activeTracks.slice(0, defaultCount);
 
+  const countries = [
+    { id: "GLOBAL", label: "Global" },
+    { id: "US", label: "United States" },
+    { id: "PH", label: "Philippines" },
+    { id: "GB", label: "UK" },
+  ];
+
   return (
     <Section
-      title={t.home.top50Title}
+      title={
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className="whitespace-nowrap">{t.home.top50Title}</span>
+          <div
+            role="tablist"
+            aria-label="Country Filter"
+            className="flex items-center gap-1 rounded-full bg-fg/[0.07] p-1 shrink-0"
+          >
+            {countries.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                role="tab"
+                aria-selected={region === c.id}
+                onClick={() => setRegion(c.id)}
+                className={cn(
+                  "h-6.5 rounded-full px-3 text-xs font-medium whitespace-nowrap transition-colors",
+                  region === c.id ? "bg-surface-4 text-fg shadow-2xs font-semibold" : "text-fg-2 hover:text-fg",
+                )}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      }
       action={
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           {activeTracks.length > 0 && (
             <button
               type="button"
               onClick={() => playList(activeTracks, 0)}
               aria-label={t.home.playTop50}
               title={t.home.playTop50}
-              className="grid size-8 place-items-center rounded-full bg-accent text-accent-ink shadow-sm transition-transform hover:scale-105 active:scale-95"
+              className="flex items-center gap-1.5 h-8 px-3.5 rounded-full bg-accent text-accent-ink font-semibold text-xs whitespace-nowrap shadow-sm transition-transform hover:scale-105 active:scale-95 shrink-0"
             >
-              <PlayIcon size={14} weight="fill" className="translate-x-0.5" />
+              <PlayIcon size={13} weight="fill" />
+              <span>{t.home.playTop50}</span>
             </button>
           )}
           <div
             role="tablist"
             aria-label={t.home.top50Title}
-            className="flex items-center rounded-lg bg-fg/[0.07] p-0.5"
+            className="flex items-center rounded-lg bg-fg/[0.07] p-0.5 shrink-0"
           >
             <button
               type="button"
@@ -235,7 +271,7 @@ function Top50Section() {
               aria-selected={tab === "global"}
               onClick={() => setTab("global")}
               className={cn(
-                "h-7 rounded-[6px] px-2.5 text-xs font-medium transition-colors",
+                "h-7 rounded-[6px] px-2.5 text-xs font-medium whitespace-nowrap transition-colors",
                 tab === "global" ? "bg-surface-4 text-fg shadow-2xs" : "text-fg-2 hover:text-fg",
               )}
             >
@@ -247,7 +283,7 @@ function Top50Section() {
               aria-selected={tab === "trending"}
               onClick={() => setTab("trending")}
               className={cn(
-                "h-7 rounded-[6px] px-2.5 text-xs font-medium transition-colors",
+                "h-7 rounded-[6px] px-2.5 text-xs font-medium whitespace-nowrap transition-colors",
                 tab === "trending" ? "bg-surface-4 text-fg shadow-2xs" : "text-fg-2 hover:text-fg",
               )}
             >

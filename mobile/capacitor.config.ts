@@ -13,6 +13,7 @@ const config: CapacitorConfig = {
   android: {
     // Music keeps loading while the screen is off or another app is in front.
     allowMixedContent: false,
+    keepRunning: true,
   },
   ios: {
     // The status bar area is padded by the app itself, like on Android.

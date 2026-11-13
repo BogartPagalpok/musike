@@ -685,7 +685,14 @@ document.addEventListener("visibilitychange", () => document.visibilityState ===
 // Media Session: lock-screen, headset and notification controls.
 
 function setMetadata(track: Track) {
-  systemMedia?.setTrack({ title: track.title, artist: track.artist, album: track.album ?? "", artwork: track.art || track.thumb });
+  const isVideo = usePlayer.getState().mediaKind === "video";
+  systemMedia?.setTrack({
+    title: track.title,
+    artist: track.artist,
+    album: track.album ?? "",
+    artwork: track.art || track.thumb,
+    isVideo,
+  });
   if (!("mediaSession" in navigator)) return;
   navigator.mediaSession.metadata = new MediaMetadata({
     title: track.title,
@@ -705,8 +712,13 @@ function setMetadata(track: Track) {
  *  reporting a pause between tracks would let Android stop the app in the background. */
 function syncSystemMedia() {
   if (!systemMedia) return;
-  const { status, position, duration } = usePlayer.getState();
-  systemMedia.setState({ playing: status === "playing" || status === "loading", position, duration });
+  const { status, position, duration, mediaKind } = usePlayer.getState();
+  systemMedia.setState({
+    playing: status === "playing" || status === "loading",
+    position,
+    duration,
+    isVideo: mediaKind === "video",
+  });
 }
 
 function syncPlaybackState() {
@@ -736,6 +748,7 @@ if (systemMedia) {
     else if (action === "next") p().next();
     else if (action === "previous") p().prev();
     else if (action === "seek" && position != null) p().seek(position);
+    else if (action === "audio_mode") p().setPreferVideo(false);
   });
 }
 

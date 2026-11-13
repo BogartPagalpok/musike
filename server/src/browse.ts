@@ -447,19 +447,29 @@ export async function searchAlbums(query: string, lang: Lang): Promise<AlbumCard
 }
 
 const GLOBAL_HIT_LIST = "VLRDCLAK5uy_kmPRjHDECIcuVwnKsx2Ng7fyNgFKWNJFs";
-const GLOBAL_TOP_100 = "VLPL4fGSI1pDJn6puJdseH2Rt9sMvt9E2M4i";
+const GLOBAL_POP_HITS = "VLRDCLAK5uy_kPX0g3hZ9R0j11N3vPj0E2gQo32P5A";
+
+const REGION_CHARTS: Record<string, { name: string; playlistId: string }> = {
+  US: { name: "United States", playlistId: "VLPL4fGSI1pDJn68CQ3wSuhzcL6H78uP_" },
+  PH: { name: "Philippines", playlistId: "VLPL4fGSI1pDJn68W-r1k_H3nSbgqfE01" },
+  GB: { name: "United Kingdom", playlistId: "VLPL4fGSI1pDJn67W9b7W3YkG0l0zS2n_" },
+  GLOBAL: { name: "Global", playlistId: GLOBAL_POP_HITS },
+};
 
 const chartsList = cached(60 * MINUTE, async (key): Promise<ChartsData> => {
-  const { lang } = parseKey(key);
-  const [hitListItems, global100Items, chartsPage] = await Promise.all([
-    playlistItems(GLOBAL_HIT_LIST, 60, lang),
-    playlistItems(GLOBAL_TOP_100, 60, lang),
+  const { lang, id: regionCode } = parseKey(key);
+  const targetRegion = (regionCode && REGION_CHARTS[regionCode.toUpperCase()]) ? regionCode.toUpperCase() : "US";
+  const regionalConfig = REGION_CHARTS[targetRegion] ?? REGION_CHARTS.US;
+
+  const [hitListItems, regionalItems, chartsPage] = await Promise.all([
+    playlistItems(GLOBAL_HIT_LIST, 60, lang).catch(() => []),
+    playlistItems(regionalConfig.playlistId, 60, lang).catch(() => []),
     withClient((yt) => browse(yt, { browseId: "FEmusic_charts" }), lang).catch(() => null),
   ]);
 
-  const global = uniqueTracks([...hitListItems, ...global100Items].map((i) => toTrack(i, "song"))).slice(0, 50);
+  const global = uniqueTracks([...hitListItems, ...regionalItems].map((i) => toTrack(i, "song"))).slice(0, 50);
 
-  let region = "";
+  let detectedRegion = regionalConfig.name;
   const localPlaylistIds: string[] = [];
   for (const shelf of shelvesOf(chartsPage)) {
     for (const item of itemsOf(shelf)) {
@@ -467,22 +477,22 @@ const chartsList = cached(60 * MINUTE, async (key): Promise<ChartsData> => {
       const title = text(item?.title);
       if (bid.startsWith("VL")) {
         localPlaylistIds.push(bid);
-        if (!region && title) {
+        if (!detectedRegion && title) {
           const m = /(?:-\s*|\bVideos\s+)([A-Z][A-Za-z\s]+)$/.exec(title.trim());
-          if (m?.[1]) region = m[1].trim();
+          if (m?.[1]) detectedRegion = m[1].trim();
         }
       }
     }
   }
 
-  const localItems = (await Promise.all(localPlaylistIds.slice(0, 2).map((id) => playlistItems(id, 60, lang)))).flat();
-  const trending = uniqueTracks([...localItems, ...global100Items].map((i) => toTrack(i, "song"))).slice(0, 50);
+  const localItems = (await Promise.all(localPlaylistIds.slice(0, 2).map((id) => playlistItems(id, 60, lang).catch(() => [])))).flat();
+  const trending = uniqueTracks([...regionalItems, ...localItems, ...hitListItems].map((i) => toTrack(i, "song"))).slice(0, 50);
 
   return {
     global: global.length ? global : trending,
     trending: trending.length ? trending : global,
-    region,
+    region: detectedRegion || regionalConfig.name,
   };
 });
 
-export const charts = (lang: Lang): Promise<ChartsData> => chartsList(keyOf(lang));
+export const charts = (lang: Lang, region?: string): Promise<ChartsData> => chartsList(keyOf(lang, region || "US"));

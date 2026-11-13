@@ -51,7 +51,7 @@ export function PageHeader({
   );
 }
 
-export function Section({ title, action, children, className }: { title: string; action?: ReactNode; children: ReactNode; className?: string }) {
+export function Section({ title, action, children, className }: { title: ReactNode; action?: ReactNode; children: ReactNode; className?: string }) {
   return (
     <section className={cn("flex flex-col gap-3", className)}>
       <div className="flex items-end justify-between gap-4 px-4 md:px-6">

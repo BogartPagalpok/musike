@@ -64,7 +64,7 @@ export const api: MusikeApi = {
     }, signal),
   suggest: (q, signal) => call(() => suggestions(q.trim().slice(0, 100), getLang()).catch(() => []), signal),
   radio: (id) => call(() => radio(id)),
-  charts: (signal) => call(() => charts(getLang()), signal),
+  charts: (signal, region) => call(() => charts(getLang(), region), signal),
   genres: () => call(() => genres(getLang())),
   genre: (id, signal) =>
     call(async () => {

@@ -286,63 +286,30 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
         {(!isExpanded || !track || sidebarTab === "browse") && (
           <>
             {/* Top Navigation Links */}
-            {isExpanded && isStageLayout ? (
-              <div className="shrink-0 px-3 pt-2 pb-1.5">
-                <nav
-                  aria-label={t.nav.main}
-                  className="grid grid-cols-4 gap-1 rounded-[10px] bg-fg/[0.07] p-1"
+            <nav aria-label={t.nav.main} className="flex shrink-0 flex-col gap-0.5 px-2 pt-2">
+              {nav.map(({ to, key, Icon, end }) => (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end={end}
+                  title={t.nav[key]}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center gap-2.5 rounded-[9px] transition-colors duration-150",
+                      isExpanded ? "h-9 justify-start px-3 text-[13.5px]" : "h-10 justify-center px-0",
+                      isActive ? "bg-surface-3 text-fg font-semibold" : "text-fg-2 hover:bg-surface-3/60 hover:text-fg",
+                    )
+                  }
                 >
-                  {nav.map(({ to, key, Icon, end }) => (
-                    <NavLink
-                      key={to}
-                      to={to}
-                      end={end}
-                      title={t.nav[key]}
-                      className={({ isActive }) =>
-                        cn(
-                          "flex h-7 items-center justify-center gap-1.5 rounded-[7px] px-1 text-xs font-medium transition-colors min-w-0 truncate",
-                          isActive
-                            ? "bg-surface-4 text-fg shadow-2xs font-semibold"
-                            : "text-fg-2 hover:text-fg",
-                        )
-                      }
-                    >
-                      {({ isActive }) => (
-                        <>
-                          <Icon size={14} weight={isActive ? "fill" : "regular"} className="shrink-0" />
-                          <span className="truncate">{t.nav[key]}</span>
-                        </>
-                      )}
-                    </NavLink>
-                  ))}
-                </nav>
-              </div>
-            ) : (
-              <nav aria-label={t.nav.main} className="flex shrink-0 flex-col gap-0.5 px-2 pt-2">
-                {nav.map(({ to, key, Icon, end }) => (
-                  <NavLink
-                    key={to}
-                    to={to}
-                    end={end}
-                    title={t.nav[key]}
-                    className={({ isActive }) =>
-                      cn(
-                        "flex items-center gap-2.5 rounded-[9px] transition-colors duration-150",
-                        isExpanded ? "h-9 justify-start px-3 text-[13.5px]" : "h-10 justify-center px-0",
-                        isActive ? "bg-surface-3 text-fg font-semibold" : "text-fg-2 hover:bg-surface-3/60 hover:text-fg",
-                      )
-                    }
-                  >
-                    {({ isActive }) => (
-                      <>
-                        <Icon size={19} weight={isActive ? "fill" : "regular"} className={cn("shrink-0", isActive && "text-accent-text")} />
-                        {isExpanded && <span className="min-w-0 flex-1 truncate">{t.nav[key]}</span>}
-                      </>
-                    )}
-                  </NavLink>
-                ))}
-              </nav>
-            )}
+                  {({ isActive }) => (
+                    <>
+                      <Icon size={19} weight={isActive ? "fill" : "regular"} className={cn("shrink-0", isActive && "text-accent-text")} />
+                      {isExpanded && <span className="min-w-0 flex-1 truncate">{t.nav[key]}</span>}
+                    </>
+                  )}
+                </NavLink>
+              ))}
+            </nav>
 
             {/* In Collapsed Icon Rail Mode: Quick Now Playing & Lyrics buttons if track active */}
             {!isExpanded && track && (

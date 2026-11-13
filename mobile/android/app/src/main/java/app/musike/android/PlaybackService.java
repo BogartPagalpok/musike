@@ -51,6 +51,7 @@ public class PlaybackService extends Service {
         String album = "";
         String artwork = "";
         boolean playing;
+        boolean isVideo;
         long positionMs;
         /** When positionMs was measured (elapsedRealtime), so the system can keep the clock moving on its own. */
         long positionAt = SystemClock.elapsedRealtime();
@@ -173,6 +174,9 @@ public class PlaybackService extends Service {
             }
             if (name.equals("dismiss")) {
                 if (!state.playing) stopSelf();
+            } else if (name.equals("audio_mode")) {
+                state.isVideo = false;
+                emit("audio_mode", -1);
             } else {
                 emit(name, -1);
             }

@@ -14,6 +14,7 @@ interface PlaybackPlugin {
     playing?: boolean;
     position?: number;
     duration?: number;
+    isVideo?: boolean;
   }): Promise<void>;
   addListener(event: "action", fn: (e: { action: string; position?: number }) => void): Promise<PluginListenerHandle>;
 }
@@ -54,9 +55,9 @@ const androidMedia: SystemMedia = {
     last = { playing: last.playing, position: 0, at: Date.now() };
     void Playback.update({ ...track, position: 0 });
   },
-  setState({ playing, position, duration }) {
+  setState({ playing, position, duration, isVideo }) {
     if (!worthSending(playing, position)) return;
-    void Playback.update({ playing, position, duration: Number.isFinite(duration) ? duration : 0 });
+    void Playback.update({ playing, position, duration: Number.isFinite(duration) ? duration : 0, isVideo });
   },
   onAction(handler) {
     void Playback.addListener("action", (e) => handler(e.action as Parameters<typeof handler>[0], e.position));
@@ -68,9 +69,9 @@ const iosMedia: SystemMedia = {
     last = { playing: last.playing, position: 0, at: Date.now() };
     iosBridge?.postMessage({ type: "track", ...track, position: 0 });
   },
-  setState({ playing, position, duration }) {
+  setState({ playing, position, duration, isVideo }) {
     if (!worthSending(playing, position)) return;
-    iosBridge?.postMessage({ type: "state", playing, position, duration: Number.isFinite(duration) ? duration : 0 });
+    iosBridge?.postMessage({ type: "state", playing, position, duration: Number.isFinite(duration) ? duration : 0, isVideo });
   },
   onAction(handler) {
     (globalThis as { __musikeMediaAction?: (action: string, position?: number) => void }).__musikeMediaAction = (

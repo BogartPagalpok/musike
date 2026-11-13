@@ -41,7 +41,8 @@ export const api: MusikeApi = {
   suggest: (q: string, signal?: AbortSignal) =>
     request<{ suggestions: string[] }>(`/api/suggest?q=${encodeURIComponent(q)}`, { signal }).then((r) => r.suggestions),
   radio: (id: string) => request<{ tracks: Track[] }>(`/api/radio/${id}`).then((r) => r.tracks),
-  charts: (signal?: AbortSignal) => request<ChartsData>("/api/charts", { signal }),
+  charts: (signal?: AbortSignal, region?: string) =>
+    request<ChartsData>(region ? `/api/charts?region=${encodeURIComponent(region)}` : "/api/charts", { signal }),
   genres: () => request<{ genres: Genre[] }>("/api/genres").then((r) => r.genres),
   genre: (id: string, signal?: AbortSignal) => request<GenrePage>(`/api/genres/${encodeURIComponent(id)}`, { signal }),
   genreArtists: (id: string, offset: number) =>

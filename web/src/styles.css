@@ -577,3 +577,22 @@ html:is([data-theme="synthwave"], [data-theme="candy"], [data-theme="arcade"], [
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Android & System Native Picture-in-Picture mode */
+html[data-pip="1"] {
+  background: #000 !important;
+  overflow: hidden !important;
+}
+html[data-pip="1"] body {
+  background: #000 !important;
+  overflow: hidden !important;
+}
+html[data-pip="1"] #video-portal,
+html[data-pip="1"] [data-slot-priority="100"],
+html[data-pip="1"] video {
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  object-fit: contain !important;
+}
