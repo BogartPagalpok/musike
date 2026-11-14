@@ -55,14 +55,18 @@ export function noteName(midi: number): string {
   return `${NOTE_NAMES[((m % 12) + 12) % 12]}${Math.floor(m / 12) - 1}`;
 }
 
-/** Time-domain autocorrelation pitch detector for the human singing range (~75-1100 Hz). */
+/** Time-domain autocorrelation pitch detector tuned specifically for human singing voice (~80-1100 Hz).
+ * Ignores background instruments, drums, bass, and noise by requiring high harmonic periodicity. */
 function detectPitchHz(buf: Float32Array, sampleRate: number): number | null {
   let rms = 0;
   for (let i = 0; i < buf.length; i++) rms += buf[i] * buf[i];
   rms = Math.sqrt(rms / buf.length);
-  if (rms < 0.012) return null;
-  const minLag = Math.floor(sampleRate / 1100);
-  const maxLag = Math.min(Math.floor(sampleRate / 75), Math.floor(buf.length / 2));
+  // Vocal threshold: reject quiet room noise, speaker bleed, and backing tracks below vocal singing level
+  if (rms < 0.018) return null;
+
+  // Strict human singing pitch bounds: 80 Hz (deep bass vocal) to 1050 Hz (soprano high C)
+  const minLag = Math.floor(sampleRate / 1050);
+  const maxLag = Math.min(Math.floor(sampleRate / 80), Math.floor(buf.length / 2));
   let bestLag = -1;
   let bestCorr = 0;
   for (let lag = minLag; lag <= maxLag; lag++) {
@@ -78,7 +82,9 @@ function detectPitchHz(buf: Float32Array, sampleRate: number): number | null {
       bestLag = lag;
     }
   }
-  if (bestCorr < 0.75 || bestLag <= 0) return null;
+  // High correlation requirement (>= 0.82) ensures only clear harmonic human singing vowels register,
+  // rejecting percussive beats, guitar strumming, and general noise
+  if (bestCorr < 0.82 || bestLag <= 0) return null;
   return sampleRate / bestLag;
 }
 
@@ -450,10 +456,9 @@ export const useVideoke = create<VideokeState>((set, get) => ({
     resetTake();
     const p = usePlayer.getState();
     p.setPreferVideo(true);
-    const at = p.queue.findIndex((x) => x.id === track.id);
-    if (at >= 0) return p.jumpTo(at);
-    // Keep only songs that were reserved in Videoke; never carry the music queue (or radio) along.
-    const reserved = p.queue.slice(p.index + 1).filter((x) => get().ids.has(x.id));
+    // Keep only songs that were reserved in Videoke; never carry the music queue (or radio) along, and turn off repeat.
+    const reserved = p.queue.slice(p.index + 1).filter((x) => get().ids.has(x.id) && x.id !== track.id);
+    usePlayer.setState({ repeat: "off" });
     p.playList([track, ...reserved], 0);
   },
 
@@ -462,14 +467,14 @@ export const useVideoke = create<VideokeState>((set, get) => ({
     const current = p.queue[p.index];
     // Nothing to wait for: sing it right away.
     if (!current || !get().ids.has(current.id)) return get().singNow(track);
-    if (p.queue.slice(p.index + 1).some((x) => x.id === track.id)) return;
+    const reserved = p.queue.slice(p.index + 1).filter((x) => get().ids.has(x.id));
+    if (reserved.some((x) => x.id === track.id)) return;
     get().mark(track);
-    // Line it up after the songs already reserved, before anything else in the queue.
-    let insert = p.index + 1;
-    while (insert < p.queue.length && get().ids.has(p.queue[insert].id)) insert++;
-    const queue = [...p.queue.slice(0, insert), track, ...p.queue.slice(insert)];
-    usePlayer.setState({ queue, original: p.original ? [...p.original, track] : null });
-    toast(`Reserved #${insert - p.index}: ${track.title}`);
+    // Keep only the current videoke song + reserved videoke songs (strip any leftover non-videoke tracks).
+    const nextReserved = [...reserved, track];
+    const queue = [current, ...nextReserved];
+    usePlayer.setState({ queue, index: 0, original: null, repeat: "off" });
+    toast(`Reserved #${nextReserved.length}: ${track.title}`);
   },
 
   startMic: async () => {
@@ -496,9 +501,27 @@ export const useVideoke = create<VideokeState>((set, get) => ({
       await micCtx.resume().catch(() => {});
     }
     const ctx = micCtx;
+
+    // Vocal isolation filter chain:
+    // 1. High-pass filter at 85 Hz cuts out sub-bass, kick drum boom, phone handling vibrations & AC rumble
+    const hp = ctx.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.value = 85;
+    hp.Q.value = 0.707;
+
+    // 2. Low-pass filter at 1100 Hz cuts off cymbals, snare sizzle, and high-frequency noise outside human vocal fundamental
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.value = 1100;
+    lp.Q.value = 0.707;
+
+    const source = ctx.createMediaStreamSource(micStream);
+    source.connect(hp);
+    hp.connect(lp);
+
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 2048;
-    ctx.createMediaStreamSource(micStream).connect(analyser);
+    lp.connect(analyser);
     const timeData = new Float32Array(analyser.fftSize);
     set({ micOn: true });
     let frame = 0;
@@ -547,12 +570,17 @@ export const useVideoke = create<VideokeState>((set, get) => ({
     const { score, axes, heard } = computeScore();
     resetTake();
     const verdict = judge(score);
-    // The song is over: stop it while the score is on screen.
+    // The song is over: stop playback immediately and strip any non-Videoke songs from the queue.
     const p = usePlayer.getState();
-    if (p.status === "playing" && p.queue[p.index]?.id === track.id) p.toggle();
+    p.pause();
+    const current = p.queue[p.index];
+    const reserved = p.queue.slice(p.index + 1).filter((x) => get().ids.has(x.id));
+    if (current) {
+      usePlayer.setState({ queue: [current, ...reserved], index: 0, original: null, repeat: "off", status: "paused", position: 0 });
+    }
     if (advanceTimer) clearTimeout(advanceTimer);
     if (miniTimer) clearTimeout(miniTimer);
-    const hasNext = hasReservedNext();
+    const hasNext = reserved.length > 0;
     set({
       score: {
         id: ++scoreSeq,
@@ -569,13 +597,17 @@ export const useVideoke = create<VideokeState>((set, get) => ({
         hasNext,
       },
     });
-    // After 10 s: tuck the score away and start the next reserved song.
+    // After 10 s: tuck the score away and start the next reserved song (or stay stopped if nothing is queued).
     advanceTimer = setTimeout(() => {
       advanceTimer = null;
       const s = get().score;
       if (!s) return;
       set({ score: { ...s, phase: "mini", advanceAt: null } });
-      if (hasReservedNext()) get().playNext();
+      if (hasReservedNext()) {
+        get().playNext();
+      } else {
+        usePlayer.getState().pause();
+      }
       miniTimer = setTimeout(() => get().dismiss(), 12_000);
     }, AUTO_ADVANCE_MS);
   },

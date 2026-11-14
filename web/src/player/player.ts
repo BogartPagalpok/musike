@@ -56,6 +56,7 @@ interface PlayerState {
   clearUpcoming: () => void;
   startRadio: (track: Track) => Promise<void>;
   toggle: () => void;
+  pause: () => void;
   next: () => void;
   prev: () => void;
   seek: (seconds: number) => void;
@@ -339,7 +340,16 @@ export const usePlayer = create<PlayerState>((set, get) => {
     const s = get();
     const ended = s.queue[s.index];
     if (ended && playerHooks.onEnded?.(ended)) {
-      set({ status: "paused" });
+      audio.pause();
+      videoEl.pause();
+      set({ status: "paused", position: 0 });
+      return;
+    }
+    if (ended && playerHooks.blockRadio?.(ended)) {
+      if (s.index < s.queue.length - 1) return load(s.index + 1);
+      audio.pause();
+      videoEl.pause();
+      set({ status: "paused", position: 0 });
       return;
     }
     if (s.repeat === "one") {
@@ -644,8 +654,22 @@ export const usePlayer = create<PlayerState>((set, get) => {
       else media.pause();
     },
 
+    pause: () => {
+      audio.pause();
+      videoEl.pause();
+      set({ status: "paused" });
+    },
+
     next: () => {
       const s = get();
+      const cur = s.queue[s.index];
+      if (cur && playerHooks.blockRadio?.(cur)) {
+        if (s.index < s.queue.length - 1) return load(s.index + 1);
+        audio.pause();
+        videoEl.pause();
+        set({ status: "paused", position: 0 });
+        return;
+      }
       if (s.index < s.queue.length - 1) return load(s.index + 1);
       if (s.repeat === "all" && s.queue.length) return load(0);
       if (s.autoRadio) void continueWithRadio();

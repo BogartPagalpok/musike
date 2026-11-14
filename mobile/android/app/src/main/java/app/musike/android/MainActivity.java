@@ -1,26 +1,36 @@
 package app.musike.android;
 
+import android.Manifest;
 import android.app.PendingIntent;
 import android.app.PictureInPictureParams;
 import android.app.RemoteAction;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.Icon;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Rational;
+import android.webkit.PermissionRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import androidx.activity.EdgeToEdge;
 import androidx.activity.SystemBarStyle;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.core.content.ContextCompat;
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.BridgeWebChromeClient;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class MainActivity extends BridgeActivity {
 
     private static MainActivity instance;
     private boolean exitingPipToBackground = false;
+    private PermissionRequest pendingWebPermissionRequest;
+    private ActivityResultLauncher<String> recordAudioLauncher;
 
     public static MainActivity getInstance() {
         return instance;
@@ -31,12 +41,42 @@ public class MainActivity extends BridgeActivity {
         instance = this;
         registerPlugin(MusikePlaybackPlugin.class);
         registerPlugin(MusikeDevicePlugin.class);
+        recordAudioLauncher = registerForActivityResult(
+            new ActivityResultContracts.RequestPermission(),
+            isGranted -> {
+                PermissionRequest req = pendingWebPermissionRequest;
+                pendingWebPermissionRequest = null;
+                if (req != null) {
+                    if (Boolean.TRUE.equals(isGranted)) {
+                        req.grant(req.getResources());
+                    } else {
+                        req.deny();
+                    }
+                }
+            }
+        );
         super.onCreate(savedInstanceState);
 
         WebView webView = getBridge() != null ? getBridge().getWebView() : null;
         if (webView != null) {
             WebSettings settings = webView.getSettings();
             settings.setMediaPlaybackRequiresUserGesture(false);
+            webView.setWebChromeClient(new BridgeWebChromeClient(getBridge()) {
+                @Override
+                public void onPermissionRequest(final PermissionRequest request) {
+                    boolean needsAudio = Arrays.asList(request.getResources()).contains(PermissionRequest.RESOURCE_AUDIO_CAPTURE);
+                    if (needsAudio) {
+                        if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                            request.grant(request.getResources());
+                        } else {
+                            pendingWebPermissionRequest = request;
+                            recordAudioLauncher.launch(Manifest.permission.RECORD_AUDIO);
+                        }
+                        return;
+                    }
+                    super.onPermissionRequest(request);
+                }
+            });
         }
 
         // Draw behind the status and navigation bars on every Android version
