@@ -20,21 +20,20 @@ import {
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { useNavigate } from "react-router";
 import { MD, useMediaQuery } from "../hooks/useMediaQuery";
 import { useT } from "../i18n";
 import { CLASSIC_THEMES, DEFAULT_ACCENT, inkFor, PLAYFUL_THEMES, THEME_PALETTES, type ThemeMeta } from "../lib/accent";
 import { capabilities, type Channel } from "../lib/api";
 import { cn } from "../lib/format";
-import { paths } from "../lib/routes";
 import { ACCENTS, useAppearance } from "../stores/appearance";
 import { SKIN_PACKS, useThemeStore } from "../stores/themeStore";
 import { useSystem } from "../stores/system";
 import { useUi } from "../stores/ui";
+import { ThemeStoreContent } from "../views/ThemeStore";
 import { LogoMark } from "./Brand";
 import { CustomColorPicker } from "./CustomizeSection";
 
-type Page = "root" | "theme" | "accent" | "layout" | "engine";
+type Page = "root" | "store" | "theme" | "accent" | "layout" | "engine";
 
 const LAYOUTS = [
   { id: "default", title: "Classic", body: "Sidebar, catalog in the centre, Now Playing on the right" },
@@ -178,13 +177,27 @@ function ThemeTile({ meta, active, onPick, label }: { meta: ThemeMeta; active: b
   );
 }
 
-function ThemePage() {
+function ThemePage({ go }: { go: (p: Page) => void }) {
   const t = useT();
   const theme = useUi((s) => s.theme);
   const setTheme = useUi((s) => s.setTheme);
   const setAppearance = useAppearance((s) => s.set);
+  const activePackId = useThemeStore((s) => s.activePackId);
+  const activePackName =
+    SKIN_PACKS.find((p) => p.id === activePackId)?.name ?? (activePackId === "custom-mix" ? "Custom Mix" : undefined);
   return (
     <>
+      <Group title="World Skins & Custom UI">
+        <Row
+          icon={StorefrontIcon}
+          color="#ef4444"
+          label="Theme Store & World Skins"
+          sub="Itachi Blood Moon, Naruto Konoha, One Piece, 8-Bit & Custom"
+          value={activePackName}
+          chevron
+          onClick={() => go("store")}
+        />
+      </Group>
       <Group title="Classic" className="p-3">
         <div role="radiogroup" className="grid grid-cols-3 gap-3 sm:grid-cols-5">
           {CLASSIC_THEMES.map((m) => (
@@ -400,7 +413,6 @@ function EnginePage() {
 
 function RootPage({ go }: { go: (p: Page) => void }) {
   const t = useT();
-  const navigate = useNavigate();
   const isMd = useMediaQuery(MD);
   const a = useAppearance();
   const theme = useUi((s) => s.theme);
@@ -435,14 +447,11 @@ function RootPage({ go }: { go: (p: Page) => void }) {
       <Group title={t.settings.appearance}>
         <Row
           icon={StorefrontIcon}
-          color="#f97316"
-          label="Theme Store & Skins"
+          color="#ef4444"
+          label="Theme Store & World Skins"
           value={activePackName}
           chevron
-          onClick={() => {
-            useUi.getState().setSettingsOpen(false);
-            navigate(paths.themes);
-          }}
+          onClick={() => go("store")}
         />
         <Row icon={PaletteIcon} color="#5e5ce6" label={t.settings.theme} value={t.settings.themes[theme]} chevron onClick={() => go("theme")} />
         <Row
@@ -548,6 +557,7 @@ export function SettingsDialog() {
 
   const titles: Record<Page, string> = {
     root: t.settings.title,
+    store: "Theme Store",
     theme: t.settings.theme,
     accent: t.customize.accent,
     layout: t.customize.layout,
@@ -577,7 +587,8 @@ export function SettingsDialog() {
             className={cn(
               "relative flex w-full flex-col overflow-hidden bg-bg shadow-[0_30px_80px_rgb(0_0_0/0.5)]",
               "h-[calc(100dvh-max(env(safe-area-inset-top),12px)-12px)] rounded-t-[16px]",
-              "md:h-[min(760px,88dvh)] md:max-w-[620px] md:rounded-[18px] md:ring-1 md:ring-line",
+              "md:rounded-[18px] md:ring-1 md:ring-line transition-[max-width,height] duration-200",
+              page === "store" ? "md:h-[min(820px,90dvh)] md:max-w-[860px]" : "md:h-[min(760px,88dvh)] md:max-w-[620px]",
             )}
           >
             {/* Nav bar */}
@@ -617,7 +628,8 @@ export function SettingsDialog() {
                 >
                   <div className="flex flex-col gap-7 px-4 pt-5 pb-[calc(32px+env(safe-area-inset-bottom))]">
                     {page === "root" && <RootPage go={go} />}
-                    {page === "theme" && <ThemePage />}
+                    {page === "store" && <ThemeStoreContent embedded />}
+                    {page === "theme" && <ThemePage go={go} />}
                     {page === "accent" && <AccentPage />}
                     {page === "layout" && <LayoutPage />}
                     {page === "engine" && <EnginePage />}

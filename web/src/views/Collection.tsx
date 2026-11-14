@@ -85,21 +85,21 @@ export default function Collection({ kind }: Props) {
   const playing = isThisPlaying && (status === "playing" || status === "loading");
 
   return (
-    <div className="pb-8">
+    <div className="@container/collection pb-8">
       <PageHeader title={name} mobileOnly />
 
       <div className="relative">
         <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 -top-20 h-72 bg-linear-to-b from-accent-soft to-transparent" />
-        <div className="relative flex flex-col items-center gap-5 px-4 pt-2 pb-6 md:flex-row md:items-end md:gap-6 md:px-6 md:pt-10">
+        <div className="relative flex flex-col items-center gap-5 px-4 pt-2 pb-6 @[620px]/collection:flex-row @[620px]/collection:items-end @[620px]/collection:gap-6 @[620px]/collection:px-6 @[620px]/collection:pt-10">
           <Cover
             kind={kind}
             tracks={tracks}
             iconSize={64}
-            className="size-44 shrink-0 rounded-[18px] shadow-[0_24px_60px_rgb(0_0_0/0.4)] md:size-52"
+            className="size-44 shrink-0 rounded-[18px] shadow-[0_24px_60px_rgb(0_0_0/0.4)] @[620px]/collection:size-52"
           />
-          <div className="flex min-w-0 flex-col items-center gap-2 text-center md:items-start md:text-left">
-            <span className="hidden text-xs font-medium text-fg-2 md:block">{label}</span>
-            <h1 className="max-w-full text-[28px] leading-[1.1] font-bold tracking-tight break-words md:text-5xl lg:text-6xl">{name}</h1>
+          <div className="flex min-w-0 flex-col items-center gap-2 text-center @[620px]/collection:items-start @[620px]/collection:text-left">
+            <span className="hidden text-xs font-medium text-fg-2 @[620px]/collection:block">{label}</span>
+            <h1 className="max-w-full text-[28px] leading-[1.1] font-bold tracking-tight break-words @[620px]/collection:text-5xl @[860px]/collection:text-6xl">{name}</h1>
             <p className="font-mono text-[13px] text-fg-2">
               {t.common.tracks(tracks.length)}
               {total > 0 && <> · {t.time.total(total)}</>}
@@ -108,7 +108,7 @@ export default function Collection({ kind }: Props) {
         </div>
       </div>
 
-      <div className="flex items-center gap-2 px-4 pb-4 md:px-6">
+      <div className="flex items-center gap-2 px-4 pb-4 @[620px]/collection:px-6">
         <PlayDisc
           label={playing ? t.common.pause : t.common.playX(name)}
           px={56}

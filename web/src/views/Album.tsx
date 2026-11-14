@@ -88,25 +88,25 @@ export default function Album() {
   };
 
   return (
-    <div className="pb-8">
+    <div className="@container/album pb-8">
       <PageHeader title={title} actions={<BackButton fallback={paths.search} />} />
 
       <div className="relative">
         <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 -top-20 h-72 bg-linear-to-b from-accent-soft to-transparent" />
-        <div className="relative flex flex-col items-center gap-5 px-4 pt-2 pb-6 md:flex-row md:items-end md:gap-6 md:px-6 md:pt-6">
+        <div className="relative flex flex-col items-center gap-5 px-4 pt-2 pb-6 @[620px]/album:flex-row @[620px]/album:items-end @[620px]/album:gap-6 @[620px]/album:px-6 @[620px]/album:pt-6">
           {album ? (
             <Artwork
               src={album.art}
               fallback={album.thumb}
               iconSize={64}
-              className="size-44 shrink-0 rounded-[18px] shadow-[0_24px_60px_rgb(0_0_0/0.4)] md:size-52"
+              className="size-44 shrink-0 rounded-[18px] shadow-[0_24px_60px_rgb(0_0_0/0.4)] @[620px]/album:size-52"
             />
           ) : (
-            <span className="skeleton size-44 shrink-0 rounded-[18px] md:size-52" />
+            <span className="skeleton size-44 shrink-0 rounded-[18px] @[620px]/album:size-52" />
           )}
-          <div className="flex min-w-0 flex-col items-center gap-2 text-center md:items-start md:text-left">
+          <div className="flex min-w-0 flex-col items-center gap-2 text-center @[620px]/album:items-start @[620px]/album:text-left">
             {album?.kind && <span className="text-xs font-medium text-fg-2">{album.kind}</span>}
-            <h1 className="max-w-full text-[28px] leading-[1.1] font-bold tracking-tight break-words md:text-5xl">{title}</h1>
+            <h1 className="max-w-full text-[28px] leading-[1.1] font-bold tracking-tight break-words @[620px]/album:text-5xl">{title}</h1>
             {album?.artist &&
               (album.artistId ? (
                 <Link to={paths.artist(album.artistId)} state={{ name: album.artist }} className="font-medium hover:underline">
@@ -121,7 +121,7 @@ export default function Album() {
       </div>
 
       {album && tracks.length > 0 && (
-        <div className="flex items-center gap-2 px-4 pb-4 md:px-6">
+        <div className="flex items-center gap-2 px-4 pb-4 @[620px]/album:px-6">
           <PlayDisc
             label={playing ? t.common.pause : t.album.play(album.title)}
             px={56}

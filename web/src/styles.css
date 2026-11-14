@@ -585,17 +585,18 @@ html:is([data-theme="synthwave"], [data-theme="candy"], [data-theme="arcade"], [
   animation: sceneFloat 11s ease-in-out infinite reverse;
 }
 
+/* Full-world scene chrome & translucent low-blur panels so background artwork shines through */
 html[data-scene]:not([data-scene="none"]) .app-shell {
   background: transparent;
 }
 html[data-scene]:not([data-scene="none"]) .island {
-  background: color-mix(in srgb, var(--surface-1) 76%, transparent);
-  backdrop-filter: blur(22px) saturate(1.25);
+  background: color-mix(in srgb, var(--surface-1) 62%, transparent);
+  backdrop-filter: blur(5px) saturate(1.2);
   box-shadow: inset 0 0 0 1px var(--line);
 }
 html[data-scene]:not([data-scene="none"]) .app-main {
-  background: color-mix(in srgb, var(--surface-1) 72%, transparent);
-  backdrop-filter: blur(22px) saturate(1.2);
+  background: color-mix(in srgb, var(--surface-1) 50%, transparent);
+  backdrop-filter: blur(3px) saturate(1.15);
 }
 @media (width >= 48rem) {
   html[data-scene]:not([data-scene="none"]) .app-main {
@@ -603,8 +604,205 @@ html[data-scene]:not([data-scene="none"]) .app-main {
   }
 }
 html[data-scene]:not([data-scene="none"]) .app-playerbar {
-  background: color-mix(in srgb, var(--bg) 74%, transparent);
-  backdrop-filter: blur(24px) saturate(1.25);
+  background: color-mix(in srgb, var(--bg) 68%, transparent);
+  backdrop-filter: blur(8px) saturate(1.25);
+}
+html[data-scene]:not([data-scene="none"]) .app-tabbar {
+  background: color-mix(in srgb, var(--surface-1) 76%, transparent);
+  backdrop-filter: blur(10px) saturate(1.25);
+}
+html[data-scene]:not([data-scene="none"]) .app-miniplayer {
+  background: color-mix(in srgb, var(--surface-2) 78%, transparent);
+  backdrop-filter: blur(10px) saturate(1.25);
+}
+html[data-scene]:not([data-scene="none"]) .app-header {
+  background: color-mix(in srgb, var(--surface-1) 66%, transparent);
+  backdrop-filter: blur(6px) saturate(1.2);
+}
+
+/* Itachi / Akatsuki Tsukuyomi Blood Moon World UI */
+html[data-scene="akatsuki"] {
+  color-scheme: dark;
+  --bg: #070204;
+  --surface-1: #110407;
+  --surface-2: #1b060b;
+  --surface-3: #280911;
+  --surface-4: #390e1a;
+  --line: rgb(239 68 68 / 0.28);
+  --line-strong: rgb(239 68 68 / 0.56);
+  --fg: #fef2f2;
+  --fg-2: #e2b8bd;
+  --fg-3: #b88289;
+}
+html[data-scene="akatsuki"] .island,
+html[data-scene="akatsuki"] .app-main,
+html[data-scene="akatsuki"] .app-miniplayer {
+  border: 1px solid rgba(239, 68, 68, 0.42);
+  box-shadow: inset 0 0 32px rgba(220, 38, 38, 0.14), 0 12px 32px rgba(0, 0, 0, 0.65);
+}
+html[data-scene="akatsuki"] .app-playerbar,
+html[data-scene="akatsuki"] .app-tabbar {
+  border-top: 1px solid rgba(239, 68, 68, 0.48);
+  box-shadow: 0 -8px 28px rgba(220, 38, 38, 0.16);
+}
+
+/* Naruto / Konoha Six Paths World UI */
+html[data-scene="shinobi"] {
+  color-scheme: dark;
+  --bg: #0c0704;
+  --surface-1: #170e08;
+  --surface-2: #24150b;
+  --surface-3: #331e10;
+  --surface-4: #442816;
+  --line: rgb(249 115 22 / 0.28);
+  --line-strong: rgb(249 115 22 / 0.55);
+  --fg: #fff7ed;
+  --fg-2: #e2c5af;
+  --fg-3: #b8947a;
+}
+html[data-scene="shinobi"] .island,
+html[data-scene="shinobi"] .app-main,
+html[data-scene="shinobi"] .app-miniplayer {
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  box-shadow: inset 0 0 28px rgba(249, 115, 22, 0.13), 0 12px 32px rgba(0, 0, 0, 0.6);
+}
+html[data-scene="shinobi"] .app-playerbar,
+html[data-scene="shinobi"] .app-tabbar {
+  border-top: 1px solid rgba(249, 115, 22, 0.46);
+  box-shadow: 0 -8px 24px rgba(249, 115, 22, 0.12);
+}
+
+/* One Piece / Grand Line & Gear 5 World UI */
+html[data-scene="grandline"] {
+  color-scheme: dark;
+  --bg: #040c18;
+  --surface-1: #08162b;
+  --surface-2: #0d2240;
+  --surface-3: #143058;
+  --surface-4: #1d4073;
+  --line: rgb(251 191 36 / 0.28);
+  --line-strong: rgb(251 191 36 / 0.56);
+  --fg: #f0f6ff;
+  --fg-2: #b9cde6;
+  --fg-3: #87a3c7;
+}
+html[data-scene="grandline"] .island,
+html[data-scene="grandline"] .app-main,
+html[data-scene="grandline"] .app-miniplayer {
+  border: 1px solid rgba(251, 191, 36, 0.42);
+  box-shadow: inset 0 0 28px rgba(251, 191, 36, 0.12), 0 12px 32px rgba(0, 0, 0, 0.6);
+}
+html[data-scene="grandline"] .app-playerbar,
+html[data-scene="grandline"] .app-tabbar {
+  border-top: 1px solid rgba(251, 191, 36, 0.46);
+}
+
+/* 8-Bit Arcade RPG Window UI */
+html[data-scene="arcade8bit"] {
+  color-scheme: dark;
+  --bg: #07091b;
+  --surface-1: #0d102c;
+  --surface-2: #151940;
+  --surface-3: #1f2457;
+  --surface-4: #2a3170;
+  --line: rgb(250 204 21 / 0.34);
+  --line-strong: rgb(250 204 21 / 0.65);
+  --fg: #f8fafc;
+  --fg-2: #cbd5e1;
+  --fg-3: #94a3b8;
+}
+html[data-scene="arcade8bit"] h1,
+html[data-scene="arcade8bit"] h2,
+html[data-scene="arcade8bit"] h3 {
+  font-family: var(--font-mono);
+}
+html[data-scene="arcade8bit"] .island,
+html[data-scene="arcade8bit"] .app-main,
+html[data-scene="arcade8bit"] .app-miniplayer {
+  border-radius: 4px !important;
+  border: 2px solid rgba(250, 204, 21, 0.65);
+  box-shadow: 4px 4px 0px rgba(0, 0, 0, 0.88);
+}
+html[data-scene="arcade8bit"] .app-playerbar,
+html[data-scene="arcade8bit"] .app-tabbar {
+  border-top: 2px solid rgba(250, 204, 21, 0.6);
+}
+
+/* Night City Edgerunner HUD UI */
+html[data-scene="cyberpunk"] {
+  color-scheme: dark;
+  --bg: #050c16;
+  --surface-1: #091326;
+  --surface-2: #0f1c38;
+  --surface-3: #18274c;
+  --surface-4: #243563;
+  --line: rgb(34 211 238 / 0.28);
+  --line-strong: rgb(34 211 238 / 0.56);
+  --fg: #ecfeff;
+  --fg-2: #a5d8e6;
+  --fg-3: #76acc0;
+}
+html[data-scene="cyberpunk"] .island,
+html[data-scene="cyberpunk"] .app-main,
+html[data-scene="cyberpunk"] .app-miniplayer {
+  border: 1px solid rgba(34, 211, 238, 0.44);
+  box-shadow: inset 0 0 24px rgba(34, 211, 238, 0.14), 0 0 20px rgba(244, 63, 94, 0.14);
+}
+@media (width >= 48rem) {
+  html[data-scene="cyberpunk"] .island-core,
+  html[data-scene="cyberpunk"] .app-main {
+    clip-path: polygon(0 12px, 12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%);
+  }
+}
+html[data-scene="cyberpunk"] .app-playerbar,
+html[data-scene="cyberpunk"] .app-tabbar {
+  border-top: 1px solid rgba(34, 211, 238, 0.5);
+}
+
+/* Y2K Cyber Idol Glossy Chrome UI */
+html[data-scene="kpop"] {
+  color-scheme: dark;
+  --bg: #14061a;
+  --surface-1: #1f0a28;
+  --surface-2: #2d1038;
+  --surface-3: #3c184a;
+  --surface-4: #4d225e;
+  --line: rgb(244 114 182 / 0.3);
+  --line-strong: rgb(244 114 182 / 0.58);
+  --fg: #fdf2f8;
+  --fg-2: #e7bfd6;
+  --fg-3: #be8fac;
+}
+html[data-scene="kpop"] .island,
+html[data-scene="kpop"] .app-main,
+html[data-scene="kpop"] .app-miniplayer {
+  border: 1px solid rgba(244, 114, 182, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.32), inset 0 0 28px rgba(244, 114, 182, 0.15);
+}
+
+/* Hi-Fi Vinyl Warm Tube & Walnut Studio UI */
+html[data-scene="vinyl"] {
+  color-scheme: dark;
+  --bg: #110a06;
+  --surface-1: #1a1009;
+  --surface-2: #26180d;
+  --surface-3: #342113;
+  --surface-4: #452c1a;
+  --line: rgb(245 158 11 / 0.28);
+  --line-strong: rgb(245 158 11 / 0.52);
+  --fg: #fffbeb;
+  --fg-2: #dec7a6;
+  --fg-3: #b3956e;
+}
+html[data-scene="vinyl"] .island,
+html[data-scene="vinyl"] .app-main,
+html[data-scene="vinyl"] .app-miniplayer {
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  box-shadow: inset 0 0 30px rgba(245, 158, 11, 0.13);
+}
+html[data-scene="vinyl"] .app-playerbar,
+html[data-scene="vinyl"] .app-tabbar {
+  border-top: 1px solid rgba(245, 158, 11, 0.44);
 }
 
 /* Google Pixel Squiggly Progress Bar Wave Animation */

@@ -233,7 +233,7 @@ export default function Podcasts() {
       </div>
 
       {/* Featured Popular Shows Grid */}
-      <div className="px-4 md:px-6">
+      <div className="@container/shows px-4 @[680px]/shows:px-6">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-base font-semibold tracking-tight text-fg flex items-center gap-2">
             <SparkleIcon size={18} className="text-accent-text" />
@@ -241,7 +241,7 @@ export default function Podcasts() {
           </h2>
           <span className="text-xs text-fg-3">{t.podcasts.showsCount(POPULAR_SHOWS.length)}</span>
         </div>
-        <div className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 sm:mx-0 sm:grid sm:grid-cols-4 sm:overflow-visible sm:px-0 lg:grid-cols-8">
+        <div className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 @[520px]/shows:mx-0 @[520px]/shows:grid @[520px]/shows:grid-cols-4 @[520px]/shows:overflow-visible @[520px]/shows:px-0 @[900px]/shows:grid-cols-8">
           {POPULAR_SHOWS.map((show) => {
             const isSelected = selectedShow?.name === show.name;
             return (
@@ -250,7 +250,7 @@ export default function Podcasts() {
                 type="button"
                 onClick={() => handleShowSelect(show)}
                 className={cn(
-                  "group flex w-36 shrink-0 snap-start flex-col rounded-[16px] p-1.5 text-left transition-transform active:scale-[0.98] sm:w-auto",
+                  "group flex w-36 shrink-0 snap-start flex-col rounded-[16px] p-1.5 text-left transition-transform active:scale-[0.98] @[520px]/shows:w-auto",
                   isSelected && "bg-accent/15 ring-2 ring-accent",
                 )}
               >

@@ -1,5 +1,5 @@
 import { msg } from "./i18n.js";
-import { HttpError, VIDEO_ID, type Library, type Playlist, type Track } from "./types.js";
+import { HttpError, TRACK_ID, type Library, type Playlist, type Track } from "./types.js";
 
 // No Node-only imports here: the Android app runs this same module, with its own storage.
 
@@ -46,8 +46,8 @@ const str = (v: unknown, max: number) => (typeof v === "string" ? v.slice(0, max
 
 export function sanitizeTrack(input: unknown): Track {
   const t = (input ?? {}) as Record<string, unknown>;
-  const id = str(t.id, 11);
-  if (!VIDEO_ID.test(id)) throw new HttpError(400, msg("invalidTrack"));
+  const id = str(t.id, 86);
+  if (!TRACK_ID.test(id)) throw new HttpError(400, msg("invalidTrack"));
   const url = (v: unknown) => {
     const s = str(v, 500);
     return /^https:\/\//.test(s) ? s : "";

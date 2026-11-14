@@ -1,4 +1,5 @@
 import {
+  ArrowsClockwiseIcon,
   FolderOpenIcon,
   HardDriveIcon,
   MagnifyingGlassIcon,
@@ -21,6 +22,7 @@ export default function Device() {
   const tracks = useDeviceFiles((s) => s.tracks);
   const sizes = useDeviceFiles((s) => s.sizes);
   const importing = useDeviceFiles((s) => s.importing);
+  const load = useDeviceFiles((s) => s.load);
   const importFiles = useDeviceFiles((s) => s.importFiles);
   const clearAll = useDeviceFiles((s) => s.clearAll);
   const playList = usePlayer((s) => s.playList);
@@ -29,6 +31,17 @@ export default function Device() {
   const folderInput = useRef<HTMLInputElement>(null);
   const [filter, setFilter] = useState("");
   const [dragging, setDragging] = useState(false);
+  const [scanning, setScanning] = useState(false);
+
+  const rescan = async () => {
+    if (scanning) return;
+    setScanning(true);
+    try {
+      await load();
+    } finally {
+      setScanning(false);
+    }
+  };
 
   const totalBytes = useMemo(
     () => tracks.reduce((sum, tr) => sum + (sizes[tr.id] ?? 0), 0),
@@ -60,7 +73,7 @@ export default function Device() {
 
   return (
     <div
-      className="min-h-full pb-8"
+      className="@container/device min-h-full pb-8"
       onDragOver={(e) => {
         e.preventDefault();
         setDragging(true);
@@ -100,6 +113,17 @@ export default function Device() {
         title={t.nav.device}
         actions={
           <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              disabled={importing || scanning}
+              onClick={() => void rescan()}
+              title="Scan local music (3–7 min, excluding rec)"
+              aria-label="Scan local music"
+              className="flex h-9 items-center gap-1.5 rounded-full bg-surface-3 px-3 text-xs font-medium text-fg transition-colors hover:bg-surface-4 active:scale-[0.97] disabled:opacity-50"
+            >
+              <ArrowsClockwiseIcon size={16} className={scanning ? "animate-spin" : ""} />
+              <span className="hidden @[520px]/device:inline">Scan</span>
+            </button>
             {canPickFolder && (
               <button
                 type="button"
@@ -108,7 +132,7 @@ export default function Device() {
                 className="flex h-9 items-center gap-1.5 rounded-full bg-surface-3 px-3 text-xs font-medium text-fg transition-colors hover:bg-surface-4 active:scale-[0.97] disabled:opacity-50"
               >
                 <FolderOpenIcon size={16} />
-                <span className="hidden sm:inline">{t.device.addFolder}</span>
+                <span className="hidden @[440px]/device:inline">{t.device.addFolder}</span>
               </button>
             )}
             <button
@@ -125,14 +149,14 @@ export default function Device() {
       />
 
       {dragging && (
-        <div className="mx-4 mt-3 flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-accent bg-accent-soft px-4 py-6 text-sm font-medium text-accent-text md:mx-6">
+        <div className="mx-4 mt-3 flex items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-accent bg-accent-soft px-4 py-6 text-sm font-medium text-accent-text @[680px]/device:mx-6">
           <MusicNotesPlusIcon size={20} weight="bold" />
           <span>Drop audio files to add them to Device Music</span>
         </div>
       )}
 
       {importing && (
-        <div className="mx-4 mt-3 flex items-center gap-2.5 rounded-xl bg-surface-2 px-4 py-2.5 text-xs font-medium text-fg-2 ring-1 ring-line md:mx-6">
+        <div className="mx-4 mt-3 flex items-center gap-2.5 rounded-xl bg-surface-2 px-4 py-2.5 text-xs font-medium text-fg-2 ring-1 ring-line @[680px]/device:mx-6">
           <span className="size-3.5 animate-spin rounded-full border-2 border-accent border-t-transparent" />
           <span>{t.device.importing}</span>
         </div>
@@ -171,7 +195,7 @@ export default function Device() {
       ) : (
         <div className="flex flex-col gap-4 pt-3">
           {/* Summary & Quick Controls */}
-          <div className="mx-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-surface-2 p-4 ring-1 ring-line md:mx-6">
+          <div className="mx-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-surface-2 p-4 ring-1 ring-line @[680px]/device:mx-6">
             <div className="flex min-w-0 items-center gap-3">
               <span className="grid size-12 shrink-0 place-items-center rounded-[12px] bg-accent-soft text-accent-text">
                 <HardDriveIcon size={24} weight="bold" />
@@ -211,7 +235,7 @@ export default function Device() {
           </div>
 
           {tracks.length > 5 && (
-            <div className="px-4 md:px-6">
+            <div className="px-4 @[680px]/device:px-6">
               <div className="relative">
                 <MagnifyingGlassIcon size={17} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-fg-2" />
                 <input
@@ -238,7 +262,7 @@ export default function Device() {
             </div>
           )}
 
-          <div className="px-2 md:px-3">
+          <div className="px-2 @[680px]/device:px-3">
             <TrackList tracks={filtered} context={filtered} header={false} />
           </div>
         </div>

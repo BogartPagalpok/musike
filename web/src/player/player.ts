@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { getT, useT } from "../i18n";
 import { api, capabilities, explainStreamError, streamSource, systemMedia, type ApiError, type ErrorCode } from "../lib/api";
 import { createAudio } from "../lib/audio";
+import { desktop, type DesktopMediaAction } from "../lib/desktop";
 import { shuffled } from "../lib/format";
 import type { Track } from "../lib/types";
 import { attachEqualizer, registerEqMedia, useEqualizer } from "./equalizer";
@@ -371,7 +372,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
       retryTrackId = track.id;
       retryCount = 0;
     }
-    if (capabilities.retryOnError && retryCount < 3) {
+    if (!isLocalTrack(track?.id) && capabilities.retryOnError && retryCount < 3) {
       retryCount++;
       const at = Math.max(media.currentTime || 0, get().position || 0);
       load(get().index, { startAt: at, autoplay: true });
@@ -735,17 +736,38 @@ document.addEventListener("visibilitychange", () => {
   }
 });
 
-// Media Session: lock-screen, headset and notification controls.
+// Media Session: lock-screen, headset, notification, and desktop controls.
+
+let lastDesktopMedia = "";
+
+function syncDesktopMedia(track?: Track) {
+  if (!desktop?.setMediaState) return;
+  const st = usePlayer.getState();
+  const current = track ?? selectCurrent(st);
+  const playing = st.status === "playing" || st.status === "loading";
+  const key = `${current?.id ?? ""}|${current?.title ?? ""}|${current?.artist ?? ""}|${playing ? 1 : 0}`;
+  if (key === lastDesktopMedia) return;
+  lastDesktopMedia = key;
+  desktop.setMediaState({
+    title: current?.title ?? "",
+    artist: current?.artist ?? "",
+    playing,
+  });
+}
 
 function setMetadata(track: Track) {
   const isVideo = usePlayer.getState().mediaKind === "video";
-  systemMedia?.setTrack({
-    title: track.title,
-    artist: track.artist,
-    album: track.album ?? "",
-    artwork: track.art || track.thumb,
-    isVideo,
-  });
+  syncDesktopMedia(track);
+  if (systemMedia) {
+    systemMedia.setTrack({
+      title: track.title,
+      artist: track.artist,
+      album: track.album ?? "",
+      artwork: track.art || track.thumb,
+      isVideo,
+    });
+    return;
+  }
   if (!("mediaSession" in navigator)) return;
   const artSrc = track.art || track.thumb;
   navigator.mediaSession.metadata = new MediaMetadata({
@@ -763,9 +785,10 @@ function setMetadata(track: Track) {
   });
 }
 
-/** The phone's notification and lock screen. A track that is loading is about to play, so it counts as playing:
- *  reporting a pause between tracks would let Android stop the app in the background. */
+/** The phone's notification, lock screen, and desktop menus. A track that is loading is about to play, so it counts
+ *  as playing: reporting a pause between tracks would let Android/iOS stop the app in the background. */
 function syncSystemMedia() {
+  syncDesktopMedia();
   if (!systemMedia) return;
   const { status, position, duration, mediaKind } = usePlayer.getState();
   systemMedia.setState({
@@ -778,15 +801,15 @@ function syncSystemMedia() {
 
 function syncPlaybackState() {
   syncSystemMedia();
-  if (!("mediaSession" in navigator)) return;
+  if (systemMedia || !("mediaSession" in navigator)) return;
   navigator.mediaSession.playbackState = usePlayer.getState().status === "playing" ? "playing" : "paused";
   syncPositionState();
 }
 
 function syncPositionState() {
   syncSystemMedia();
+  if (systemMedia || !("mediaSession" in navigator) || !navigator.mediaSession.setPositionState) return;
   const { duration, position } = usePlayer.getState();
-  if (!("mediaSession" in navigator) || !navigator.mediaSession.setPositionState) return;
   if (!Number.isFinite(duration) || duration <= 0) return;
   try {
     navigator.mediaSession.setPositionState({ duration, position: Math.min(position, duration), playbackRate: 1 });
@@ -795,24 +818,32 @@ function syncPositionState() {
   }
 }
 
-if (systemMedia) {
-  const p = () => usePlayer.getState();
-  systemMedia.onAction((action, position) => {
-    if (action === "play" && p().status !== "playing") p().toggle();
-    else if (action === "pause" && p().status === "playing") p().toggle();
-    else if (action === "next") p().next();
-    else if (action === "previous") p().prev();
-    else if (action === "seek" && position != null) p().seek(position);
-    else if (action === "audio_mode") p().setPreferVideo(false);
-  });
+function handleExternalMediaAction(
+  action: DesktopMediaAction | "seek" | "audio_mode",
+  position?: number,
+) {
+  const p = usePlayer.getState();
+  if (action === "toggle") p.toggle();
+  else if (action === "play" && p.status !== "playing" && p.status !== "loading") p.toggle();
+  else if (action === "pause" && (p.status === "playing" || p.status === "loading")) p.toggle();
+  else if (action === "next") p.next();
+  else if (action === "previous") p.prev();
+  else if (action === "seek" && position != null) p.seek(position);
+  else if (action === "audio_mode") p.setPreferVideo(false);
 }
 
-if ("mediaSession" in navigator) {
+if (systemMedia) {
+  systemMedia.onAction((action, position) => handleExternalMediaAction(action, position));
+}
+
+desktop?.onMediaAction?.((action) => handleExternalMediaAction(action));
+
+if ("mediaSession" in navigator && !systemMedia) {
   const ms = navigator.mediaSession;
   const p = () => usePlayer.getState();
   const handlers: [MediaSessionAction, MediaSessionActionHandler][] = [
-    ["play", () => p().status !== "playing" && p().toggle()],
-    ["pause", () => p().status === "playing" && p().toggle()],
+    ["play", () => handleExternalMediaAction("play")],
+    ["pause", () => handleExternalMediaAction("pause")],
     ["previoustrack", () => p().prev()],
     ["nexttrack", () => p().next()],
     ["seekto", (d) => d.seekTime != null && p().seek(d.seekTime)],
@@ -828,6 +859,9 @@ if ("mediaSession" in navigator) {
   }
   const restored = selectCurrent(usePlayer.getState());
   if (restored) setMetadata(restored);
+} else if (desktop?.setMediaState) {
+  const restored = selectCurrent(usePlayer.getState());
+  if (restored) syncDesktopMedia(restored);
 }
 
 /** The player's status line in the current language, or null when there is nothing to say. */

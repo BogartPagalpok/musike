@@ -43,12 +43,14 @@ export function AlbumRow({ title, albums }: { title: string; albums: AlbumCard[]
 /** Albums as a responsive grid (search results). */
 export function AlbumGrid({ albums }: { albums: AlbumCard[] }) {
   return (
-    <ul className="grid grid-cols-2 gap-x-3 gap-y-5 px-2 sm:grid-cols-3 md:px-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
-      {albums.map((a) => (
-        <li key={a.id}>
-          <AlbumTile album={a} />
-        </li>
-      ))}
-    </ul>
+    <div className="@container/albums">
+      <ul className="grid grid-cols-2 gap-x-3 gap-y-5 px-2 @[480px]/albums:grid-cols-3 @[680px]/albums:px-3 @[720px]/albums:grid-cols-4 @[960px]/albums:grid-cols-5 @[1200px]/albums:grid-cols-6">
+        {albums.map((a) => (
+          <li key={a.id}>
+            <AlbumTile album={a} />
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

@@ -29,7 +29,7 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "safe-top sticky top-0 z-10 border-b border-line-strong bg-surface-1/90 backdrop-blur-2xl md:border-b-0 md:bg-surface-1/95",
+        "app-header safe-top sticky top-0 z-10 border-b border-line-strong bg-surface-1/90 backdrop-blur-2xl md:border-b-0 md:bg-surface-1/95",
         // Without a title or actions the header only exists for the phone brand bar.
         ((!title && !actions) || mobileOnly) && "md:hidden",
         className,

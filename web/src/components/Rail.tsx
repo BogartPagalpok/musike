@@ -26,6 +26,7 @@ import { useDeviceFiles } from "../stores/deviceFiles";
 import { useLibrary } from "../stores/library";
 import { useOffline } from "../stores/offline";
 import { needsAttention, useSystem } from "../stores/system";
+import { useThemeStore } from "../stores/themeStore";
 import { useUi } from "../stores/ui";
 import { Artwork } from "./Artwork";
 import { Logo, LogoMark } from "./Brand";
@@ -136,6 +137,7 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
   const sidebarWidth = useAppearance((s) => s.sidebarWidth);
   const sidebarTab = useAppearance((s) => s.sidebarTab ?? "browse");
   const layoutTemplate = useAppearance((s) => s.layoutTemplate);
+  const sceneStyle = useThemeStore((s) => s.sceneStyle);
   const setAppearance = useAppearance((s) => s.set);
   const playlists = useLibrary((s) => s.playlists);
   const favorites = useLibrary((s) => s.favorites);
@@ -313,7 +315,7 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
                       title={t.nav[key]}
                       className={({ isActive }) =>
                         cn(
-                          "flex h-7 items-center justify-center gap-1.5 rounded-[7px] px-1 text-xs font-medium transition-colors min-w-0 truncate",
+                          "flex flex-col items-center justify-center gap-0.5 rounded-[7px] px-1 py-1.5 text-[10px] font-medium transition-colors min-w-0 @[460px]/sidebar:h-7 @[460px]/sidebar:flex-row @[460px]/sidebar:gap-1.5 @[460px]/sidebar:py-0 @[460px]/sidebar:text-xs",
                           isActive
                             ? "bg-surface-4 text-fg shadow-2xs font-semibold"
                             : "text-fg-2 hover:text-fg",
@@ -323,7 +325,7 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
                       {({ isActive }) => (
                         <>
                           <Icon size={14} weight={isActive ? "fill" : "regular"} className="shrink-0" />
-                          <span className="truncate">{t.nav[key]}</span>
+                          <span className="max-w-full truncate leading-none">{t.nav[key]}</span>
                         </>
                       )}
                     </NavLink>
@@ -384,7 +386,7 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
 
             {/* Stage Layout Mode: Embedded routes (Home, Podcasts, Search, Library) right inside the sidebar */}
             {isExpanded && isStageLayout ? (
-              <div className="scroll-area min-h-0 flex-1 overflow-y-auto border-t border-line/60 bg-surface-1/40">
+              <div className={cn("scroll-area min-h-0 flex-1 overflow-y-auto border-t border-line/60", sceneStyle === "none" ? "bg-surface-1/40" : "bg-transparent")}>
                 {embeddedRoutes}
               </div>
             ) : (
@@ -467,7 +469,7 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
           } else {
             setAppearance({
               compactSidebar: false,
-              sidebarWidth: Math.max(280, Math.min(560, nextWidth)),
+              sidebarWidth: Math.max(280, Math.min(620, nextWidth)),
             });
           }
         }}

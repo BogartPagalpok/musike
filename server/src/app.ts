@@ -6,17 +6,24 @@ import { ALBUM_ID, album, ARTIST_ID, artist, charts, GENRE_ID, genre, genreArtis
 import { config } from "./config.js";
 import * as library from "./library.js";
 import { fileStorage } from "./libraryFile.js";
+import { resolveLocalTrackFile, scanLocalMusic } from "./localMusic.js";
 import { findVideoFor, radio, search, suggestions } from "./search.js";
 import { downloadStream, proxyStream, serveFile } from "./stream.js";
 import { langOf, msg, tr } from "./i18n.js";
 import { presentJob, startJob, systemInfo, type Channel } from "./system.js";
 import { refreshTools, type Tools } from "./tools.js";
-import { HttpError, VIDEO_ID } from "./types.js";
+import { HttpError, TRACK_ID, VIDEO_ID } from "./types.js";
 import { downloadHd, getCachedVideoFile, pruneCache, resolveStreams, resolveVideoStream } from "./ytdlp.js";
 
 function videoId(params: unknown): string {
   const id = (params as { id?: string }).id ?? "";
   if (!VIDEO_ID.test(id)) throw new HttpError(400, msg("invalidVideoId"));
+  return id;
+}
+
+function trackId(params: unknown): string {
+  const id = (params as { id?: string }).id ?? "";
+  if (!TRACK_ID.test(id)) throw new HttpError(400, msg("invalidVideoId"));
   return id;
 }
 
@@ -176,6 +183,18 @@ export async function startServer(opts: StartOptions = {}): Promise<RunningServe
     );
   });
 
+  app.get("/api/local-music", async (req) => {
+    const force = (req.query as { refresh?: string } | undefined)?.refresh === "1";
+    return scanLocalMusic(force);
+  });
+
+  app.get("/api/local-music/:id/stream", async (req, reply) => {
+    const id = trackId(req.params);
+    const entry = await resolveLocalTrackFile(id);
+    if (!entry) return reply.code(404).send({ error: "Local audio file not found" });
+    return serveFile(req, reply, entry.file, entry.mime);
+  });
+
   // Library
 
   app.get("/api/library", () => library.getLibrary());
@@ -193,7 +212,7 @@ export async function startServer(opts: StartOptions = {}): Promise<RunningServe
 
   app.put("/api/favorites/:id", async (req) => {
     const track = library.sanitizeTrack(req.body);
-    if (track.id !== videoId(req.params)) throw new HttpError(400, msg("idMismatch"));
+    if (track.id !== trackId(req.params)) throw new HttpError(400, msg("idMismatch"));
     return { favorites: await library.addFavorite(track) };
   });
 
@@ -204,7 +223,7 @@ export async function startServer(opts: StartOptions = {}): Promise<RunningServe
     return { favorites: await library.addFavorites(tracks.slice(0, 500).map(library.sanitizeTrack)) };
   });
 
-  app.delete("/api/favorites/:id", async (req) => ({ favorites: await library.removeFavorite(videoId(req.params)) }));
+  app.delete("/api/favorites/:id", async (req) => ({ favorites: await library.removeFavorite(trackId(req.params)) }));
 
   app.post("/api/history", async (req) => ({ history: await library.pushHistory(library.sanitizeTrack(req.body)) }));
 
@@ -233,7 +252,7 @@ export async function startServer(opts: StartOptions = {}): Promise<RunningServe
   });
 
   app.delete("/api/playlists/:pid/tracks/:id", async (req) =>
-    library.removeFromPlaylist((req.params as { pid: string }).pid, videoId(req.params)),
+    library.removeFromPlaylist((req.params as { pid: string }).pid, trackId(req.params)),
   );
 
   // Web app (production build)

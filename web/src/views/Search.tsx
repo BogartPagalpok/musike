@@ -207,8 +207,8 @@ export default function Search() {
   );
 
   return (
-    <div className="pb-8">
-      <div className="safe-top sticky top-0 z-10 flex flex-col gap-2.5 border-b border-line/60 bg-bg/85 px-4 pt-2 pb-3 backdrop-blur-2xl md:gap-3 md:bg-surface-1/95 md:px-6 md:pt-4">
+    <div className="@container/search pb-8">
+      <div className="safe-top sticky top-0 z-10 flex flex-col gap-2.5 border-b border-line/60 bg-bg/85 px-4 pt-2 pb-3 backdrop-blur-2xl @[680px]/search:gap-3 @[680px]/search:bg-surface-1/95 @[680px]/search:px-6 @[680px]/search:pt-4">
         <div className="flex h-11 items-center gap-3 md:hidden">
           <LogoMark className="size-7 shrink-0 text-accent-text" />
           <h1 className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight">{t.search.title}</h1>
@@ -326,7 +326,7 @@ export default function Search() {
                 title={t.search.list}
                 className="flex h-9 items-center gap-1.5 rounded-full px-3 text-sm font-medium text-fg-2 hover:bg-surface-3 hover:text-fg"
               >
-                <ListBulletsIcon size={16} /> <span className="hidden sm:inline">{t.search.list}</span>
+                <ListBulletsIcon size={16} /> <span className="hidden @[500px]/search:inline">{t.search.list}</span>
               </Link>
             </div>
           </div>
@@ -335,9 +335,9 @@ export default function Search() {
         {!linkId && genresOpen && <GenrePanel id="genre-panel" />}
       </div>
 
-      <div className="mt-4 px-2 md:px-3">
+      <div className="mt-4 px-2 @[680px]/search:px-3">
         {linkId && (
-          <div className="px-2 md:px-3">
+          <div className="px-2 @[680px]/search:px-3">
             {linkTrack === "loading" && <TrackListSkeleton rows={1} />}
             {linkTrack && linkTrack !== "loading" && linkTrack !== "error" && (
               <button
@@ -345,7 +345,7 @@ export default function Search() {
                 onClick={() => playTrack(linkTrack)}
                 className="flex w-full items-center gap-4 rounded-[16px] bg-surface-2 p-3 text-left transition-colors hover:bg-surface-3"
               >
-                <Artwork src={linkTrack.thumb} className="aspect-video w-28 rounded-[10px] md:w-36" />
+                <Artwork src={linkTrack.thumb} className="aspect-video w-28 rounded-[10px] @[500px]/search:w-36" />
                 <span className="min-w-0 flex-1">
                   <span className="flex items-center gap-1.5 text-xs font-medium text-accent-text">
                     <LinkIcon size={14} /> {t.search.youtubeLink}

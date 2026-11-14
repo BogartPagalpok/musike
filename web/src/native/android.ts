@@ -2,10 +2,37 @@ import { App } from "@capacitor/app";
 import { Capacitor, registerPlugin, SystemBars, SystemBarsStyle } from "@capacitor/core";
 import { installTvMode } from "../tv/tvMode";
 
-/** MusikeDevicePlugin.java: what kind of device this is. */
-const Device = registerPlugin<{ info(): Promise<{ tv: boolean }> }>("MusikeDevice", {
-  web: () => ({ info: async () => ({ tv: false }) }),
+export interface NativeLocalTrack {
+  id: string;
+  title: string;
+  artist: string;
+  album?: string;
+  duration: number;
+  size?: number;
+  url: string;
+  fileName?: string;
+}
+
+/** MusikeDevicePlugin.java: what kind of device this is and local audio scanner. */
+const Device = registerPlugin<{
+  info(): Promise<{ tv: boolean }>;
+  scanLocalMusic(): Promise<{ tracks?: NativeLocalTrack[] }>;
+}>("MusikeDevice", {
+  web: () => ({
+    info: async () => ({ tv: false }),
+    scanLocalMusic: async () => ({ tracks: [] }),
+  }),
 });
+
+export async function scanAndroidLocalMusic(): Promise<NativeLocalTrack[]> {
+  if (!Capacitor.isNativePlatform() || Capacitor.getPlatform() !== "android") return [];
+  try {
+    const res = await Device.scanLocalMusic();
+    return Array.isArray(res?.tracks) ? res.tracks : [];
+  } catch {
+    return [];
+  }
+}
 
 // How the app fits into Android itself: Android TV, the Back button and the system bars.
 if (Capacitor.isNativePlatform()) {

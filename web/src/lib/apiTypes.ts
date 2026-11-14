@@ -62,7 +62,7 @@ export interface Prepared {
 export interface SystemMedia {
   setTrack(track: { title: string; artist: string; album: string; artwork: string; isVideo?: boolean }): void;
   setState(state: { playing: boolean; position: number; duration: number; isVideo?: boolean }): void;
-  onAction(handler: (action: "play" | "pause" | "next" | "previous" | "seek" | "audio_mode", position?: number) => void): void;
+  onAction(handler: (action: "play" | "pause" | "toggle" | "next" | "previous" | "seek" | "audio_mode", position?: number) => void): void;
 }
 
 export interface MusikeApi {

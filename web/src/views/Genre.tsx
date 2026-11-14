@@ -80,10 +80,10 @@ function GenreBody({ id, lang }: { id: string; lang: Lang }) {
   );
 
   return (
-    <div className="pb-8">
+    <div className="@container/genre pb-8">
       <PageHeader title={name} actions={<BackButton fallback={paths.search} />} />
 
-      <div role="tablist" aria-label={t.genre.viewBy} className="flex gap-2 px-4 pt-1 pb-4 md:px-6">
+      <div role="tablist" aria-label={t.genre.viewBy} className="flex gap-2 px-4 pt-1 pb-4 @[680px]/genre:px-6">
         {tab("artists", <Short phone={t.genre.artistsShort} wide={t.genre.artistsTab} />, page.status === "ok" ? `${artists.length}${hasMore ? "+" : ""}` : undefined)}
         {tab("tracks", <Short phone={t.genre.songsShort} wide={t.genre.songsTab} />, page.status === "ok" ? page.data.tracks.length : undefined)}
       </div>
@@ -110,8 +110,8 @@ function GenreBody({ id, lang }: { id: string; lang: Lang }) {
       {page.status === "ok" && view === "artists" && (
         artists.length ? (
           <>
-            <p className="px-4 pb-3 text-sm text-fg-2 md:px-6">{t.genre.pickArtist}</p>
-            <ul className="grid grid-cols-2 gap-x-3 gap-y-5 px-4 sm:grid-cols-3 md:px-6 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+            <p className="px-4 pb-3 text-sm text-fg-2 @[680px]/genre:px-6">{t.genre.pickArtist}</p>
+            <ul className="grid grid-cols-2 gap-x-3 gap-y-5 px-4 @[480px]/genre:grid-cols-3 @[680px]/genre:px-6 @[720px]/genre:grid-cols-4 @[960px]/genre:grid-cols-5 @[1200px]/genre:grid-cols-6">
               {artists.map((a) => (
                 <li key={a.id}>
                   <Link to={paths.artist(a.id)} state={{ name: a.name }} className="group flex flex-col gap-2">
@@ -200,7 +200,7 @@ function GenreBody({ id, lang }: { id: string; lang: Lang }) {
 function ArtistGridSkeleton() {
   const t = useT();
   return (
-    <ul aria-label={t.common.loading} className="grid grid-cols-2 gap-x-3 gap-y-5 px-4 sm:grid-cols-3 md:px-6 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+    <ul aria-label={t.common.loading} className="grid grid-cols-2 gap-x-3 gap-y-5 px-4 @[480px]/genre:grid-cols-3 @[680px]/genre:px-6 @[720px]/genre:grid-cols-4 @[960px]/genre:grid-cols-5 @[1200px]/genre:grid-cols-6">
       {Array.from({ length: 12 }, (_, i) => (
         <li key={i} className="flex flex-col gap-2">
           <span className="skeleton aspect-square w-full rounded-[14px]" />

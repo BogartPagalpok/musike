@@ -44,9 +44,9 @@ export default function Artist() {
         )}
         {page.status === "loading" && <div className="skeleton absolute inset-0" />}
         <div aria-hidden="true" className="absolute inset-0 bg-linear-to-t from-black/80 via-black/25 to-transparent" />
-        <div className="relative flex min-h-44 flex-col justify-end gap-1 p-5 md:min-h-60 md:p-8">
+        <div className="@container/artist relative flex min-h-44 flex-col justify-end gap-1 p-5 @[620px]/artist:min-h-60 @[620px]/artist:p-8">
           <span className="text-xs font-medium text-white/75">{t.artist.label}</span>
-          <h1 className="text-[28px] leading-[1.1] font-bold tracking-tight break-words text-white md:text-5xl">{name}</h1>
+          <h1 className="text-[28px] leading-[1.1] font-bold tracking-tight break-words text-white @[620px]/artist:text-5xl">{name}</h1>
         </div>
       </div>
 

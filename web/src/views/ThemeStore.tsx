@@ -9,6 +9,7 @@ import {
   PaletteIcon,
   PlayIcon,
   ShieldCheckIcon,
+  ShoppingBagOpenIcon,
   SparkleIcon,
   StorefrontIcon,
   SwatchesIcon,
@@ -45,12 +46,24 @@ import { toast } from "../stores/ui";
 type StoreTab = SkinCategory | "custom";
 
 const TABS: readonly { id: StoreTab; label: string }[] = [
-  { id: "all", label: "All Packs" },
+  { id: "all", label: "All" },
   { id: "anime", label: "Anime" },
-  { id: "trend", label: "Teen & Trend" },
-  { id: "music", label: "Music Lover" },
+  { id: "trend", label: "Cyber & Retro" },
+  { id: "music", label: "Music" },
   { id: "custom", label: "Mix & Match" },
 ];
+
+const SCENE_FRAME_STYLE: Record<SceneStyle, string> = {
+  none: "border-white/15 rounded-lg bg-black/35",
+  akatsuki: "border-red-500/60 rounded-lg bg-[#140407]/70 shadow-[0_0_20px_rgba(239,68,68,0.22)]",
+  shinobi: "border-orange-400/55 rounded-lg bg-[#1a0d07]/68 shadow-[0_0_18px_rgba(249,115,22,0.2)]",
+  grandline: "border-amber-400/60 rounded-lg bg-[#09182e]/68 shadow-[0_0_18px_rgba(251,191,36,0.2)]",
+  kpop: "border-pink-300/65 rounded-xl bg-[#220b28]/65 shadow-[0_0_18px_rgba(244,114,182,0.24)]",
+  arcade8bit: "border-2 border-yellow-400 rounded-none bg-[#0d102c]/80 shadow-[3px_3px_0_#000]",
+  vinyl: "border-amber-500/55 rounded-lg bg-[#1a1009]/72 shadow-[0_0_18px_rgba(245,158,11,0.2)]",
+  cyberpunk: "border-cyan-400/65 rounded-sm bg-[#091326]/72 shadow-[0_0_18px_rgba(34,211,238,0.22)]",
+  custom: "border-white/25 rounded-lg bg-black/45",
+};
 
 async function readWallpaperFile(file: File): Promise<string> {
   if (file.type === "image/gif") {
@@ -102,6 +115,7 @@ function PackCard({
   usable,
   saleMode,
   onApply,
+  onPreview,
   onUnlock,
 }: {
   pack: SkinPack;
@@ -110,137 +124,181 @@ function PackCard({
   usable: boolean;
   saleMode: "beta" | "live";
   onApply: () => void;
+  onPreview: () => void;
   onUnlock: () => void;
 }) {
+  const frameCls = SCENE_FRAME_STYLE[pack.scene];
+
   return (
     <article
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-[18px] bg-surface-2/92 ring-1 transition-all",
-        active ? "ring-[2px] ring-accent shadow-[0_12px_36px_rgb(0_0_0/0.45)]" : "ring-line hover:ring-line-strong",
+        "group relative flex flex-col overflow-hidden rounded-[16px] bg-surface-2 ring-1 transition-all",
+        active ? "ring-[2px] ring-accent shadow-[0_12px_32px_rgb(0_0_0/0.4)]" : "ring-line hover:ring-line-strong",
       )}
     >
-      {/* Live Scene & Interactive Player Controls Preview */}
-      <div className="relative flex flex-col justify-between overflow-hidden p-4 min-h-[172px]" style={{ background: pack.previewGradient }}>
+      {/* Live Miniature App Window Showcase */}
+      <div
+        onClick={usable ? onApply : onPreview}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            if (usable) onApply();
+            else onPreview();
+          }
+        }}
+        className="relative flex h-[186px] cursor-pointer flex-col justify-between overflow-hidden p-3 select-none"
+        style={{ background: pack.previewGradient }}
+      >
         <ThemeSceneBackdrop sceneOverride={pack.scene} contained />
+
+        {/* Top Chrome: World Crest Badge & Status */}
         <div className="relative z-10 flex items-center justify-between gap-2">
           <span
-            className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-tight backdrop-blur-md"
-            style={{ backgroundColor: "rgba(0,0,0,0.48)", color: pack.accent }}
+            className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-mono text-[10px] font-bold tracking-wider uppercase backdrop-blur-sm"
+            style={{
+              backgroundColor: "rgba(0,0,0,0.62)",
+              borderColor: `${pack.accent}66`,
+              color: pack.accent,
+            }}
           >
-            <SparkleIcon size={12} weight="fill" />
-            {pack.badge}
+            {pack.worldLabel}
           </span>
           {active ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-0.5 text-[11px] font-bold text-accent-ink">
-              <CheckIcon size={12} weight="bold" />
-              Active
+            <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10.5px] font-bold text-accent-ink shadow-xs">
+              <CheckIcon size={11} weight="bold" />
+              Equipped
             </span>
-          ) : owned && !pack.free ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2.5 py-0.5 text-[11px] font-semibold text-emerald-300 ring-1 ring-emerald-400/35">
-              Unlocked
+          ) : !pack.free && owned ? (
+            <span className="rounded-full bg-emerald-500/25 px-2 py-0.5 text-[10.5px] font-semibold text-emerald-200 ring-1 ring-emerald-400/40 backdrop-blur-sm">
+              Owned
             </span>
           ) : !pack.free && saleMode === "beta" ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-black/50 px-2.5 py-0.5 text-[11px] font-semibold text-amber-300 ring-1 ring-amber-400/30">
-              Free in Beta
+            <span className="rounded-full bg-black/60 px-2 py-0.5 text-[10.5px] font-semibold text-amber-300 ring-1 ring-amber-400/35 backdrop-blur-sm">
+              Free Trial · ₱{pack.pricePhp}
             </span>
-          ) : null}
+          ) : !pack.free ? (
+            <span className="rounded-full bg-black/65 px-2 py-0.5 text-[10.5px] font-bold text-white ring-1 ring-white/25 backdrop-blur-sm">
+              ₱{pack.pricePhp}
+            </span>
+          ) : (
+            <span className="rounded-full bg-black/55 px-2 py-0.5 text-[10.5px] font-semibold text-white/80 ring-1 ring-white/15 backdrop-blur-sm">
+              Free
+            </span>
+          )}
         </div>
 
-        {/* Interactive Playhead & Custom Play Button Mockup */}
-        <div className="relative z-10 mt-5 flex items-center gap-3 rounded-[14px] bg-black/45 px-3 py-2.5 ring-1 ring-white/15 backdrop-blur-md">
-          <PlayDisc px={42} styleVariant={pack.playButton} playing label={`${pack.name} preview play button`}>
-            <PlayIcon size={18} weight="fill" />
-          </PlayDisc>
-          <div className="min-w-0 flex-1">
-            <div className="mb-1 flex items-center justify-between text-[11px] font-medium text-white/80">
-              <span className="truncate">{pack.name.split(":")[0]}</span>
-              <span className="font-mono text-[10px] text-white/60">02:14</span>
+        {/* Miniature App Layout + Controls Mockup */}
+        <div className={cn("relative z-10 mt-2 flex flex-1 flex-col justify-between border p-2 backdrop-blur-[3px]", frameCls)}>
+          <div className="flex min-h-0 flex-1 gap-2">
+            {/* Mini Sidebar Rail */}
+            <div className="flex w-11 shrink-0 flex-col gap-1 border-r border-white/10 pr-1.5">
+              <span className="h-1.5 w-full rounded-full opacity-75" style={{ backgroundColor: pack.accent }} />
+              <span className="h-1 w-4/5 rounded-full bg-white/25" />
+              <span className="h-1 w-3/4 rounded-full bg-white/15" />
+              <span className="mt-auto h-1 w-2/3 rounded-full bg-white/20" />
             </div>
-            <Slider
-              variant={pack.playhead}
-              isPlaying
-              value={62}
-              max={100}
-              label={`${pack.name} playhead preview`}
-              onChange={() => {}}
-              className="h-5"
-            />
+
+            {/* Mini Stage Artwork & Lyrics */}
+            <div className="flex min-w-0 flex-1 items-center gap-2.5 pl-0.5">
+              <div
+                className={cn(
+                  "size-10 shrink-0 border",
+                  pack.scene === "arcade8bit" ? "rounded-none" : "rounded-md",
+                )}
+                style={{
+                  borderColor: pack.accent,
+                  background: `radial-gradient(circle at 35% 35%, ${pack.accent}66, rgba(0,0,0,0.65))`,
+                }}
+              />
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                <span className="h-1.5 w-3/4 rounded-full bg-white/75" />
+                <span className="h-1 w-1/2 rounded-full opacity-80" style={{ backgroundColor: pack.secondaryAccent }} />
+                <span className="h-1 w-2/3 rounded-full bg-white/30" />
+              </div>
+            </div>
+          </div>
+
+          {/* Mini Player Bar with Actual Custom PlayButton & Scrubber */}
+          <div className="mt-1.5 flex items-center gap-2.5 border-t border-white/10 pt-1.5">
+            <div onClick={(e) => e.stopPropagation()}>
+              <PlayDisc px={34} styleVariant={pack.playButton} playing label={`${pack.name} play button`}>
+                <PlayIcon size={14} weight="fill" />
+              </PlayDisc>
+            </div>
+            <div className="min-w-0 flex-1" onClick={(e) => e.stopPropagation()}>
+              <Slider
+                variant={pack.playhead}
+                isPlaying
+                value={64}
+                max={100}
+                label={`${pack.name} scrubber`}
+                onChange={() => {}}
+                className="h-4"
+              />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Pack Details & Pricing */}
-      <div className="flex flex-1 flex-col gap-3 p-4">
-        <div>
-          <h3 className="text-[15.5px] font-bold tracking-tight text-fg">{pack.name}</h3>
-          <p className="mt-1 text-xs leading-relaxed text-fg-2">{pack.tagline}</p>
+      {/* Crisp Footer: Title, 1-Line Summary, Action */}
+      <div className="flex items-center justify-between gap-3 px-3.5 py-3">
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-[14.5px] font-bold tracking-tight text-fg">{pack.name}</h3>
+          <p className="mt-0.5 truncate text-[11.5px] text-fg-2">{pack.tagline}</p>
         </div>
 
-        <ul className="flex flex-col gap-1 text-[11.5px] text-fg-2">
-          {pack.highlights.map((item) => (
-            <li key={item} className="flex items-center gap-1.5">
-              <span className="size-1.5 shrink-0 rounded-full" style={{ backgroundColor: pack.accent }} />
-              <span className="truncate">{item}</span>
-            </li>
-          ))}
-        </ul>
-
-        <div className="mt-auto flex items-center justify-between gap-2 border-t border-line pt-3">
-          <div>
-            {pack.free ? (
-              <span className="text-sm font-bold text-emerald-400">Free</span>
-            ) : owned ? (
-              <span className="text-sm font-bold text-emerald-400">Owned</span>
-            ) : saleMode === "beta" ? (
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-sm font-bold text-accent-text">₱0 Beta</span>
-                <span className="text-[11px] text-fg-3 line-through">₱{pack.pricePhp} / ${pack.priceUsd.toFixed(2)}</span>
-              </div>
-            ) : (
-              <div className="flex items-baseline gap-1.5">
-                <span className="text-sm font-bold text-fg">₱{pack.pricePhp}</span>
-                <span className="text-[11.5px] text-fg-2">${pack.priceUsd.toFixed(2)}</span>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            {!pack.free && !owned && saleMode === "beta" && (
+        <div className="flex shrink-0 items-center gap-1.5">
+          {!pack.free && !owned && saleMode === "beta" && (
+            <button
+              type="button"
+              onClick={onUnlock}
+              title={`Buy or redeem key (₱${pack.pricePhp})`}
+              aria-label={`Purchase ${pack.name}`}
+              className="grid size-8 place-items-center rounded-full bg-surface-3 text-fg-2 ring-1 ring-line transition-colors hover:bg-surface-4 hover:text-fg"
+            >
+              <ShoppingBagOpenIcon size={15} />
+            </button>
+          )}
+          {usable ? (
+            <button
+              type="button"
+              onClick={onApply}
+              className={cn(
+                "flex h-8.5 items-center gap-1 rounded-full px-3.5 text-xs font-semibold transition-transform active:scale-95",
+                active ? "bg-surface-3 text-fg ring-1 ring-line-strong" : "bg-accent text-accent-ink",
+              )}
+            >
+              {active ? (
+                <>
+                  <CheckIcon size={13} weight="bold" />
+                  <span>Equipped</span>
+                </>
+              ) : (
+                "Equip"
+              )}
+            </button>
+          ) : (
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={onPreview}
+                title={`Preview ${pack.name} live`}
+                className="flex h-8.5 items-center rounded-full bg-surface-3 px-3 text-xs font-semibold text-fg ring-1 ring-line transition-transform hover:bg-surface-4 active:scale-95"
+              >
+                Test
+              </button>
               <button
                 type="button"
                 onClick={onUnlock}
-                className="h-9 rounded-full bg-surface-3 px-3 text-xs font-medium text-fg-2 ring-1 ring-line transition-colors hover:bg-surface-4 hover:text-fg"
+                className="flex h-8.5 items-center gap-1 rounded-full bg-accent px-3 text-xs font-semibold text-accent-ink transition-transform active:scale-95"
               >
-                Checkout
+                <LockKeyIcon size={13} weight="bold" />
+                <span>₱{pack.pricePhp}</span>
               </button>
-            )}
-            {usable ? (
-              <button
-                type="button"
-                onClick={onApply}
-                className={cn(
-                  "flex h-9 items-center gap-1.5 rounded-full px-4 text-xs font-semibold transition-transform active:scale-95",
-                  active ? "bg-surface-3 text-fg ring-1 ring-line-strong" : "bg-accent text-accent-ink shadow-xs",
-                )}
-              >
-                {active ? (
-                  <>
-                    <CheckIcon size={14} weight="bold" /> Applied
-                  </>
-                ) : (
-                  "Apply Theme"
-                )}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={onUnlock}
-                className="flex h-9 items-center gap-1.5 rounded-full bg-accent px-4 text-xs font-semibold text-accent-ink shadow-xs transition-transform active:scale-95"
-              >
-                <LockKeyIcon size={14} weight="bold" /> Unlock · ₱{pack.pricePhp}
-              </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </article>
@@ -261,6 +319,7 @@ function CheckoutModal({
   const paymentInfo = useThemeStore((s) => s.paymentInfo);
   const setPaymentInfo = useThemeStore((s) => s.setPaymentInfo);
   const redeemCode = useThemeStore((s) => s.redeemCode);
+  const previewPack = useThemeStore((s) => s.previewPack);
 
   const [keyInput, setKeyInput] = useState("");
   const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null);
@@ -283,10 +342,13 @@ function CheckoutModal({
       return;
     }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
+      }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, [open, onClose]);
 
   if (!open || !targetPack) return null;
@@ -326,7 +388,7 @@ function CheckoutModal({
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
+    <div className="fixed inset-0 z-[60] flex items-end justify-center p-0 sm:items-center sm:p-4">
       <div className="absolute inset-0 bg-scrim" onClick={onClose} />
       <div
         role="dialog"
@@ -336,7 +398,7 @@ function CheckoutModal({
         className="relative flex max-h-[90dvh] w-full max-w-[540px] flex-col overflow-hidden rounded-t-[20px] bg-surface-1 ring-1 ring-line-strong shadow-[0_28px_70px_rgba(0,0,0,0.65)] sm:rounded-[20px]"
       >
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <div className="flex items-center gap-2.5 min-w-0">
+          <div className="flex min-w-0 items-center gap-2.5">
             <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent-text">
               {isRedeemOnly ? <KeyIcon size={18} weight="bold" /> : <CrownIcon size={18} weight="bold" />}
             </span>
@@ -351,6 +413,25 @@ function CheckoutModal({
         </div>
 
         <div className="scroll-area flex-1 space-y-5 overflow-y-auto px-5 py-4">
+          {packObj && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-[14px] bg-accent-soft/75 p-3.5 ring-1 ring-accent/35">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold text-fg">Want to try this world first?</p>
+                <p className="text-[11px] text-fg-2">Test its background scene, playhead &amp; controls live before unlocking.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  previewPack(packObj.id);
+                  toast(`Testing "${packObj.name}" live!`);
+                  onClose();
+                }}
+                className="h-8 shrink-0 rounded-full bg-accent px-3.5 text-xs font-bold text-accent-ink transition-transform active:scale-95"
+              >
+                Test Theme Free
+              </button>
+            </div>
+          )}
           {!isRedeemOnly && (
             <div className="space-y-3 rounded-[14px] bg-surface-2 p-4 ring-1 ring-line">
               <p className="text-xs font-semibold uppercase tracking-wider text-fg-3">Step 1 · Direct Payment (0% App Store Fee)</p>
@@ -398,7 +479,7 @@ function CheckoutModal({
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleRedeem();
                 }}
-                placeholder="e.g. ILLUSIVE-SHINOBI-7X9K"
+                placeholder="e.g. ILLUSIVE-AKATSUKI-9R2M"
                 className="h-10 min-w-0 flex-1 rounded-xl bg-surface-3 px-3 font-mono text-xs text-fg uppercase placeholder:normal-case placeholder:text-fg-3 ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-accent"
               />
               <button
@@ -488,7 +569,7 @@ function CheckoutModal({
                   {SKIN_PACKS.filter((p) => !p.free).map((p) => (
                     <div key={p.id} className="flex items-center justify-between gap-2 rounded-lg bg-surface-3/50 px-3 py-1.5 text-xs">
                       <span className="truncate text-fg-2">{p.name}</span>
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex shrink-0 items-center gap-2">
                         <code className="font-mono text-[11px] text-fg">{p.unlockCode}</code>
                         <button type="button" onClick={() => copyText(p.unlockCode, p.name)} className="text-accent-text">
                           <CopyIcon size={14} />
@@ -507,7 +588,8 @@ function CheckoutModal({
   );
 }
 
-export default function ThemeStore() {
+/** Shared gallery + Mix & Match studio used inside both SettingsDialog and `/themes`. */
+export function ThemeStoreContent({ embedded = false }: { embedded?: boolean }) {
   const [tab, setTab] = useState<StoreTab>("all");
   const [checkoutTarget, setCheckoutTarget] = useState<SkinPack | "all-access" | "redeem" | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -528,6 +610,7 @@ export default function ThemeStore() {
   const setSceneIntensity = useThemeStore((s) => s.setSceneIntensity);
   const setCustomBgDataUrl = useThemeStore((s) => s.setCustomBgDataUrl);
   const applyPack = useThemeStore((s) => s.applyPack);
+  const previewPack = useThemeStore((s) => s.previewPack);
   const resetCustomizations = useThemeStore((s) => s.resetCustomizations);
 
   const accent = useAppearance((s) => s.accent).toLowerCase();
@@ -541,21 +624,363 @@ export default function ThemeStore() {
     e.target.value = "";
     if (!file) return;
     if (!hasAllAccess) {
-      toast("Unlock the All-Access Pro Pass (or test in Beta mode) to use Custom Wallpapers.", "info");
+      toast("Unlock the All-Access Pro Pass (or use Beta Preview) for Custom Wallpapers.", "info");
       setCheckoutTarget("all-access");
       return;
     }
     try {
       const dataUrl = await readWallpaperFile(file);
       setCustomBgDataUrl(dataUrl);
-      toast("Custom background wallpaper applied!");
+      toast("Custom wallpaper applied.");
     } catch (err) {
       toast((err as Error).message || "Could not load wallpaper image.", "error");
     }
   };
 
   return (
-    <div className="pb-12">
+    <div className={cn("@container/store space-y-4", embedded && "pb-1")}>
+      {/* Compact Store Control Bar (Zero Marketing Fluff) */}
+      <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-[14px] bg-surface-2 px-3 py-2.5 ring-1 ring-line">
+        <div role="tablist" aria-label="Theme Categories" className="no-scrollbar flex max-w-full items-center gap-1 overflow-x-auto">
+          {TABS.map((tItem) => (
+            <button
+              key={tItem.id}
+              type="button"
+              role="tab"
+              aria-selected={tab === tItem.id}
+              onClick={() => setTab(tItem.id)}
+              className={cn(
+                "flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-semibold whitespace-nowrap transition-colors",
+                tab === tItem.id ? "bg-accent text-accent-ink" : "text-fg-2 hover:bg-surface-3 hover:text-fg",
+              )}
+            >
+              {tItem.id === "custom" && <MagicWandIcon size={13} weight="bold" />}
+              {tItem.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          <div role="tablist" aria-label="Store Mode" className="inline-flex rounded-full bg-surface-3 p-0.5 ring-1 ring-line">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={saleMode === "beta"}
+              onClick={() => setSaleMode("beta")}
+              className={cn(
+                "h-7 rounded-full px-2.5 text-[11px] font-semibold transition-colors",
+                saleMode === "beta" ? "bg-accent text-accent-ink" : "text-fg-2 hover:text-fg",
+              )}
+            >
+              Beta Free
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={saleMode === "live"}
+              onClick={() => setSaleMode("live")}
+              className={cn(
+                "h-7 rounded-full px-2.5 text-[11px] font-semibold transition-colors",
+                saleMode === "live" ? "bg-accent text-accent-ink" : "text-fg-2 hover:text-fg",
+              )}
+            >
+              Paid Store
+            </button>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setCheckoutTarget("redeem")}
+            className="flex h-8 items-center gap-1 rounded-full bg-surface-3 px-2.5 text-[11.5px] font-semibold text-fg ring-1 ring-line hover:bg-surface-4"
+          >
+            <KeyIcon size={13} weight="bold" />
+            <span>Key</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setCheckoutTarget("all-access")}
+            className="flex h-8 items-center gap-1 rounded-full bg-accent-soft px-3 text-[11.5px] font-bold text-accent-text ring-1 ring-accent/35 hover:bg-accent hover:text-accent-ink transition-colors"
+          >
+            <CrownIcon size={13} weight="fill" />
+            <span>{unlockedIds.includes(ALL_ACCESS_BUNDLE.id) ? "Pro Unlocked" : `Pro · ₱${ALL_ACCESS_BUNDLE.pricePhp}`}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              resetCustomizations();
+              toast("Restored default Pixel Wave theme.");
+            }}
+            className="px-2 text-[11.5px] font-medium text-fg-3 hover:text-fg"
+          >
+            Reset
+          </button>
+        </div>
+      </div>
+
+      {/* Visual Gallery Grid */}
+      {tab !== "custom" && (
+        <div className="grid grid-cols-1 gap-3.5 @[520px]/store:grid-cols-2 @[840px]/store:grid-cols-3">
+          {visiblePacks.map((pack) => {
+            const owned = isPackOwned(pack, unlockedIds);
+            const usable = canUsePack(pack, unlockedIds, saleMode);
+            const active = activePackId === pack.id;
+            return (
+              <PackCard
+                key={pack.id}
+                pack={pack}
+                active={active}
+                owned={owned}
+                usable={usable}
+                saleMode={saleMode}
+                onApply={() => {
+                  if (applyPack(pack.id)) {
+                    toast(`Equipped "${pack.name}"`);
+                  }
+                }}
+                onPreview={() => {
+                  previewPack(pack.id);
+                  toast(`Testing "${pack.name}" live!`);
+                }}
+                onUnlock={() => setCheckoutTarget(pack)}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      {/* Custom Mix & Match Studio */}
+      {tab === "custom" && (
+        <div className="space-y-4">
+          {/* 1. Custom Playhead Picker */}
+          <section className="rounded-[16px] bg-surface-2 p-4 ring-1 ring-line">
+            <div className="mb-3 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <MagicWandIcon size={16} className="text-accent-text" weight="fill" />
+                <h3 className="text-[14px] font-bold text-fg">Playhead Scrubber</h3>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-2 @[460px]/store:grid-cols-2 @[760px]/store:grid-cols-3">
+              {PLAYHEAD_META.map((item) => {
+                const selected = playheadStyle === item.id;
+                const locked =
+                  saleMode === "live" &&
+                  item.id !== "default" &&
+                  item.id !== "pixel" &&
+                  !unlockedIds.includes(ALL_ACCESS_BUNDLE.id) &&
+                  !SKIN_PACKS.some((p) => p.playhead === item.id && unlockedIds.includes(p.id));
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      if (locked) {
+                        setCheckoutTarget(SKIN_PACKS.find((p) => p.playhead === item.id) ?? "all-access");
+                        return;
+                      }
+                      setPlayheadStyle(item.id as PlayheadStyle);
+                      toast(`Playhead: ${item.label}`);
+                    }}
+                    className={cn(
+                      "flex flex-col gap-1.5 rounded-[12px] bg-surface-3/65 p-2.5 text-left ring-1 transition-all",
+                      selected ? "ring-2 ring-accent bg-surface-3" : "ring-line hover:bg-surface-3",
+                    )}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs font-bold text-fg">{item.label}</span>
+                      {locked ? (
+                        <LockKeyIcon size={13} className="text-amber-300" />
+                      ) : selected ? (
+                        <CheckIcon size={13} className="text-accent-text" weight="bold" />
+                      ) : null}
+                    </div>
+                    <Slider variant={item.id} isPlaying value={58} max={100} label={item.label} onChange={() => {}} />
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* 2. Custom Play Button Picker */}
+          <section className="rounded-[16px] bg-surface-2 p-4 ring-1 ring-line">
+            <div className="mb-3 flex items-center gap-2">
+              <SwatchesIcon size={16} className="text-accent-text" weight="fill" />
+              <h3 className="text-[14px] font-bold text-fg">Play Button</h3>
+            </div>
+            <div className="grid grid-cols-2 gap-2 @[460px]/store:grid-cols-4">
+              {PLAY_BUTTON_META.map((item) => {
+                const selected = playButtonStyle === item.id;
+                const locked =
+                  saleMode === "live" &&
+                  item.id !== "default" &&
+                  !unlockedIds.includes(ALL_ACCESS_BUNDLE.id) &&
+                  !SKIN_PACKS.some((p) => p.playButton === item.id && unlockedIds.includes(p.id));
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      if (locked) {
+                        setCheckoutTarget(SKIN_PACKS.find((p) => p.playButton === item.id) ?? "all-access");
+                        return;
+                      }
+                      setPlayButtonStyle(item.id as PlayButtonStyle);
+                      toast(`Play button: ${item.label}`);
+                    }}
+                    className={cn(
+                      "flex flex-col items-center gap-1.5 rounded-[12px] bg-surface-3/65 p-2.5 text-center ring-1 transition-all",
+                      selected ? "ring-2 ring-accent bg-surface-3" : "ring-line hover:bg-surface-3",
+                    )}
+                  >
+                    <div className="relative">
+                      <PlayDisc px={44} styleVariant={item.id} playing label={item.label}>
+                        <PlayIcon size={18} weight="fill" />
+                      </PlayDisc>
+                      {locked && (
+                        <span className="absolute -top-1 -right-1 grid size-4 place-items-center rounded-full bg-surface-1 text-amber-300 ring-1 ring-line">
+                          <LockKeyIcon size={10} weight="bold" />
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[11.5px] font-semibold text-fg">{item.label}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* 3. Background World Scene + Custom Wallpaper */}
+          <section className="rounded-[16px] bg-surface-2 p-4 ring-1 ring-line">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <SparkleIcon size={16} className="text-accent-text" weight="fill" />
+                <h3 className="text-[14px] font-bold text-fg">World Backdrop &amp; Wallpaper</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                <input ref={fileRef} type="file" accept="image/*" onChange={onWallpaperPick} className="hidden" />
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="flex h-8 items-center gap-1.5 rounded-full bg-accent px-3 text-xs font-semibold text-accent-ink active:scale-95"
+                >
+                  <UploadSimpleIcon size={13} weight="bold" />
+                  Upload Photo / GIF
+                </button>
+                {customBgDataUrl && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomBgDataUrl(null);
+                      toast("Removed custom wallpaper.");
+                    }}
+                    className="flex h-8 items-center gap-1 rounded-full bg-surface-3 px-2.5 text-xs font-medium text-danger ring-1 ring-line hover:bg-surface-4"
+                  >
+                    <TrashIcon size={13} /> Clear
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 @[460px]/store:grid-cols-3 @[760px]/store:grid-cols-5">
+              {SCENE_META.map((item) => {
+                const selected = sceneStyle === item.id;
+                const needsUpload = item.id === "custom" && !customBgDataUrl;
+                const locked =
+                  saleMode === "live" &&
+                  item.id !== "none" &&
+                  !unlockedIds.includes(ALL_ACCESS_BUNDLE.id) &&
+                  !SKIN_PACKS.some((p) => p.scene === item.id && unlockedIds.includes(p.id));
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      if (locked) {
+                        setCheckoutTarget(SKIN_PACKS.find((p) => p.scene === item.id) ?? "all-access");
+                        return;
+                      }
+                      if (needsUpload) {
+                        fileRef.current?.click();
+                        return;
+                      }
+                      setSceneStyle(item.id as SceneStyle);
+                      toast(`World scene: ${item.label}`);
+                    }}
+                    className={cn(
+                      "group relative flex h-20 flex-col justify-end overflow-hidden rounded-[10px] bg-surface-3 p-2 text-left ring-1 transition-all",
+                      selected ? "ring-2 ring-accent" : "ring-line hover:ring-line-strong",
+                    )}
+                  >
+                    <ThemeSceneBackdrop sceneOverride={item.id} customUrlOverride={customBgDataUrl} contained />
+                    <div className="relative z-10 flex items-center justify-between gap-1">
+                      <span className="truncate text-[11.5px] font-bold text-white drop-shadow">{item.label}</span>
+                      {locked ? (
+                        <LockKeyIcon size={12} className="shrink-0 text-amber-300" />
+                      ) : selected ? (
+                        <CheckIcon size={12} className="shrink-0 text-accent-text" weight="bold" />
+                      ) : null}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {sceneStyle !== "none" && (
+              <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl bg-surface-3/60 px-3 py-2 ring-1 ring-line">
+                <span className="text-xs font-medium text-fg-2">Backdrop Visibility</span>
+                <input
+                  type="range"
+                  min={0.25}
+                  max={1}
+                  step={0.05}
+                  value={sceneIntensity}
+                  onChange={(e) => setSceneIntensity(Number(e.target.value))}
+                  className="h-1.5 flex-1 cursor-pointer accent-accent"
+                  aria-label="Backdrop Visibility"
+                />
+                <span className="w-10 text-right font-mono text-xs text-fg-2">{Math.round(sceneIntensity * 100)}%</span>
+              </div>
+            )}
+          </section>
+
+          {/* 4. Accent Color Override */}
+          <section className="rounded-[16px] bg-surface-2 p-4 ring-1 ring-line">
+            <div className="mb-3 flex items-center gap-2">
+              <PaletteIcon size={16} className="text-accent-text" weight="fill" />
+              <h3 className="text-[14px] font-bold text-fg">Accent Colour</h3>
+            </div>
+            <div className="mb-3 flex flex-wrap gap-2">
+              {ACCENTS.map(({ id, color }) => {
+                const on = accent === color.toLowerCase();
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setAppearance({ accent: color })}
+                    aria-label={id}
+                    className={cn(
+                      "size-8 rounded-full transition-transform active:scale-90",
+                      on && "ring-2 ring-fg ring-offset-2 ring-offset-surface-2",
+                    )}
+                    style={{ backgroundColor: color }}
+                  />
+                );
+              })}
+            </div>
+            <CustomColorPicker />
+          </section>
+        </div>
+      )}
+
+      <CheckoutModal open={!!checkoutTarget} targetPack={checkoutTarget} onClose={() => setCheckoutTarget(null)} />
+    </div>
+  );
+}
+
+export default function ThemeStore() {
+  return (
+    <div className="@container/themes pb-12">
       <PageHeader
         title={
           <span className="flex items-center gap-2">
@@ -563,386 +988,10 @@ export default function ThemeStore() {
             Theme Store
           </span>
         }
-        actions={
-          <button
-            type="button"
-            onClick={() => setCheckoutTarget("redeem")}
-            className="flex h-8.5 items-center gap-1.5 rounded-full bg-surface-3 px-3 text-xs font-semibold text-fg ring-1 ring-line transition-colors hover:bg-surface-4"
-          >
-            <KeyIcon size={14} weight="bold" />
-            <span>Redeem Key</span>
-          </button>
-        }
       />
-
-      <div className="mx-auto max-w-[1320px] space-y-6 px-4 pt-3 md:px-6">
-        {/* Testing Period / Storefront Mode Banner */}
-        <section className="relative overflow-hidden rounded-[20px] bg-surface-2/92 p-4 ring-1 ring-line-strong sm:p-5">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="space-y-1.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide",
-                    saleMode === "beta"
-                      ? "bg-amber-400/20 text-amber-300 ring-1 ring-amber-400/40"
-                      : "bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-400/40",
-                  )}
-                >
-                  <SparkleIcon size={12} weight="fill" />
-                  {saleMode === "beta" ? "Testing Period Open · All Skins Free" : "Live Storefront Mode · Paid Locks On"}
-                </span>
-                <span className="text-xs text-fg-3">Same layout, custom vibes</span>
-              </div>
-              <h2 className="text-lg font-bold tracking-tight text-fg sm:text-xl">
-                Custom Playheads, Play Buttons &amp; Animated Vibes
-              </h2>
-              <p className="max-w-2xl text-xs leading-relaxed text-fg-2 sm:text-[13px]">
-                Try any anime or trend theme for free during the beta testing period, or toggle Live Storefront Mode to preview how buyers unlock skins with checkout + license keys.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
-              <div
-                role="tablist"
-                aria-label="Store Mode"
-                className="inline-flex rounded-full bg-surface-3 p-1 ring-1 ring-line"
-              >
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={saleMode === "beta"}
-                  onClick={() => setSaleMode("beta")}
-                  className={cn(
-                    "h-8 rounded-full px-3 text-xs font-semibold transition-colors",
-                    saleMode === "beta" ? "bg-accent text-accent-ink" : "text-fg-2 hover:text-fg",
-                  )}
-                >
-                  Beta Free Preview
-                </button>
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={saleMode === "live"}
-                  onClick={() => setSaleMode("live")}
-                  className={cn(
-                    "h-8 rounded-full px-3 text-xs font-semibold transition-colors",
-                    saleMode === "live" ? "bg-accent text-accent-ink" : "text-fg-2 hover:text-fg",
-                  )}
-                >
-                  Live Sale Mode
-                </button>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setCheckoutTarget("all-access")}
-                className="flex h-10 items-center gap-2 rounded-full bg-accent px-4 text-xs font-bold text-accent-ink shadow-sm transition-transform active:scale-95"
-              >
-                <CrownIcon size={16} weight="fill" />
-                {unlockedIds.includes(ALL_ACCESS_BUNDLE.id)
-                  ? "All-Access Unlocked"
-                  : `All-Access Pass · ₱${ALL_ACCESS_BUNDLE.pricePhp}`}
-              </button>
-            </div>
-          </div>
-        </section>
-
-        {/* Category Filter Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div role="tablist" aria-label="Theme Categories" className="no-scrollbar flex max-w-full items-center gap-1.5 overflow-x-auto rounded-full bg-surface-2 p-1 ring-1 ring-line">
-            {TABS.map((tItem) => (
-              <button
-                key={tItem.id}
-                type="button"
-                role="tab"
-                aria-selected={tab === tItem.id}
-                onClick={() => setTab(tItem.id)}
-                className={cn(
-                  "flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-xs font-semibold whitespace-nowrap transition-colors",
-                  tab === tItem.id ? "bg-accent text-accent-ink" : "text-fg-2 hover:bg-surface-3 hover:text-fg",
-                )}
-              >
-                {tItem.id === "custom" && <MagicWandIcon size={14} weight="bold" />}
-                {tItem.label}
-              </button>
-            ))}
-          </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              resetCustomizations();
-              toast("Restored default Google Pixel Wave theme.");
-            }}
-            className="text-xs font-medium text-fg-3 hover:text-fg underline-offset-2 hover:underline"
-          >
-            Reset to Default Pixel
-          </button>
-        </div>
-
-        {/* Store Cards Grid */}
-        {tab !== "custom" && (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {visiblePacks.map((pack) => {
-              const owned = isPackOwned(pack, unlockedIds);
-              const usable = canUsePack(pack, unlockedIds, saleMode);
-              const active = activePackId === pack.id;
-              return (
-                <PackCard
-                  key={pack.id}
-                  pack={pack}
-                  active={active}
-                  owned={owned}
-                  usable={usable}
-                  saleMode={saleMode}
-                  onApply={() => {
-                    if (applyPack(pack.id)) {
-                      toast(`Applied "${pack.name}"`);
-                    }
-                  }}
-                  onUnlock={() => setCheckoutTarget(pack)}
-                />
-              );
-            })}
-          </div>
-        )}
-
-        {/* Custom Mix & Match Studio Tab */}
-        {tab === "custom" && (
-          <div className="space-y-6">
-            {/* 1. Custom Playhead Picker */}
-            <section className="rounded-[18px] bg-surface-2/92 p-4 ring-1 ring-line sm:p-5">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <MagicWandIcon size={18} className="text-accent-text" weight="fill" />
-                  <h3 className="text-[15px] font-bold text-fg">Playhead &amp; Scrubber Style</h3>
-                </div>
-                <span className="text-xs text-fg-3">Shows in Player Bar &amp; Now Playing</span>
-              </div>
-              <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-                {PLAYHEAD_META.map((item) => {
-                  const selected = playheadStyle === item.id;
-                  const locked =
-                    saleMode === "live" &&
-                    item.id !== "default" &&
-                    item.id !== "pixel" &&
-                    !unlockedIds.includes(ALL_ACCESS_BUNDLE.id) &&
-                    !SKIN_PACKS.some((p) => p.playhead === item.id && unlockedIds.includes(p.id));
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => {
-                        if (locked) {
-                          setCheckoutTarget(SKIN_PACKS.find((p) => p.playhead === item.id) ?? "all-access");
-                          return;
-                        }
-                        setPlayheadStyle(item.id as PlayheadStyle);
-                        toast(`Playhead set to ${item.label}`);
-                      }}
-                      className={cn(
-                        "flex flex-col gap-2 rounded-[14px] bg-surface-3/65 p-3 text-left ring-1 transition-all",
-                        selected ? "ring-2 ring-accent bg-surface-3" : "ring-line hover:bg-surface-3",
-                      )}
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-bold text-fg">{item.label}</span>
-                        {locked ? (
-                          <LockKeyIcon size={14} className="text-amber-300" />
-                        ) : selected ? (
-                          <CheckIcon size={14} className="text-accent-text" weight="bold" />
-                        ) : null}
-                      </div>
-                      <Slider variant={item.id} isPlaying value={58} max={100} label={item.label} onChange={() => {}} />
-                      <span className="text-[11px] text-fg-3">{item.desc}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-
-            {/* 2. Custom Play Button Picker */}
-            <section className="rounded-[18px] bg-surface-2/92 p-4 ring-1 ring-line sm:p-5">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <SwatchesIcon size={18} className="text-accent-text" weight="fill" />
-                  <h3 className="text-[15px] font-bold text-fg">Play Button Style</h3>
-                </div>
-                <span className="text-xs text-fg-3">Desktop Bar, Mobile MiniPlayer &amp; Stage</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                {PLAY_BUTTON_META.map((item) => {
-                  const selected = playButtonStyle === item.id;
-                  const locked =
-                    saleMode === "live" &&
-                    item.id !== "default" &&
-                    !unlockedIds.includes(ALL_ACCESS_BUNDLE.id) &&
-                    !SKIN_PACKS.some((p) => p.playButton === item.id && unlockedIds.includes(p.id));
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => {
-                        if (locked) {
-                          setCheckoutTarget(SKIN_PACKS.find((p) => p.playButton === item.id) ?? "all-access");
-                          return;
-                        }
-                        setPlayButtonStyle(item.id as PlayButtonStyle);
-                        toast(`Play button set to ${item.label}`);
-                      }}
-                      className={cn(
-                        "flex flex-col items-center gap-2 rounded-[14px] bg-surface-3/65 p-3 text-center ring-1 transition-all",
-                        selected ? "ring-2 ring-accent bg-surface-3" : "ring-line hover:bg-surface-3",
-                      )}
-                    >
-                      <div className="relative">
-                        <PlayDisc px={48} styleVariant={item.id} playing label={item.label}>
-                          <PlayIcon size={20} weight="fill" />
-                        </PlayDisc>
-                        {locked && (
-                          <span className="absolute -top-1 -right-1 grid size-5 place-items-center rounded-full bg-surface-1 text-amber-300 ring-1 ring-line">
-                            <LockKeyIcon size={11} weight="bold" />
-                          </span>
-                        )}
-                      </div>
-                      <span className="text-xs font-bold text-fg">{item.label}</span>
-                      <span className="text-[11px] leading-tight text-fg-3">{item.desc}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-
-            {/* 3. Custom Background Scene + Wallpaper Upload */}
-            <section className="rounded-[18px] bg-surface-2/92 p-4 ring-1 ring-line sm:p-5">
-              <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <SparkleIcon size={18} className="text-accent-text" weight="fill" />
-                  <h3 className="text-[15px] font-bold text-fg">Background Scene &amp; Custom Wallpaper</h3>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input ref={fileRef} type="file" accept="image/*" onChange={onWallpaperPick} className="hidden" />
-                  <button
-                    type="button"
-                    onClick={() => fileRef.current?.click()}
-                    className="flex h-8.5 items-center gap-1.5 rounded-full bg-accent px-3.5 text-xs font-semibold text-accent-ink active:scale-95"
-                  >
-                    <UploadSimpleIcon size={14} weight="bold" />
-                    Upload Photo / GIF
-                  </button>
-                  {customBgDataUrl && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCustomBgDataUrl(null);
-                        toast("Removed custom wallpaper.");
-                      }}
-                      className="flex h-8.5 items-center gap-1 rounded-full bg-surface-3 px-3 text-xs font-medium text-danger ring-1 ring-line hover:bg-surface-4"
-                    >
-                      <TrashIcon size={14} /> Clear
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
-                {SCENE_META.map((item) => {
-                  const selected = sceneStyle === item.id;
-                  const needsUpload = item.id === "custom" && !customBgDataUrl;
-                  const locked =
-                    saleMode === "live" &&
-                    item.id !== "none" &&
-                    !unlockedIds.includes(ALL_ACCESS_BUNDLE.id) &&
-                    !SKIN_PACKS.some((p) => p.scene === item.id && unlockedIds.includes(p.id));
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => {
-                        if (locked) {
-                          setCheckoutTarget(SKIN_PACKS.find((p) => p.scene === item.id) ?? "all-access");
-                          return;
-                        }
-                        if (needsUpload) {
-                          fileRef.current?.click();
-                          return;
-                        }
-                        setSceneStyle(item.id as SceneStyle);
-                        toast(`Background set to ${item.label}`);
-                      }}
-                      className={cn(
-                        "group relative flex h-24 flex-col justify-end overflow-hidden rounded-[12px] bg-surface-3 p-2.5 text-left ring-1 transition-all",
-                        selected ? "ring-2 ring-accent" : "ring-line hover:ring-line-strong",
-                      )}
-                    >
-                      <ThemeSceneBackdrop sceneOverride={item.id} customUrlOverride={customBgDataUrl} contained />
-                      <div className="relative z-10 flex items-center justify-between gap-1">
-                        <span className="truncate text-xs font-bold text-white drop-shadow">{item.label}</span>
-                        {locked ? (
-                          <LockKeyIcon size={13} className="shrink-0 text-amber-300" />
-                        ) : selected ? (
-                          <CheckIcon size={13} className="shrink-0 text-accent-text" weight="bold" />
-                        ) : null}
-                      </div>
-                      <span className="relative z-10 truncate text-[10.5px] text-white/75 drop-shadow">
-                        {needsUpload ? "Tap to upload image" : item.desc}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              {sceneStyle !== "none" && (
-                <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-surface-3/60 px-3.5 py-2.5 ring-1 ring-line">
-                  <span className="text-xs font-medium text-fg-2">Scene Intensity</span>
-                  <input
-                    type="range"
-                    min={0.25}
-                    max={1}
-                    step={0.05}
-                    value={sceneIntensity}
-                    onChange={(e) => setSceneIntensity(Number(e.target.value))}
-                    className="h-1.5 flex-1 cursor-pointer accent-accent"
-                    aria-label="Scene Intensity"
-                  />
-                  <span className="w-10 text-right font-mono text-xs text-fg-2">{Math.round(sceneIntensity * 100)}%</span>
-                </div>
-              )}
-            </section>
-
-            {/* 4. Quick Accent Override */}
-            <section className="rounded-[18px] bg-surface-2/92 p-4 ring-1 ring-line sm:p-5">
-              <div className="mb-3 flex items-center gap-2">
-                <PaletteIcon size={18} className="text-accent-text" weight="fill" />
-                <h3 className="text-[15px] font-bold text-fg">Accent Colour</h3>
-              </div>
-              <div className="mb-4 flex flex-wrap gap-2.5">
-                {ACCENTS.map(({ id, color }) => {
-                  const on = accent === color.toLowerCase();
-                  return (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => setAppearance({ accent: color })}
-                      aria-label={id}
-                      className={cn(
-                        "size-9 rounded-full transition-transform active:scale-90",
-                        on && "ring-2 ring-fg ring-offset-2 ring-offset-surface-2",
-                      )}
-                      style={{ backgroundColor: color }}
-                    />
-                  );
-                })}
-              </div>
-              <CustomColorPicker />
-            </section>
-          </div>
-        )}
+      <div className="mx-auto max-w-[1320px] px-4 pt-3 @[680px]/themes:px-6">
+        <ThemeStoreContent />
       </div>
-
-      <CheckoutModal open={!!checkoutTarget} targetPack={checkoutTarget} onClose={() => setCheckoutTarget(null)} />
     </div>
   );
 }
-

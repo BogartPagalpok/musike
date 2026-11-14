@@ -42,6 +42,7 @@ export interface SkinPack {
   id: string;
   name: string;
   badge: string;
+  worldLabel: string;
   category: Exclude<SkinCategory, "all">;
   tagline: string;
   highlights: readonly string[];
@@ -72,8 +73,9 @@ export const SKIN_PACKS: readonly SkinPack[] = [
     id: "pixel-original",
     name: "Google Pixel Wave",
     badge: "Default Free",
+    worldLabel: "PIXEL · MATERIAL",
     category: "music",
-    tagline: "Signature animated squiggly Material You scrubber and Volt play disc.",
+    tagline: "Animated squiggly Material You scrubber and Volt play disc.",
     highlights: ["Squiggly wave scrubber", "Clean Volt disc play button", "Distraction-free surface"],
     free: true,
     pricePhp: 0,
@@ -91,8 +93,9 @@ export const SKIN_PACKS: readonly SkinPack[] = [
     id: "classic-minimal",
     name: "Studio Minimal",
     badge: "Free",
+    worldLabel: "STUDIO · OLED",
     category: "music",
-    tagline: "Crisp obsidian flat rail scrubber for zero visual clutter on pure OLED.",
+    tagline: "Crisp obsidian flat rail scrubber for pure OLED focus.",
     highlights: ["Precision straight scrubber", "Solid high-contrast play disc", "Deep obsidian contrast"],
     free: true,
     pricePhp: 0,
@@ -107,31 +110,13 @@ export const SKIN_PACKS: readonly SkinPack[] = [
     unlockCode: "",
   },
   {
-    id: "naruto-shinobi",
-    name: "Shinobi: Rasengan & Kunai",
-    badge: "Anime Drop",
-    category: "anime",
-    tagline: "Channel Nine-Tails chakra with a flying Kunai playhead, spinning Rasengan disc, and Konoha leaf embers.",
-    highlights: ["Kunai & Rasengan orb scrubber", "Spinning Uzumaki Chakra play disc", "Hidden Leaf ember scene"],
-    free: false,
-    pricePhp: 79,
-    priceUsd: 1.99,
-    playhead: "shinobi",
-    playButton: "shinobi",
-    scene: "shinobi",
-    baseTheme: "sunset",
-    accent: "#f97316",
-    secondaryAccent: "#38bdf8",
-    previewGradient: "linear-gradient(135deg, #1b0e08 0%, #3a190a 55%, #12283a 100%)",
-    unlockCode: "ILLUSIVE-SHINOBI-7X9K",
-  },
-  {
     id: "akatsuki-cloud",
-    name: "Akatsuki: Red Cloud & Sharingan",
-    badge: "Best Seller",
+    name: "Itachi: Tsukuyomi & Crows",
+    badge: "Naruto World",
+    worldLabel: "月読 · UCHIHA",
     category: "anime",
-    tagline: "Crimson 3-Tomoe Sharingan play button, scarlet slash playhead, and floating Akatsuki red-cloud night sky.",
-    highlights: ["Spinning 3-Tomoe Sharingan button", "Crimson Uchiha chakra slash bar", "Drifting red clouds backdrop"],
+    tagline: "Blood Moon eclipse, flying crows, Uchiha utility pole silhouette & crimson Sharingan UI.",
+    highlights: ["Blood Moon & Crows scene", "Mangekyō Sharingan UI frame", "Crimson slash playhead"],
     free: false,
     pricePhp: 79,
     priceUsd: 1.99,
@@ -141,16 +126,37 @@ export const SKIN_PACKS: readonly SkinPack[] = [
     baseTheme: "oled",
     accent: "#ef4444",
     secondaryAccent: "#dc2626",
-    previewGradient: "linear-gradient(135deg, #090507 0%, #2b090d 55%, #120406 100%)",
+    previewGradient: "linear-gradient(150deg, #090204 0%, #31070d 55%, #120406 100%)",
     unlockCode: "ILLUSIVE-AKATSUKI-9R2M",
+  },
+  {
+    id: "naruto-shinobi",
+    name: "Naruto: Konoha & Six Paths",
+    badge: "Naruto World",
+    worldLabel: "木ノ葉 · SHINOBI",
+    category: "anime",
+    tagline: "Hokage Rock twilight sky, Kurama chakra seal, Kunai playhead & ninja scroll UI.",
+    highlights: ["Hokage Rock twilight scene", "Uzumaki Chakra Seal frame", "Kunai & Rasengan playhead"],
+    free: false,
+    pricePhp: 79,
+    priceUsd: 1.99,
+    playhead: "shinobi",
+    playButton: "shinobi",
+    scene: "shinobi",
+    baseTheme: "sunset",
+    accent: "#f97316",
+    secondaryAccent: "#38bdf8",
+    previewGradient: "linear-gradient(145deg, #1b0d07 0%, #441c09 52%, #112a3d 100%)",
+    unlockCode: "ILLUSIVE-SHINOBI-7X9K",
   },
   {
     id: "onepiece-grandline",
     name: "One Piece: Gear 5 & Grand Line",
-    badge: "Anime Drop",
+    badge: "Anime World",
+    worldLabel: "GRAND LINE · NIKA",
     category: "anime",
-    tagline: "Sail the Grand Line with a Straw Hat crest playhead, Sun God compass play button, and billowing clouds.",
-    highlights: ["Straw Hat & Haki spark playhead", "Pirate Compass / Sun God play disc", "Grand Line ocean & cloud scene"],
+    tagline: "Thousand Sunny silhouette, Nika clouds, Log Pose frame & Straw Hat playhead.",
+    highlights: ["Thousand Sunny & Nika sky", "Wanted Gold stage frame", "Straw Hat & Haki playhead"],
     free: false,
     pricePhp: 79,
     priceUsd: 1.99,
@@ -160,16 +166,17 @@ export const SKIN_PACKS: readonly SkinPack[] = [
     baseTheme: "midnight",
     accent: "#fbbf24",
     secondaryAccent: "#38bdf8",
-    previewGradient: "linear-gradient(135deg, #071324 0%, #102a49 55%, #3a2a0b 100%)",
+    previewGradient: "linear-gradient(145deg, #061224 0%, #102a49 55%, #3d2c0b 100%)",
     unlockCode: "ILLUSIVE-GRANDLINE-5G1P",
   },
   {
     id: "y2k-idol",
     name: "Y2K Cyber Idol & Chrome Heart",
-    badge: "Teen Trend",
+    badge: "Trend",
+    worldLabel: "Y2K · CYBER IDOL",
     category: "trend",
-    tagline: "Iridescent K-pop concert aesthetic with holographic chrome heart playhead and iridescent star play disc.",
-    highlights: ["Chrome Heart & sparkle playhead", "Holographic Y2K gloss play button", "Iridescent aura & starlight sky"],
+    tagline: "Liquid chrome aura, holographic 4-point stars, glossy frame & chrome heart playhead.",
+    highlights: ["Liquid Chrome Aura scene", "Y2K Glossy Stage frame", "Chrome Heart playhead"],
     free: false,
     pricePhp: 59,
     priceUsd: 1.49,
@@ -179,16 +186,17 @@ export const SKIN_PACKS: readonly SkinPack[] = [
     baseTheme: "rose",
     accent: "#f472b6",
     secondaryAccent: "#67e8f9",
-    previewGradient: "linear-gradient(135deg, #1b0c1b 0%, #3a1233 55%, #162e42 100%)",
+    previewGradient: "linear-gradient(145deg, #1b0c1b 0%, #3f1338 55%, #163147 100%)",
     unlockCode: "ILLUSIVE-Y2KIDOL-3K8V",
   },
   {
     id: "retro-8bit",
     name: "8-Bit Arcade Pixel Runner",
-    badge: "Teen Trend",
+    badge: "Retro",
+    worldLabel: "8-BIT · CRT",
     category: "trend",
-    tagline: "Stepped chiptune HP progress bar, bouncing pixel cat playhead, chunky arcade button, and CRT scanlines.",
-    highlights: ["Bouncing pixel cat sprite thumb", "8-bit bevelled coin play button", "Pixel starfield & CRT scanlines"],
+    tagline: "Stepped RPG window borders, pixel city skyline, CRT scanlines & pixel cat playhead.",
+    highlights: ["Pixel City & CRT scanlines", "8-Bit RPG Stage window", "Bouncing Pixel Cat playhead"],
     free: false,
     pricePhp: 59,
     priceUsd: 1.49,
@@ -198,16 +206,17 @@ export const SKIN_PACKS: readonly SkinPack[] = [
     baseTheme: "arcade",
     accent: "#facc15",
     secondaryAccent: "#4ade80",
-    previewGradient: "linear-gradient(135deg, #0b0d1f 0%, #1d153b 55%, #24210c 100%)",
+    previewGradient: "linear-gradient(180deg, #0b0d1f 0%, #1d153b 60%, #24210c 100%)",
     unlockCode: "ILLUSIVE-8BIT-8P4C",
   },
   {
     id: "vinyl-audiophile",
     name: "Hi-Fi Vinyl & Warm Tube Studio",
     badge: "Music Lover",
+    worldLabel: "HI-FI · ANALOG",
     category: "music",
-    tagline: "Spinning grooved vinyl play button, stylus cartridge playhead, and warm late-night tube-amp ambiance.",
-    highlights: ["Record stylus & VU pulse bar", "Spinning grooved vinyl play button", "Warm analog turntable studio scene"],
+    tagline: "Spinning grooved LP deck overlay, warm tube-amp VU meters & turntable stylus scrubber.",
+    highlights: ["Tube Amp & VU dial scene", "Spinning LP Platter frame", "Stylus cartridge playhead"],
     free: false,
     pricePhp: 59,
     priceUsd: 1.49,
@@ -217,16 +226,17 @@ export const SKIN_PACKS: readonly SkinPack[] = [
     baseTheme: "sunset",
     accent: "#f59e0b",
     secondaryAccent: "#fbbf24",
-    previewGradient: "linear-gradient(135deg, #17100b 0%, #2e1d10 55%, #1b1410 100%)",
+    previewGradient: "linear-gradient(150deg, #17100b 0%, #342010 55%, #1b1410 100%)",
     unlockCode: "ILLUSIVE-VINYL-6V3L",
   },
   {
     id: "cyberpunk-neon",
     name: "Night City Edgerunner",
-    badge: "Trend",
+    badge: "Cyber HUD",
+    worldLabel: "NC-2077 · HUD",
     category: "trend",
-    tagline: "High-voltage cyber laser playhead, chamfered mecha core play button, and neon perspective grid.",
-    highlights: ["Sawtooth neon laser playhead", "Chamfered HUD hex-core play button", "Cyber horizon grid backdrop"],
+    tagline: "Chamfered Night City HUD panels, neon perspective grid, cyber skyline & laser scrubber.",
+    highlights: ["Cyber Skyline & Neon Grid", "Chamfered HUD UI panels", "Sawtooth laser playhead"],
     free: false,
     pricePhp: 59,
     priceUsd: 1.49,
@@ -236,7 +246,7 @@ export const SKIN_PACKS: readonly SkinPack[] = [
     baseTheme: "synthwave",
     accent: "#22d3ee",
     secondaryAccent: "#f43f5e",
-    previewGradient: "linear-gradient(135deg, #07131d 0%, #141738 55%, #300f29 100%)",
+    previewGradient: "linear-gradient(155deg, #07131d 0%, #141738 55%, #300f29 100%)",
     unlockCode: "ILLUSIVE-CYBER-2N9X",
   },
 ];
@@ -266,15 +276,27 @@ export const PLAY_BUTTON_META: readonly { id: PlayButtonStyle; label: string; de
 
 export const SCENE_META: readonly { id: SceneStyle; label: string; desc: string }[] = [
   { id: "none", label: "None (Clean)", desc: "Pure theme surface with optional grain" },
-  { id: "shinobi", label: "Konoha Embers", desc: "Leaf village silhouettes & chakra embers" },
-  { id: "akatsuki", label: "Akatsuki Sky", desc: "Iconic drifting crimson clouds" },
-  { id: "grandline", label: "Grand Line Sea", desc: "Drifting Gear 5 clouds & compass rose" },
-  { id: "kpop", label: "Y2K Aura", desc: "Iridescent concert glow & chrome stars" },
-  { id: "arcade8bit", label: "8-Bit CRT", desc: "Pixel starfield & subtle scanlines" },
-  { id: "vinyl", label: "Vinyl Lounge", desc: "Warm turntable silhouette & tube glow" },
-  { id: "cyberpunk", label: "Night City Grid", desc: "Neon perspective grid & HUD corners" },
+  { id: "akatsuki", label: "Blood Moon & Crows", desc: "Itachi Tsukuyomi moon, utility pole & crows" },
+  { id: "shinobi", label: "Hokage Rock & Chakra", desc: "Konoha twilight, Uzumaki seal & embers" },
+  { id: "grandline", label: "Thousand Sunny Sea", desc: "Grand Line moon, pirate ship & Nika clouds" },
+  { id: "kpop", label: "Y2K Liquid Chrome", desc: "Iridescent chrome rings, stars & concert glow" },
+  { id: "arcade8bit", label: "8-Bit Pixel City", desc: "Retro skyline, pixel moon & CRT scanlines" },
+  { id: "vinyl", label: "Vinyl & Tube Amp", desc: "Spinning LP deck, VU meter & warm glow" },
+  { id: "cyberpunk", label: "Night City HUD", desc: "Neon grid, megabuilding skyline & scanbars" },
   { id: "custom", label: "Custom Wallpaper", desc: "Your uploaded image or animated GIF" },
 ];
+
+export const WORLD_BADGE_BY_SCENE: Record<SceneStyle, string | null> = {
+  none: null,
+  akatsuki: "月読 · UCHIHA",
+  shinobi: "木ノ葉 · SHINOBI",
+  grandline: "GRAND LINE · NIKA",
+  kpop: "Y2K · CYBER IDOL",
+  arcade8bit: "8-BIT · CRT",
+  vinyl: "HI-FI · ANALOG",
+  cyberpunk: "NC-2077 · HUD",
+  custom: "CUSTOM · WORLD",
+};
 
 export interface SellerPaymentInfo {
   gcashNumber: string;
@@ -312,7 +334,7 @@ const DEFAULT_STATE: StoredThemeState = {
   playButtonStyle: "default",
   sceneStyle: "none",
   customBgDataUrl: null,
-  sceneIntensity: 0.72,
+  sceneIntensity: 0.95,
   unlockedIds: [],
   creatorUnlocked: false,
   paymentInfo: DEFAULT_PAYMENT_INFO,
@@ -326,6 +348,7 @@ function syncSceneAttribute(sceneStyle: SceneStyle) {
 const VALID_PLAYHEADS = new Set<string>(PLAYHEAD_META.map((p) => p.id));
 const VALID_PLAY_BUTTONS = new Set<string>(PLAY_BUTTON_META.map((p) => p.id));
 const VALID_SCENES = new Set<string>(SCENE_META.map((p) => p.id));
+const TESTING_BETA_MIGRATION_KEY = "musike:theme-testing-reset-v2";
 
 function readStoredState(): StoredThemeState {
   try {
@@ -335,6 +358,10 @@ function readStoredState(): StoredThemeState {
       paymentInfo: { ...DEFAULT_PAYMENT_INFO },
     };
     if (raw.saleMode === "beta" || raw.saleMode === "live") out.saleMode = raw.saleMode;
+    if (localStorage.getItem(TESTING_BETA_MIGRATION_KEY) !== "1") {
+      out.saleMode = "beta";
+      localStorage.setItem(TESTING_BETA_MIGRATION_KEY, "1");
+    }
     if (typeof raw.activePackId === "string" && raw.activePackId) out.activePackId = raw.activePackId;
     if (typeof raw.playheadStyle === "string" && VALID_PLAYHEADS.has(raw.playheadStyle)) {
       out.playheadStyle = raw.playheadStyle as PlayheadStyle;
@@ -349,7 +376,7 @@ function readStoredState(): StoredThemeState {
       out.customBgDataUrl = raw.customBgDataUrl;
     }
     if (typeof raw.sceneIntensity === "number" && raw.sceneIntensity >= 0.2 && raw.sceneIntensity <= 1) {
-      out.sceneIntensity = raw.sceneIntensity;
+      out.sceneIntensity = raw.sceneIntensity === 0.72 ? 0.95 : raw.sceneIntensity;
     }
     if (Array.isArray(raw.unlockedIds)) {
       out.unlockedIds = raw.unlockedIds.filter((x): x is string => typeof x === "string");
@@ -410,6 +437,7 @@ interface ThemeStoreState extends StoredThemeState {
   setCustomBgDataUrl: (url: string | null) => void;
   setPaymentInfo: (patch: Partial<SellerPaymentInfo>) => void;
   applyPack: (packId: string) => boolean;
+  previewPack: (packId: string) => void;
   redeemCode: (rawCode: string) => { ok: boolean; label: string; scope: "pack" | "all" | "creator" | "invalid" };
   resetCustomizations: () => void;
 }
@@ -505,6 +533,23 @@ export const useThemeStore = create<ThemeStoreState>((set, get) => ({
     persistState(next);
     set(next);
     return true;
+  },
+
+  previewPack: (packId) => {
+    const pack = SKIN_PACKS.find((p) => p.id === packId);
+    if (!pack) return;
+    const s = get();
+    useUi.getState().setTheme(pack.baseTheme);
+    useAppearance.getState().set({ accent: pack.accent });
+    const next: StoredThemeState = {
+      ...s,
+      activePackId: pack.id,
+      playheadStyle: pack.playhead,
+      playButtonStyle: pack.playButton,
+      sceneStyle: pack.scene,
+    };
+    persistState(next);
+    set(next);
   },
 
   redeemCode: (rawCode) => {

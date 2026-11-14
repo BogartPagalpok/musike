@@ -5,7 +5,7 @@ import { OpeningSplash } from "./components/Brand";
 import { AddToPlaylistDialog, ShortcutsDialog } from "./components/Dialogs";
 import { EqualizerDialog } from "./components/EqualizerDialog";
 import { MiniPlayer, TabBar } from "./components/MobileChrome";
-import { NowPlayingSheet, PanelDrawer } from "./components/NowPlaying";
+import { NowPlayingSheet, PanelDrawer, SidePanel } from "./components/NowPlaying";
 import { CenterLyricsPlayer } from "./components/CenterLyricsPlayer";
 import { PlayerBar } from "./components/PlayerBar";
 import { Rail } from "./components/Rail";
@@ -26,7 +26,7 @@ import { useLibrary } from "./stores/library";
 import { useDeviceFiles } from "./stores/deviceFiles";
 import { useOffline } from "./stores/offline";
 import { openSettings, useSystem } from "./stores/system";
-import { toast } from "./stores/ui";
+import { toast, useUi } from "./stores/ui";
 import Album from "./views/Album";
 import Artist from "./views/Artist";
 import BatchSearch from "./views/BatchSearch";
@@ -53,6 +53,7 @@ export default function App() {
   const loadOffline = useOffline((s) => s.load);
   const loadSystem = useSystem((s) => s.load);
   const layoutTemplate = useAppearance((s) => s.layoutTemplate);
+  const panelOpen = useUi((s) => s.panelOpen);
   const main = useRef<HTMLElement>(null);
 
   useShortcuts();
@@ -149,7 +150,7 @@ export default function App() {
         <main
           ref={main}
           className={cn(
-            "scroll-area app-main relative min-h-0 min-w-0 flex-1 md:rounded-[12px] md:bg-surface-1",
+            "@container/main scroll-area app-main relative min-h-0 min-w-0 flex-1 md:rounded-[12px] md:bg-surface-1",
             (layoutTemplate === "center-lyrics" || layoutTemplate === "cinema") && isMd
               ? "flex flex-col overflow-hidden"
               : "overflow-y-auto",
@@ -164,7 +165,7 @@ export default function App() {
               <div className="min-h-0 flex-[1.2] overflow-hidden">
                 <CenterLyricsPlayer mode="cinema" />
               </div>
-              <div className="scroll-area min-h-0 flex-1 overflow-y-auto bg-surface-1/80">
+              <div className="scroll-area min-h-0 flex-1 overflow-y-auto bg-surface-1/50">
                 {appRoutes}
               </div>
             </div>
@@ -172,6 +173,7 @@ export default function App() {
             appRoutes
           )}
         </main>
+        {isMd && layoutTemplate !== "center-lyrics" && panelOpen && <SidePanel />}
       </div>
 
       {isMd ? (

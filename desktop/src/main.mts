@@ -163,10 +163,88 @@ function createMainWindow(url: string): BrowserWindow {
 
 let mainWindow: BrowserWindow | null = null;
 let server: RunningServer | null = null;
+let mediaState: { title: string; artist: string; playing: boolean } = {
+  title: "",
+  artist: "",
+  playing: false,
+};
+
+function dispatchMediaAction(action: "play" | "pause" | "toggle" | "next" | "previous") {
+  mainWindow?.webContents.send("musike:media-action", action);
+}
+
+function rebuildPlaybackMenus() {
+  const hasTrack = Boolean(mediaState.title);
+  const nowPlayingLabel = hasTrack
+    ? `${mediaState.title}${mediaState.artist ? ` — ${mediaState.artist}` : ""}`
+    : "Illusive Sounds";
+  const playPauseItem: Electron.MenuItemConstructorOptions = {
+    label: mediaState.playing ? "Pause" : "Play",
+    enabled: hasTrack,
+    click: () => dispatchMediaAction(mediaState.playing ? "pause" : "play"),
+  };
+  const nextItem: Electron.MenuItemConstructorOptions = {
+    label: "Next Track",
+    enabled: hasTrack,
+    click: () => dispatchMediaAction("next"),
+  };
+  const prevItem: Electron.MenuItemConstructorOptions = {
+    label: "Previous Track",
+    enabled: hasTrack,
+    click: () => dispatchMediaAction("previous"),
+  };
+
+  if (isMac) {
+    app.dock?.setMenu(
+      Menu.buildFromTemplate([
+        { label: nowPlayingLabel, enabled: false },
+        { type: "separator" },
+        playPauseItem,
+        nextItem,
+        prevItem,
+      ]),
+    );
+  }
+
+  Menu.setApplicationMenu(
+    isMac
+      ? Menu.buildFromTemplate([
+          { role: "appMenu" },
+          { role: "editMenu" },
+          {
+            label: "Playback",
+            submenu: [
+              { label: nowPlayingLabel, enabled: false },
+              { type: "separator" },
+              playPauseItem,
+              nextItem,
+              prevItem,
+            ],
+          },
+          { role: "windowMenu" },
+        ])
+      : null,
+  );
+}
 
 async function launch() {
-  const splash = createSplash();
   const s = await loadServer();
+  await s.refreshTools();
+  const currentTools = s.tools();
+  const needsDownload = !currentTools.ytdlp || !currentTools.deno;
+
+  if (!needsDownload) {
+    try {
+      server ??= await s.startServer({ port: PORT, host: "127.0.0.1", portFallback: true });
+      s.ensureComponent("ffmpeg").catch(() => {});
+      mainWindow = createMainWindow(`http://127.0.0.1:${server.port}`);
+      return;
+    } catch {
+      // Fall through to error splash if startup unexpectedly fails.
+    }
+  }
+
+  const splash = createSplash();
   // Show progress while yt-dlp and Deno download on the first launch.
   const report = setInterval(() => {
     splash.webContents.executeJavaScript(`window.update(${JSON.stringify(s.downloads(lang))})`).catch(() => {});
@@ -186,7 +264,7 @@ async function launch() {
   }
 
   clearInterval(report);
-  mainWindow = createMainWindow(`http://127.0.0.1:${server.port}`);
+  mainWindow = createMainWindow(`http://127.0.0.1:${server.port}/?nosplash=1`);
   mainWindow.once("ready-to-show", () => splash.destroy());
 }
 
@@ -204,6 +282,16 @@ ipcMain.on("musike:lang", (_event, next: unknown) => {
   } catch {
     /* not critical: the splash falls back to English */
   }
+});
+
+ipcMain.on("musike:media-state", (_event, next: unknown) => {
+  const payload = (next ?? {}) as { title?: unknown; artist?: unknown; playing?: unknown };
+  mediaState = {
+    title: typeof payload.title === "string" ? payload.title.slice(0, 120) : "",
+    artist: typeof payload.artist === "string" ? payload.artist.slice(0, 120) : "",
+    playing: Boolean(payload.playing),
+  };
+  rebuildPlaybackMenus();
 });
 
 ipcMain.on("musike:retry", (event) => {
@@ -224,8 +312,6 @@ app.on("before-quit", () => void server?.close());
 
 void app.whenReady().then(() => {
   // macOS needs an app menu: without the Edit menu, Cmd+C/V/A don't reach text fields, and Cmd+Q has no home.
-  Menu.setApplicationMenu(
-    isMac ? Menu.buildFromTemplate([{ role: "appMenu" }, { role: "editMenu" }, { role: "windowMenu" }]) : null,
-  );
+  rebuildPlaybackMenus();
   return launch();
 });

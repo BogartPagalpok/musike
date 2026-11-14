@@ -125,16 +125,28 @@ public class PlaybackService extends Service {
             new MediaSession.Callback() {
                 @Override
                 public void onPlay() {
+                    state.positionMs = state.currentPositionMs();
+                    state.positionAt = SystemClock.elapsedRealtime();
+                    state.playing = true;
+                    render();
                     emit("play", -1);
                 }
 
                 @Override
                 public void onPause() {
+                    state.positionMs = state.currentPositionMs();
+                    state.positionAt = SystemClock.elapsedRealtime();
+                    state.playing = false;
+                    render();
                     emit("pause", -1);
                 }
 
                 @Override
                 public void onStop() {
+                    state.positionMs = state.currentPositionMs();
+                    state.positionAt = SystemClock.elapsedRealtime();
+                    state.playing = false;
+                    render();
                     emit("pause", -1);
                 }
 
@@ -181,6 +193,12 @@ public class PlaybackService extends Service {
                     MainActivity.getInstance().exitPipToBackground();
                 }
             } else {
+                if (name.equals("play") || name.equals("pause")) {
+                    state.positionMs = state.currentPositionMs();
+                    state.positionAt = SystemClock.elapsedRealtime();
+                    state.playing = name.equals("play");
+                    render();
+                }
                 emit(name, -1);
             }
         } else {
@@ -373,6 +391,19 @@ public class PlaybackService extends Service {
     }
 
     private static Bitmap download(String url) {
+        if (url.startsWith("data:image/")) {
+            try {
+                int comma = url.indexOf(',');
+                if (comma > 0) {
+                    byte[] bytes = android.util.Base64.decode(url.substring(comma + 1), android.util.Base64.DEFAULT);
+                    Bitmap bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.length);
+                    if (bitmap != null) return scaleArtwork(bitmap);
+                }
+            } catch (Exception ignored) {
+                return null;
+            }
+            return null;
+        }
         HttpURLConnection connection = null;
         try {
             connection = (HttpURLConnection) new URL(url).openConnection();
@@ -380,13 +411,7 @@ public class PlaybackService extends Service {
             connection.setReadTimeout(10_000);
             try (InputStream in = connection.getInputStream()) {
                 Bitmap bitmap = BitmapFactory.decodeStream(in);
-                if (bitmap == null) return null;
-                // Large bitmaps can exceed what the system accepts for a notification.
-                int max = 512;
-                int side = Math.max(bitmap.getWidth(), bitmap.getHeight());
-                if (side <= max) return bitmap;
-                float scale = (float) max / side;
-                return Bitmap.createScaledBitmap(bitmap, Math.round(bitmap.getWidth() * scale), Math.round(bitmap.getHeight() * scale), true);
+                return bitmap != null ? scaleArtwork(bitmap) : null;
             }
         } catch (Exception e) {
             Log.w(TAG, "Could not load the cover art", e);
@@ -394,5 +419,14 @@ public class PlaybackService extends Service {
         } finally {
             if (connection != null) connection.disconnect();
         }
+    }
+
+    private static Bitmap scaleArtwork(Bitmap bitmap) {
+        // Large bitmaps can exceed what the system accepts for a notification.
+        int max = 512;
+        int side = Math.max(bitmap.getWidth(), bitmap.getHeight());
+        if (side <= max) return bitmap;
+        float scale = (float) max / side;
+        return Bitmap.createScaledBitmap(bitmap, Math.round(bitmap.getWidth() * scale), Math.round(bitmap.getHeight() * scale), true);
     }
 }

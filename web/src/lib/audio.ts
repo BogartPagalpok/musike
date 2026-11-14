@@ -284,6 +284,10 @@ class NativeAudio extends EventTarget {
         this.readyState = 4;
         this.dispatchEvent(new Event("playing"));
         break;
+      case "paused":
+        this._paused = true;
+        this.dispatchEvent(new Event("pause"));
+        break;
       case "ended":
         this._ended = true;
         this._paused = true;

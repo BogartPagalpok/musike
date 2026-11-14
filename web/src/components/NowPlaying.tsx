@@ -22,19 +22,23 @@ import type { Track } from "../lib/types";
 import { useEqualizer } from "../player/equalizer";
 import { selectCurrent, usePlayer, useStatusText } from "../player/player";
 import { useAppearance } from "../stores/appearance";
+import { useThemeStore } from "../stores/themeStore";
 import { useUi, type PanelTab } from "../stores/ui";
 import { Artwork } from "./Artwork";
 import { FavoriteButton, ModeSwitch, OfflineButton, Scrubber, Transport } from "./Controls";
 import { IconButton } from "./IconButton";
 import { LyricsView } from "./Lyrics";
 import { QueueList } from "./Queue";
+import { ThemeSceneBackdrop, WorldStageFrame } from "./ThemeSceneBackdrop";
 import { SLOT, VideoSlot } from "./Video";
 
 /** Artwork or the live video, with a soft ambient glow from the cover behind it. */
 function Stage({ track, slot, className }: { track: Track; slot: number; className?: string }) {
   const t = useT();
   const showsVideo = usePlayer((s) => s.mediaKind === "video");
+  const status = usePlayer((s) => s.status);
   const aspect = usePlayer((s) => s.videoAspect);
+  const sceneStyle = useThemeStore((s) => s.sceneStyle);
   // In Video mode on a song: say we're looking for its clip, or that it has none.
   const note = usePlayer((s) =>
     s.preferVideo ? (s.videoNote ?? (s.statusText === "findingClip" ? s.statusText : null)) : null,
@@ -54,21 +58,25 @@ function Stage({ track, slot, className }: { track: Track; slot: number; classNa
   }
   return (
     <div className={cn("relative mx-auto aspect-square w-full", className)}>
-      <img
-        src={track.thumb}
-        alt=""
-        aria-hidden="true"
-        className="absolute inset-[8%] h-[84%] w-[84%] scale-110 rounded-full object-cover opacity-50 blur-3xl"
-      />
-      <Artwork
-        src={track.art}
-        fallback={track.thumb}
-        alt={t.nowPlaying.coverOf(track.title)}
-        iconSize={48}
-        className="relative size-full rounded-[18px] shadow-[0_24px_60px_rgb(0_0_0/0.45)]"
-      />
+      {sceneStyle === "none" && (
+        <img
+          src={track.thumb}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-[8%] h-[84%] w-[84%] scale-110 rounded-full object-cover opacity-50 blur-3xl"
+        />
+      )}
+      <WorldStageFrame scene={sceneStyle} playing={status === "playing"} compact className="size-full">
+        <Artwork
+          src={track.art}
+          fallback={track.thumb}
+          alt={t.nowPlaying.coverOf(track.title)}
+          iconSize={48}
+          className="relative size-full rounded-[inherit] shadow-[0_24px_60px_rgb(0_0_0/0.45)]"
+        />
+      </WorldStageFrame>
       {note && (
-        <span className="absolute inset-x-3 bottom-3 flex items-center justify-center gap-2 rounded-full bg-black/65 px-3 py-2 text-center text-[13px] font-medium text-white backdrop-blur-md">
+        <span className="absolute inset-x-3 bottom-3 z-20 flex items-center justify-center gap-2 rounded-full bg-black/65 px-3 py-2 text-center text-[13px] font-medium text-white backdrop-blur-md">
           {note === "findingClip" ? (
             <MagnifyingGlassIcon size={16} className="shrink-0" />
           ) : (
@@ -416,6 +424,7 @@ export function NowPlayingSheet({ open, onClose }: { open: boolean; onClose: () 
   const [view, setView] = useState<SheetView>("player");
   const eqEnabled = useEqualizer((s) => s.enabled);
   const setEqualizerOpen = useUi((s) => s.setEqualizerOpen);
+  const sceneStyle = useThemeStore((s) => s.sceneStyle);
   const t = useT();
 
   const toggleView = (v: SheetView) => setView((cur) => (cur === v ? "player" : v));
@@ -441,11 +450,21 @@ export function NowPlayingSheet({ open, onClose }: { open: boolean; onClose: () 
           }}
           className="fixed inset-0 z-40 flex flex-col overflow-hidden bg-bg md:hidden"
         >
-          {/* Full-bleed artwork colour wash, like Apple Music */}
+          {/* Full-bleed world scene or Apple Music album blur */}
           <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-            <img src={track.thumb} alt="" className="absolute inset-0 size-full scale-150 object-cover opacity-70 blur-[70px] saturate-150" />
-            <div className="absolute inset-0 bg-bg/55" />
-            <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-b from-transparent to-bg/70" />
+            {sceneStyle !== "none" ? (
+              <>
+                <ThemeSceneBackdrop contained />
+                <div className="absolute inset-0 bg-black/35" />
+                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-b from-transparent to-black/65" />
+              </>
+            ) : (
+              <>
+                <img src={track.thumb} alt="" className="absolute inset-0 size-full scale-150 object-cover opacity-70 blur-[70px] saturate-150" />
+                <div className="absolute inset-0 bg-bg/55" />
+                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-b from-transparent to-bg/70" />
+              </>
+            )}
           </div>
 
           <div className="overlay-top relative flex min-h-0 flex-1 flex-col px-6 pb-[calc(12px+env(safe-area-inset-bottom))]">
@@ -478,25 +497,33 @@ export function NowPlayingSheet({ open, onClose }: { open: boolean; onClose: () 
               <div className="relative min-h-0 flex-1 [container-type:size]" onPointerDown={!showsVideo ? (e) => drag.start(e) : undefined}>
                 <div className={cn("absolute inset-0 flex items-center justify-center", !showsVideo && "touch-none")}>
                   {showsVideo ? (
-                    <div className="w-full overflow-hidden rounded-[12px] bg-black shadow-[0_20px_50px_rgb(0_0_0/0.5)]">
-                      <VideoSlot
-                        priority={SLOT.sheet}
-                        expandable
-                        className="mx-auto max-h-[100cqh] w-full"
-                        style={{ aspectRatio: Math.min(16 / 9, Math.max(9 / 16, aspect)) }}
-                      />
-                    </div>
+                    <WorldStageFrame scene={sceneStyle} playing={status === "playing"} className="w-full">
+                      <div className="w-full overflow-hidden rounded-[inherit] bg-black shadow-[0_20px_50px_rgb(0_0_0/0.5)]">
+                        <VideoSlot
+                          priority={SLOT.sheet}
+                          expandable
+                          className="mx-auto max-h-[100cqh] w-full"
+                          style={{ aspectRatio: Math.min(16 / 9, Math.max(9 / 16, aspect)) }}
+                        />
+                      </div>
+                    </WorldStageFrame>
                   ) : (
-                    <Artwork
-                      src={track.art}
-                      fallback={track.thumb}
-                      alt={t.nowPlaying.coverOf(track.title)}
-                      iconSize={56}
+                    <WorldStageFrame
+                      scene={sceneStyle}
+                      playing={status === "playing"}
                       className={cn(
-                        "size-[min(100cqw,100cqh)] rounded-[12px] shadow-[0_24px_60px_rgb(0_0_0/0.5)] transition-transform duration-500 ease-out-expo",
-                        status === "playing" ? "scale-100" : "scale-[0.86]",
+                        "size-[min(86cqw,86cqh)] transition-transform duration-500 ease-out-expo",
+                        status === "playing" ? "scale-100" : "scale-[0.88]",
                       )}
-                    />
+                    >
+                      <Artwork
+                        src={track.art}
+                        fallback={track.thumb}
+                        alt={t.nowPlaying.coverOf(track.title)}
+                        iconSize={56}
+                        className="size-full overflow-hidden rounded-[inherit] shadow-[0_24px_60px_rgb(0_0_0/0.5)]"
+                      />
+                    </WorldStageFrame>
                   )}
                 </div>
               </div>

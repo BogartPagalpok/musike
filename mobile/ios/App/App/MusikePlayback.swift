@@ -11,6 +11,7 @@ import WebKit
 /// both platforms is the one already written for Android.
 final class MusikePlayback: NSObject, WKScriptMessageHandler {
     private weak var webView: WKWebView?
+    private weak var audio: MusikeAudio?
     private var nowPlaying: [String: Any] = [:]
     private var artworks: [String: MPMediaItemArtwork] = [:]
     private var artworkURL = ""
@@ -25,25 +26,59 @@ final class MusikePlayback: NSObject, WKScriptMessageHandler {
         configureCommands()
     }
 
-    /** Called once the web view exists, so the lock screen's buttons have somewhere to go. */
-    func attach(_ webView: WKWebView?) {
+    /** Called once the web view and native audio engine exist, so the lock screen's buttons stay responsive. */
+    func attach(_ webView: WKWebView?, audio: MusikeAudio? = nil) {
         self.webView = webView
+        self.audio = audio
+        audio?.onStateChange = { [weak self] playing, position, duration in
+            guard let self else { return }
+            self.nowPlaying[MPNowPlayingInfoPropertyElapsedPlaybackTime] = position
+            self.nowPlaying[MPNowPlayingInfoPropertyPlaybackRate] = playing ? 1.0 : 0.0
+            if duration > 0 { self.nowPlaying[MPMediaItemPropertyPlaybackDuration] = duration }
+            self.publish(state: playing ? .playing : .paused)
+        }
     }
 
     // MARK: - The lock screen's buttons
 
     private func configureCommands() {
+        DispatchQueue.main.async {
+            UIApplication.shared.beginReceivingRemoteControlEvents()
+        }
         let center = MPRemoteCommandCenter.shared()
+        center.playCommand.isEnabled = true
+        center.pauseCommand.isEnabled = true
+        center.togglePlayPauseCommand.isEnabled = true
+        center.nextTrackCommand.isEnabled = true
+        center.previousTrackCommand.isEnabled = true
+        center.changePlaybackPositionCommand.isEnabled = true
+
         center.playCommand.addTarget { [weak self] _ in
-            self?.send("play")
+            guard let self else { return .commandFailed }
+            if let audio = self.audio, audio.hasPlayer {
+                self.runOnMain { audio.remotePlay() }
+            }
+            self.send("play")
             return .success
         }
         center.pauseCommand.addTarget { [weak self] _ in
-            self?.send("pause")
+            guard let self else { return .commandFailed }
+            if let audio = self.audio, audio.hasPlayer {
+                self.runOnMain { audio.remotePause() }
+            }
+            self.send("pause")
             return .success
         }
         center.togglePlayPauseCommand.addTarget { [weak self] _ in
-            self?.send("toggle")
+            guard let self else { return .commandFailed }
+            if let audio = self.audio, audio.hasPlayer {
+                self.runOnMain {
+                    let nowPlaying = audio.remoteToggle()
+                    self.send(nowPlaying ? "play" : "pause")
+                }
+            } else {
+                self.send("toggle")
+            }
             return .success
         }
         center.nextTrackCommand.addTarget { [weak self] _ in
@@ -55,9 +90,20 @@ final class MusikePlayback: NSObject, WKScriptMessageHandler {
             return .success
         }
         center.changePlaybackPositionCommand.addTarget { [weak self] event in
-            guard let seek = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
-            self?.send("seek", position: seek.positionTime)
+            guard let self, let seek = event as? MPChangePlaybackPositionCommandEvent else { return .commandFailed }
+            if let audio = self.audio, audio.hasPlayer {
+                self.runOnMain { audio.remoteSeek(to: seek.positionTime) }
+            }
+            self.send("seek", position: seek.positionTime)
             return .success
+        }
+    }
+
+    private func runOnMain(_ work: @escaping () -> Void) {
+        if Thread.isMainThread {
+            work()
+        } else {
+            DispatchQueue.main.async(execute: work)
         }
     }
 
@@ -65,7 +111,28 @@ final class MusikePlayback: NSObject, WKScriptMessageHandler {
         var js = "window.__musikeMediaAction && window.__musikeMediaAction('\(action)')"
         if let position { js = "window.__musikeMediaAction && window.__musikeMediaAction('\(action)', \(position))" }
         DispatchQueue.main.async { [weak self] in
-            self?.webView?.evaluateJavaScript(js)
+            var bgTask: UIBackgroundTaskIdentifier = .invalid
+            bgTask = UIApplication.shared.beginBackgroundTask(withName: "MusikeRemote_\(action)") {
+                if bgTask != .invalid {
+                    UIApplication.shared.endBackgroundTask(bgTask)
+                    bgTask = .invalid
+                }
+            }
+            guard let webView = self?.webView else {
+                if bgTask != .invalid {
+                    UIApplication.shared.endBackgroundTask(bgTask)
+                    bgTask = .invalid
+                }
+                return
+            }
+            webView.evaluateJavaScript(js) { _, _ in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                    if bgTask != .invalid {
+                        UIApplication.shared.endBackgroundTask(bgTask)
+                        bgTask = .invalid
+                    }
+                }
+            }
         }
     }
 
@@ -116,24 +183,42 @@ final class MusikePlayback: NSObject, WKScriptMessageHandler {
     // MARK: - Artwork
 
     private func loadArtwork(_ link: String) {
-        guard link != artworkURL, let url = URL(string: link), url.scheme == "https" else { return }
+        guard !link.isEmpty, link != artworkURL else { return }
         artworkURL = link
         if let cached = artworks[link] {
             nowPlaying[MPMediaItemPropertyArtwork] = cached
             publish()
             return
         }
+        if link.hasPrefix("data:image/"), let comma = link.firstIndex(of: ",") {
+            let b64 = String(link[link.index(after: comma)...])
+            if let data = Data(base64Encoded: b64), let image = UIImage(data: data) {
+                let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+                cacheArtwork(artwork, for: link)
+            }
+            return
+        }
+        if link.hasPrefix("file://"), let url = URL(string: link), let data = try? Data(contentsOf: url), let image = UIImage(data: data) {
+            let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
+            cacheArtwork(artwork, for: link)
+            return
+        }
+        guard let url = URL(string: link), url.scheme == "https" || url.scheme == "http" else { return }
         artworkTask?.cancel()
         artworkTask = URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
             guard let self, let data, let image = UIImage(data: data), link == self.artworkURL else { return }
             let artwork = MPMediaItemArtwork(boundsSize: image.size) { _ in image }
             DispatchQueue.main.async {
-                if self.artworks.count > 8 { self.artworks.removeAll() }
-                self.artworks[link] = artwork
-                self.nowPlaying[MPMediaItemPropertyArtwork] = artwork
-                self.publish()
+                self.cacheArtwork(artwork, for: link)
             }
         }
         artworkTask?.resume()
+    }
+
+    private func cacheArtwork(_ artwork: MPMediaItemArtwork, for link: String) {
+        if artworks.count > 8 { artworks.removeAll() }
+        artworks[link] = artwork
+        nowPlaying[MPMediaItemPropertyArtwork] = artwork
+        publish()
     }
 }

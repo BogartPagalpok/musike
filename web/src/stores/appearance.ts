@@ -64,7 +64,7 @@ export function cleanAppearance(input: unknown): Appearance {
     if (k === "accent" || k === "layoutTemplate" || k === "sidebarWidth" || k === "rightPanelWidth" || k === "sidebarTab") continue;
     if (typeof v[k] === "boolean") (out[k] as boolean) = v[k];
   }
-  if (typeof v.sidebarWidth === "number" && v.sidebarWidth >= 200 && v.sidebarWidth <= 540) {
+  if (typeof v.sidebarWidth === "number" && v.sidebarWidth >= 200 && v.sidebarWidth <= 620) {
     out.sidebarWidth = Math.round(v.sidebarWidth);
   }
   if (typeof v.rightPanelWidth === "number" && v.rightPanelWidth >= 240 && v.rightPanelWidth <= 560) {

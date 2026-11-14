@@ -22,7 +22,7 @@ export function TabBar() {
   return (
     <nav
       aria-label={t.nav.main}
-      className="safe-bottom fixed inset-x-0 bottom-0 z-20 border-t border-line-strong bg-surface-1/96 backdrop-blur-2xl"
+      className="app-tabbar safe-bottom fixed inset-x-0 bottom-0 z-20 border-t border-line-strong bg-surface-1/96 backdrop-blur-2xl"
     >
       <ul className="mx-auto grid h-[56px] max-w-md grid-cols-5">
         {tabs.map(({ to, key, Icon, end }) => (
@@ -95,7 +95,7 @@ export function MiniPlayer() {
       <div
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
-        className="relative flex h-14 items-center gap-2.5 overflow-hidden rounded-[14px] bg-surface-2/98 pr-1.5 pl-2 shadow-[0_8px_28px_rgb(0_0_0/0.45)] ring-1 ring-line-strong backdrop-blur-2xl"
+        className="app-miniplayer relative flex h-14 items-center gap-2.5 overflow-hidden rounded-[14px] bg-surface-2/98 pr-1.5 pl-2 shadow-[0_8px_28px_rgb(0_0_0/0.45)] ring-1 ring-line-strong backdrop-blur-2xl"
       >
         <button
           type="button"

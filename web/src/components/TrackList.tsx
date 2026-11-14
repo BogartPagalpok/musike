@@ -41,12 +41,12 @@ const TrackRow = memo(function TrackRow({ track, position, onPlay, playlistId, s
     <li
       onContextMenu={menuAt}
       className={cn(
-        "group relative grid items-center gap-3 rounded-xl px-2 py-2 transition-colors duration-150 hover:bg-surface-2 md:px-3",
+        "group relative grid items-center gap-3 rounded-xl px-2 py-2 transition-colors duration-150 hover:bg-surface-2 @[500px]/tracklist:px-3",
         !showArtwork
           ? "grid-cols-[28px_1fr_auto_auto]"
           : showAlbum
-            ? "grid-cols-[auto_1fr_auto] md:grid-cols-[28px_auto_1fr_auto_auto] lg:grid-cols-[28px_auto_minmax(0,1.4fr)_minmax(0,1fr)_auto_auto]"
-            : "grid-cols-[auto_1fr_auto] md:grid-cols-[28px_auto_1fr_auto_auto]",
+            ? "grid-cols-[auto_1fr_auto] @[500px]/tracklist:grid-cols-[28px_auto_1fr_auto_auto] @[720px]/tracklist:grid-cols-[28px_auto_minmax(0,1.4fr)_minmax(0,1fr)_auto_auto]"
+            : "grid-cols-[auto_1fr_auto] @[500px]/tracklist:grid-cols-[28px_auto_1fr_auto_auto]",
       )}
     >
       <button
@@ -59,7 +59,7 @@ const TrackRow = memo(function TrackRow({ track, position, onPlay, playlistId, s
       <span
         className={cn(
           "pointer-events-none items-center justify-center font-mono text-[13px] text-fg-3 tabular-nums",
-          showArtwork ? "hidden md:flex" : "flex",
+          showArtwork ? "hidden @[500px]/tracklist:flex" : "flex",
         )}
       >
         {isCurrent ? (
@@ -76,7 +76,7 @@ const TrackRow = memo(function TrackRow({ track, position, onPlay, playlistId, s
         <div className="pointer-events-none relative">
           <Artwork src={track.thumb} className="size-11 rounded-[10px]" />
           {isCurrent && (
-            <span className="absolute inset-0 grid place-items-center rounded-[10px] bg-black/45 md:hidden">
+            <span className="absolute inset-0 grid place-items-center rounded-[10px] bg-black/45 @[500px]/tracklist:hidden">
               <Equalizer live={isPlaying} />
             </span>
           )}
@@ -94,9 +94,9 @@ const TrackRow = memo(function TrackRow({ track, position, onPlay, playlistId, s
         </p>
       </div>
 
-      {showArtwork && showAlbum && <p className="pointer-events-none hidden truncate text-sm text-fg-2 lg:block">{track.album ?? ""}</p>}
+      {showArtwork && showAlbum && <p className="pointer-events-none hidden truncate text-sm text-fg-2 @[720px]/tracklist:block">{track.album ?? ""}</p>}
 
-      <div className={cn("relative z-10 items-center gap-1", showArtwork ? "hidden md:flex" : "flex")}>
+      <div className={cn("relative z-10 items-center gap-1", showArtwork ? "hidden @[500px]/tracklist:flex" : "flex")}>
         <button
           type="button"
           onClick={() => void toggleFavorite(track)}
@@ -154,22 +154,22 @@ export function TrackList({
   // Pages ask for the album column where it makes sense; Settings can turn it off everywhere.
   const showAlbum = useAppearance((s) => s.albumColumn) && albumWanted && showArtwork;
   return (
-    <div>
+    <div className="@container/tracklist">
       {header && (
         <div
           className={cn(
-            "mb-1 items-center gap-3 border-b border-line px-2 pb-2 text-xs font-medium tracking-wide text-fg-3 md:px-3",
+            "mb-1 items-center gap-3 border-b border-line px-2 pb-2 text-xs font-medium tracking-wide text-fg-3 @[500px]/tracklist:px-3",
             !showArtwork
               ? "grid grid-cols-[28px_1fr_auto_auto]"
               : showAlbum
-                ? "hidden md:grid md:grid-cols-[28px_44px_1fr_auto_auto] lg:grid-cols-[28px_44px_minmax(0,1.4fr)_minmax(0,1fr)_auto_auto]"
-                : "hidden md:grid md:grid-cols-[28px_44px_1fr_auto_auto]",
+                ? "hidden @[500px]/tracklist:grid @[500px]/tracklist:grid-cols-[28px_44px_1fr_auto_auto] @[720px]/tracklist:grid-cols-[28px_44px_minmax(0,1.4fr)_minmax(0,1fr)_auto_auto]"
+                : "hidden @[500px]/tracklist:grid @[500px]/tracklist:grid-cols-[28px_44px_1fr_auto_auto]",
           )}
         >
           <span className="text-center font-mono">#</span>
           {showArtwork && <span />}
           <span>{t.trackList.title}</span>
-          {showAlbum && <span className="hidden lg:block">{t.trackList.album}</span>}
+          {showAlbum && <span className="hidden @[720px]/tracklist:block">{t.trackList.album}</span>}
           <span className="flex w-[84px] justify-end pr-0.5">
             <ClockIcon size={15} aria-label={t.trackList.duration} />
           </span>
@@ -196,10 +196,10 @@ export function TrackList({
 export function TrackListSkeleton({ rows = 8 }: { rows?: number }) {
   const t = useT();
   return (
-    <ul aria-label={t.common.loading} className="flex flex-col gap-1">
+    <ul aria-label={t.common.loading} className="@container/tracklist flex flex-col gap-1">
       {Array.from({ length: rows }, (_, i) => (
-        <li key={i} className="flex items-center gap-3 px-2 py-1.5 md:px-3">
-          <span className="hidden w-7 md:block" />
+        <li key={i} className="flex items-center gap-3 px-2 py-1.5 @[500px]/tracklist:px-3">
+          <span className="hidden w-7 @[500px]/tracklist:block" />
           <span className="skeleton size-11 rounded-[10px]" />
           <span className="flex flex-1 flex-col gap-2">
             <span className="skeleton h-3.5 rounded-full" style={{ width: `${46 + ((i * 17) % 38)}%` }} />

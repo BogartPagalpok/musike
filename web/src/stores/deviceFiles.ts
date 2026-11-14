@@ -1,6 +1,10 @@
+import { Capacitor } from "@capacitor/core";
 import { create } from "zustand";
 import { getT } from "../i18n";
+import { api, systemMedia } from "../lib/api";
 import type { Track } from "../lib/types";
+import { scanAndroidLocalMusic, type NativeLocalTrack } from "../native/android";
+import { useLibrary } from "./library";
 import { toast } from "./ui";
 
 const DB_NAME = "illusive-device-files-v1";
@@ -9,8 +13,19 @@ const META_STORE = "meta";
 const BLOB_STORE = "blobs";
 
 export const LOCAL_TRACK_PREFIX = "local:";
+const MIN_LOCAL_DURATION_SEC = 165; // ~3 min (with tolerance from 2:45)
+const MAX_LOCAL_DURATION_SEC = 435; // ~7 min (with tolerance up to 7:15)
+const LOCAL_PLAYLIST_NAME = "Local Music";
 
 const AUDIO_EXT_RE = /\.(mp3|m4a|m4b|aac|flac|wav|ogg|opus|webm|mp4|caf|aiff?)$/i;
+
+export function isEligibleLocalTrack(fileName: string, title: string, durationSec: number): boolean {
+  if (!Number.isFinite(durationSec) || durationSec < MIN_LOCAL_DURATION_SEC || durationSec > MAX_LOCAL_DURATION_SEC) {
+    return false;
+  }
+  if (/rec/i.test(fileName) || /rec/i.test(title)) return false;
+  return true;
+}
 
 export interface DeviceFileRecord {
   id: string;
@@ -24,6 +39,108 @@ export interface DeviceFileRecord {
 let dbPromise: Promise<IDBDatabase> | null = null;
 const blobUrlCache = new Map<string, string>();
 const thumbUrlCache = new Map<string, string>();
+const streamUrlCache = new Map<string, string>();
+let syncPlaylistChain: Promise<void> = Promise.resolve();
+
+function scanIosLocalMusic(): Promise<NativeLocalTrack[]> {
+  const bridge = (
+    globalThis as { webkit?: { messageHandlers?: { musikeAudio?: { postMessage: (msg: unknown) => void } } } }
+  ).webkit?.messageHandlers?.musikeAudio;
+  if (!bridge) return Promise.resolve([]);
+  return new Promise((resolve) => {
+    const host = globalThis as { __musikeIosLocalMusic?: (tracks: NativeLocalTrack[]) => void };
+    const timer = setTimeout(() => {
+      if (host.__musikeIosLocalMusic === onResult) delete host.__musikeIosLocalMusic;
+      resolve([]);
+    }, 6000);
+    const onResult = (tracks: NativeLocalTrack[]) => {
+      clearTimeout(timer);
+      if (host.__musikeIosLocalMusic === onResult) delete host.__musikeIosLocalMusic;
+      resolve(Array.isArray(tracks) ? tracks : []);
+    };
+    host.__musikeIosLocalMusic = onResult;
+    try {
+      bridge.postMessage({ cmd: "scanLocal" });
+    } catch {
+      clearTimeout(timer);
+      if (host.__musikeIosLocalMusic === onResult) delete host.__musikeIosLocalMusic;
+      resolve([]);
+    }
+  });
+}
+
+async function waitForLibraryReady(): Promise<void> {
+  const lib = useLibrary.getState();
+  if (lib.status === "ready") return;
+  if (lib.status === "idle" || lib.status === "error") {
+    await lib.load();
+    return;
+  }
+  await new Promise<void>((resolve) => {
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      unsub();
+      clearTimeout(timer);
+      resolve();
+    };
+    const unsub = useLibrary.subscribe((st) => {
+      if (st.status !== "loading") done();
+    });
+    const timer = setTimeout(done, 5000);
+    if (useLibrary.getState().status !== "loading") done();
+  });
+}
+
+async function runSyncLocalMusicPlaylist(tracks: Track[]): Promise<void> {
+  const eligible = tracks.filter((tr) => isEligibleLocalTrack("", tr.title, tr.duration));
+  try {
+    await waitForLibraryReady();
+    const libState = useLibrary.getState();
+    const existing = libState.playlists.find((p) => p.name.trim().toLowerCase() === LOCAL_PLAYLIST_NAME.toLowerCase());
+    if (!existing) {
+      if (!eligible.length) return;
+      const created = await api.createPlaylist(LOCAL_PLAYLIST_NAME, eligible.slice(0, 500));
+      useLibrary.setState((s) => ({
+        playlists: [created, ...s.playlists.filter((p) => p.id !== created.id)],
+      }));
+      return;
+    }
+
+    const wantedIds = new Set(eligible.map((t) => t.id));
+    let latest = existing;
+
+    for (const current of existing.tracks) {
+      const keep = isLocalTrack(current.id)
+        ? wantedIds.has(current.id) && isEligibleLocalTrack("", current.title, current.duration)
+        : !/rec/i.test(current.title);
+      if (!keep) {
+        latest = await api.removeFromPlaylist(existing.id, current.id);
+      }
+    }
+
+    const haveIds = new Set(latest.tracks.map((t) => t.id));
+    const missing = eligible.filter((t) => !haveIds.has(t.id));
+    if (missing.length) {
+      latest = await api.addToPlaylist(existing.id, missing.slice(0, 500));
+    }
+
+    if (latest !== existing) {
+      useLibrary.setState((s) => ({
+        playlists: s.playlists.map((p) => (p.id === latest.id ? latest : p)),
+      }));
+    }
+  } catch {
+    // Playlist sync failure should never interrupt device playback or UI loading.
+  }
+}
+
+export function syncLocalMusicPlaylist(tracks: Track[]): Promise<void> {
+  const snapshot = tracks.slice();
+  syncPlaylistChain = syncPlaylistChain.then(() => runSyncLocalMusicPlaylist(snapshot)).catch(() => {});
+  return syncPlaylistChain;
+}
 
 function openDb(): Promise<IDBDatabase> {
   if (dbPromise) return dbPromise;
@@ -288,11 +405,71 @@ export const useDeviceFiles = create<DeviceFilesState>((set, get) => ({
 
   load: async () => {
     try {
-      const records = await readAllMeta();
+      const recordsPromise = readAllMeta().catch((): DeviceFileRecord[] => []);
+      const scanPromise = (async (): Promise<{ tracks: Track[]; sizes: Record<string, number> }> => {
+        if (!Capacitor.isNativePlatform() && !systemMedia) {
+          try {
+            const res = await fetch("/api/local-music");
+            if (!res.ok) return { tracks: [], sizes: {} };
+            const body = (await res.json()) as { tracks?: Track[]; sizes?: Record<string, number> };
+            const tracks = Array.isArray(body.tracks)
+              ? body.tracks.filter((tr) => isEligibleLocalTrack("", tr.title, tr.duration))
+              : [];
+            for (const tr of tracks) {
+              streamUrlCache.set(tr.id, `/api/local-music/${encodeURIComponent(tr.id)}/stream`);
+            }
+            return { tracks, sizes: body.sizes ?? {} };
+          } catch {
+            return { tracks: [], sizes: {} };
+          }
+        }
+
+        const nativeList =
+          Capacitor.getPlatform() === "android"
+            ? await scanAndroidLocalMusic()
+            : Capacitor.getPlatform() === "ios"
+              ? await scanIosLocalMusic()
+              : [];
+        const tracks: Track[] = [];
+        const sizes: Record<string, number> = {};
+        for (const item of nativeList) {
+          if (!isEligibleLocalTrack(item.fileName ?? "", item.title, item.duration)) continue;
+          streamUrlCache.set(item.id, item.url);
+          if (item.size) sizes[item.id] = item.size;
+          tracks.push({
+            id: item.id,
+            title: item.title,
+            artist: item.artist,
+            album: item.album,
+            duration: item.duration,
+            thumb: (item as unknown as { thumb?: string }).thumb ?? "",
+            art: (item as unknown as { art?: string }).art ?? "",
+            kind: "song",
+          });
+        }
+        return { tracks, sizes };
+      })();
+
+      const [records, scanned] = await Promise.all([recordsPromise, scanPromise]);
       records.sort((a, b) => b.addedAt - a.addedAt);
-      const sizes: Record<string, number> = {};
-      for (const r of records) sizes[r.id] = r.size;
-      set({ tracks: records.map(hydrateRecord), sizes, loaded: true });
+
+      const sizes: Record<string, number> = { ...scanned.sizes };
+      const merged: Track[] = [...scanned.tracks];
+      const seenIds = new Set(merged.map((t) => t.id));
+      const seenSignatures = new Set(merged.map((t) => `${t.title.toLowerCase()}|${t.artist.toLowerCase()}|${t.duration}`));
+
+      for (const r of records) {
+        if (!isEligibleLocalTrack("", r.track.title, r.track.duration)) continue;
+        sizes[r.id] = r.size;
+        const sig = `${r.track.title.toLowerCase()}|${r.track.artist.toLowerCase()}|${r.track.duration}`;
+        if (seenIds.has(r.id) || seenSignatures.has(sig)) continue;
+        seenIds.add(r.id);
+        seenSignatures.add(sig);
+        merged.push(hydrateRecord(r));
+      }
+
+      set({ tracks: merged, sizes, loaded: true });
+      void syncLocalMusicPlaylist(merged);
     } catch {
       set({ loaded: true });
     }
@@ -303,15 +480,25 @@ export const useDeviceFiles = create<DeviceFilesState>((set, get) => ({
     if (!list.length) return 0;
     set({ importing: true });
     let imported = 0;
+    let skipped = 0;
 
     try {
       for (const file of list) {
+        if (/rec/i.test(file.name)) {
+          skipped++;
+          continue;
+        }
         const id = stableIdForFile(file);
         const [tags, duration] = await Promise.all([parseId3v2(file).catch((): ParsedTags => ({})), probeDuration(file)]);
         const fallback = parseFilenameMetadata(file.name);
+        const title = tags.title || fallback.title;
+        if (!isEligibleLocalTrack(file.name, title, duration)) {
+          skipped++;
+          continue;
+        }
         const track: Track = {
           id,
-          title: tags.title || fallback.title,
+          title,
           artist: tags.artist || fallback.artist,
           album: tags.album,
           duration,
@@ -339,7 +526,12 @@ export const useDeviceFiles = create<DeviceFilesState>((set, get) => ({
         }));
         imported++;
       }
-      if (imported > 0) toast(getT().device.importedCount(imported));
+      if (imported > 0) {
+        toast(getT().device.importedCount(imported));
+        void syncLocalMusicPlaylist(get().tracks);
+      } else if (skipped > 0) {
+        toast("Skipped files outside 3–7 min or containing 'rec' in filename");
+      }
     } catch (e) {
       toast((e as Error).message || "Failed to import audio files", "error");
     } finally {
@@ -353,7 +545,9 @@ export const useDeviceFiles = create<DeviceFilesState>((set, get) => ({
     const prevSizes = get().sizes;
     const nextSizes = { ...prevSizes };
     delete nextSizes[id];
-    set({ tracks: prevTracks.filter((x) => x.id !== id), sizes: nextSizes });
+    const nextTracks = prevTracks.filter((x) => x.id !== id);
+    set({ tracks: nextTracks, sizes: nextSizes });
+    streamUrlCache.delete(id);
 
     const oldBlobUrl = blobUrlCache.get(id);
     if (oldBlobUrl) {
@@ -367,6 +561,7 @@ export const useDeviceFiles = create<DeviceFilesState>((set, get) => ({
     }
     try {
       await deleteDeviceRecord(id);
+      void syncLocalMusicPlaylist(nextTracks);
     } catch (e) {
       set({ tracks: prevTracks, sizes: prevSizes });
       toast((e as Error).message, "error");
@@ -378,24 +573,38 @@ export const useDeviceFiles = create<DeviceFilesState>((set, get) => ({
     blobUrlCache.clear();
     for (const url of thumbUrlCache.values()) URL.revokeObjectURL(url);
     thumbUrlCache.clear();
+    streamUrlCache.clear();
     set({ tracks: [], sizes: {} });
     await clearDeviceDb();
+    void syncLocalMusicPlaylist([]);
   },
 }));
 
-/** Returns an object blob: URL for an imported local music file, or null if not found. */
+/** Returns a playable URL (native stream, server stream, or IndexedDB blob:) for a local music track. */
 export async function getDeviceFileBlobUrl(id: string): Promise<string | null> {
   if (!isLocalTrack(id)) return null;
+  const cachedStream = streamUrlCache.get(id);
+  if (cachedStream) return cachedStream;
   const cached = blobUrlCache.get(id);
   if (cached) return cached;
   try {
     const blob = await readAudioBlob(id);
-    if (!blob) return null;
-    const url = URL.createObjectURL(blob);
-    blobUrlCache.set(id, url);
-    return url;
+    if (blob) {
+      const url = URL.createObjectURL(blob);
+      blobUrlCache.set(id, url);
+      return url;
+    }
   } catch {
-    return null;
+    // Fall through to native/server resolution below.
   }
+  if (!useDeviceFiles.getState().loaded) {
+    await useDeviceFiles.getState().load();
+    const afterLoad = streamUrlCache.get(id) ?? blobUrlCache.get(id);
+    if (afterLoad) return afterLoad;
+  }
+  if (!Capacitor.isNativePlatform() && !systemMedia && !id.startsWith("local:android-") && !id.startsWith("local:ios-")) {
+    return `/api/local-music/${encodeURIComponent(id)}/stream`;
+  }
+  return null;
 }
 
