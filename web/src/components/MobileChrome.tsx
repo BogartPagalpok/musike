@@ -1,4 +1,4 @@
-import { BooksIcon, BroadcastIcon, HardDriveIcon, HouseIcon, MagnifyingGlassIcon, SkipForwardIcon } from "@phosphor-icons/react";
+import { BooksIcon, BroadcastIcon, HardDriveIcon, HouseIcon, MagnifyingGlassIcon, SkipForwardIcon } from "./icons";
 import { useRef, type TouchEvent } from "react";
 import { NavLink, useNavigate } from "react-router";
 import { cn } from "../lib/format";

@@ -9,7 +9,7 @@ import {
   PlayIcon,
   WarningCircleIcon,
   XIcon,
-} from "@phosphor-icons/react";
+} from "../components/icons";
 import { useEffect, useRef, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { AlbumGrid } from "../components/AlbumTiles";

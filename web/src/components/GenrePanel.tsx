@@ -1,16 +1,4 @@
-import {
-  BarbellIcon,
-  CarProfileIcon,
-  CassetteTapeIcon,
-  CloudRainIcon,
-  CoffeeIcon,
-  ConfettiIcon,
-  HeadphonesIcon,
-  HeartIcon,
-  PlayIcon,
-  SparkleIcon,
-  SunHorizonIcon,
-} from "@phosphor-icons/react";
+import { PlayIcon } from "./icons";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useRemote } from "../hooks/useRemote";
@@ -60,26 +48,24 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
             title: "Your Activity Mix",
             sub: "Based on songs & artists you always play",
             query: "",
-            Icon: SparkleIcon,
           },
         ]
       : []),
-    { key: "chill", genreId: "ggMPOg1uX1JOQWZFeDByc2Jm", ...t.home.collections.chill, Icon: CoffeeIcon },
+    { key: "chill", genreId: "ggMPOg1uX1JOQWZFeDByc2Jm", ...t.home.collections.chill },
     {
       key: "sad",
       genreId: "ggMPOg1uX3NISTh4UmtWcFgz",
       title: "Sad & Heartbreak",
       sub: "Emotional ballads, acoustic & heartbreak songs",
       query: "sad heartbreak emotional songs",
-      Icon: CloudRainIcon,
     },
-    { key: "focus", genreId: "ggMPOg1uX0NvNGNhWThMYWRh", ...t.home.collections.focus, Icon: HeadphonesIcon },
-    { key: "energy", genreId: "ggMPOg1uXzIxYkNac21YZ2Z0", ...t.home.collections.energy, Icon: BarbellIcon },
-    { key: "feelGood", genreId: "ggMPOg1uXzZQbDB5eThLRTQ3", ...t.home.collections.feelGood, Icon: SunHorizonIcon },
-    { key: "lateNight", genreId: "ggMPOg1uX2JxQ2hxc2J5UFhR", ...t.home.collections.lateNight, Icon: CarProfileIcon },
-    { key: "party", genreId: "ggMPOg1uX2w1aW1CRDFTSUNo", ...t.home.collections.party, Icon: ConfettiIcon },
-    { key: "romance", genreId: "ggMPOg1uX1JCQnB2QXVYVEIz", ...t.home.collections.romance, Icon: HeartIcon },
-    { key: "throwback", genreId: "ggMPOg1uX1F0bWVKNFlyWG9I", ...t.home.collections.throwback, Icon: CassetteTapeIcon },
+    { key: "focus", genreId: "ggMPOg1uX0NvNGNhWThMYWRh", ...t.home.collections.focus },
+    { key: "energy", genreId: "ggMPOg1uXzIxYkNac21YZ2Z0", ...t.home.collections.energy },
+    { key: "feelGood", genreId: "ggMPOg1uXzZQbDB5eThLRTQ3", ...t.home.collections.feelGood },
+    { key: "lateNight", genreId: "ggMPOg1uX2JxQ2hxc2J5UFhR", ...t.home.collections.lateNight },
+    { key: "party", genreId: "ggMPOg1uX2w1aW1CRDFTSUNo", ...t.home.collections.party },
+    { key: "romance", genreId: "ggMPOg1uX1JCQnB2QXVYVEIz", ...t.home.collections.romance },
+    { key: "throwback", genreId: "ggMPOg1uX1F0bWVKNFlyWG9I", ...t.home.collections.throwback },
   ];
 
   const handlePlayMix = async (key: string, genreId: string | undefined, query: string, e: React.MouseEvent) => {
@@ -129,7 +115,7 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
   return (
     <div className={cn("@container", !compact && "px-4 md:px-6")}>
       <div className="grid grid-cols-2 gap-2.5 @[620px]:grid-cols-4">
-        {cards.map(({ key, genreId, title, sub, query, Icon }, idx) => {
+        {cards.map(({ key, genreId, title, sub, query }, idx) => {
           const busy = loadingKey === key;
           const tone = ACCENT_VARS[idx % ACCENT_VARS.length]!;
           const targetUrl = genreId ? `${paths.genre(genreId)}?view=songs` : `${paths.search}?q=${encodeURIComponent(query)}`;
@@ -159,10 +145,7 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
               }}
               className="group relative flex flex-col justify-between gap-2 overflow-hidden rounded-[12px] bg-surface-2 p-3.5 text-left ring-1 ring-line transition-colors duration-150 hover:bg-surface-3"
             >
-              <div className="flex items-center justify-between gap-2">
-                <span style={{ color: tone }} className=" inline-flex items-center">
-                  <Icon size={18} weight="regular" />
-                </span>
+              <div className="flex items-start justify-end">
                 <button
                   type="button"
                   onClick={(e) => handlePlayMix(key, genreId, query, e)}

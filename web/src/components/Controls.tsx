@@ -2,7 +2,6 @@ import {
   CheckCircleIcon,
   DownloadSimpleIcon,
   HeartIcon,
-  MusicNotesIcon,
   PauseIcon,
   PlayIcon,
   RepeatIcon,
@@ -13,8 +12,7 @@ import {
   SpeakerHighIcon,
   SpeakerLowIcon,
   SpeakerXIcon,
-  VideoCameraIcon,
-} from "@phosphor-icons/react";
+} from "./icons";
 import { useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useT } from "../i18n";
@@ -108,8 +106,8 @@ export function Scrubber({ touch = false, className }: { touch?: boolean; classN
   const shown = scrub ?? position;
   const isPlaying = status === "playing";
 
-  const time = <span className="w-10 shrink-0 font-mono text-[11.5px] text-fg-3 tabular-nums">{formatTime(shown)}</span>;
-  const total = <span className="w-10 shrink-0 text-right font-mono text-[11.5px] text-fg-3 tabular-nums">{formatTime(duration)}</span>;
+  const time = <span className="w-10 shrink-0 text-[11.5px] font-medium text-fg-3 tabular-nums">{formatTime(shown)}</span>;
+  const total = <span className="w-10 shrink-0 text-right text-[11.5px] font-medium text-fg-3 tabular-nums">{formatTime(duration)}</span>;
 
   if (touch) {
     return (
@@ -228,7 +226,7 @@ export function ModeSwitch({ className }: { className?: string }) {
 
   const seg = (on: boolean) =>
     cn(
-      "flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-medium transition-colors duration-200",
+      "flex h-9 items-center rounded-full px-3.5 text-[13px] font-medium transition-colors duration-200",
       on ? "bg-surface-4 text-fg shadow-[inset_0_1px_0_var(--highlight)]" : "text-fg-2 hover:text-fg",
     );
 
@@ -236,7 +234,7 @@ export function ModeSwitch({ className }: { className?: string }) {
     <div className={cn("flex items-center gap-2", className)}>
       <div role="radiogroup" aria-label={t.player.mode} className="flex rounded-full bg-fg/[0.07] p-1">
         <button type="button" role="radio" aria-checked={!preferVideo} className={seg(!preferVideo)} onClick={() => setPreferVideo(false)}>
-          <MusicNotesIcon size={15} /> {t.player.audio}
+          {t.player.audio}
         </button>
         <button
           type="button"
@@ -246,7 +244,7 @@ export function ModeSwitch({ className }: { className?: string }) {
           onClick={() => setPreferVideo(true)}
           title={t.player.watchClip}
         >
-          <VideoCameraIcon size={15} /> {t.player.video}
+          {t.player.video}
         </button>
       </div>
       {showingVideo && capabilities.engineSettings && (() => {
@@ -265,7 +263,7 @@ export function ModeSwitch({ className }: { className?: string }) {
             onClick={() => setQuality(nextQuality)}
             title={titles[quality]}
             className={cn(
-              "h-9 rounded-full px-3 font-mono text-[12px] font-semibold ring-1 transition-colors",
+              "h-9 rounded-full px-3 text-[12px] font-semibold ring-1 tabular-nums transition-colors",
               quality === "auto" || quality === "1080p" || quality === "hd"
                 ? "bg-accent-soft text-accent-text ring-accent/40"
                 : "text-fg-2 ring-line hover:text-fg",

@@ -5,7 +5,7 @@ import {
   CornersOutIcon,
   HeadphonesIcon,
   XIcon,
-} from "@phosphor-icons/react";
+} from "./icons";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from "react";
 import { createPortal } from "react-dom";

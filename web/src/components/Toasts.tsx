@@ -1,4 +1,4 @@
-import { CheckCircleIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { CheckCircleIcon, WarningCircleIcon } from "./icons";
 import { AnimatePresence, motion } from "motion/react";
 import { useT } from "../i18n";
 import { useUi } from "../stores/ui";

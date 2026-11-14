@@ -1,4 +1,4 @@
-import { ArrowsMergeIcon, DatabaseIcon, DownloadSimpleIcon, SwapIcon, UploadSimpleIcon } from "@phosphor-icons/react";
+import { ArrowsMergeIcon, DatabaseIcon, DownloadSimpleIcon, SwapIcon, UploadSimpleIcon } from "./icons";
 import { useRef, useState } from "react";
 import { useT } from "../i18n";
 import { createBackup, downloadBackup, readBackup, restoreBackup, summarize, type Backup } from "../lib/backup";
@@ -90,7 +90,7 @@ export function BackupSection() {
           ["history", history.length, t.backup.inHistory, null],
         ].map(([key, n, label, sub]) => (
           <li key={key} className="rounded-[12px] bg-surface-1 px-2 py-2.5 ring-1 ring-line">
-            <span className="block font-mono text-lg font-semibold tabular-nums">{n}</span>
+            <span className="block text-lg font-semibold tabular-nums">{n}</span>
             <span className="block text-xs text-fg-2">{label}</span>
             {sub && <span className="block text-[11px] text-fg-3">{sub}</span>}
           </li>
@@ -135,7 +135,7 @@ export function BackupSection() {
               ["history", s.history, t.backup.inHistory, null],
             ].map(([key, n, label, sub]) => (
               <li key={key} className="rounded-[12px] bg-surface-2 px-2 py-2.5">
-                <span className="block font-mono text-lg font-semibold tabular-nums">{n}</span>
+                <span className="block text-lg font-semibold tabular-nums">{n}</span>
                 <span className="block text-xs text-fg-2">{label}</span>
                 {sub && <span className="block text-[11px] text-fg-3">{sub}</span>}
               </li>

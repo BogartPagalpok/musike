@@ -7,7 +7,7 @@ import {
   DownloadSimpleIcon,
   HeartIcon,
   PlayIcon,
-} from "@phosphor-icons/react";
+} from "../components/icons";
 import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Artwork } from "../components/Artwork";
@@ -147,7 +147,7 @@ function ChartTrackCell({
 
       {/* Right metadata / hover actions */}
       <div className="relative z-10 flex shrink-0 items-center gap-0.5">
-        <span className="pointer-events-none hidden pr-1 font-mono text-[11.5px] text-fg-2 tabular-nums sm:inline group-hover:hidden">
+        <span className="pointer-events-none hidden pr-1 text-[11.5px] text-fg-2 tabular-nums sm:inline group-hover:hidden">
           {track.duration ? formatTime(track.duration) : ""}
         </span>
         <button

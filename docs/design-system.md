@@ -2,7 +2,7 @@
 
 ## Design read
 
-App de player de música pessoal para uso diário em celular e desktop, linguagem escura, simples e levemente gamer (atalhos de teclado, números em mono, indicadores vivos), apoiado em Tailwind v4 + Motion + Phosphor Icons.
+App de player de música pessoal para uso diário em celular e desktop, linguagem escura, simples e funcional (atalhos de teclado, números tabulares, indicadores vivos), apoiado em Tailwind v4 + Motion + Streamline Core (`Core Line - Free` / `Core Solid - Free`, SVGs locais em `web/src/components/icons.tsx`).
 
 Dials (`design-taste-frontend`): `DESIGN_VARIANCE 4` (app, previsível para o polegar) · `MOTION_INTENSITY 5` (feedback e transições de estado, nada decorativo) · `VISUAL_DENSITY 5` (listas de faixas precisam de densidade de app).
 
@@ -34,9 +34,9 @@ Uma única cor de acento, **Volt**, sobre grafite frio. Distante do blurple do D
 
 ## Tipografia
 
-- **Geist Variable:** UI e títulos (títulos com `tracking-tight`, peso 600-700).
-- **Geist Mono Variable:** tempos, contadores, atalhos (`tabular-nums`). É o toque "gamer".
-- Sem Inter, sem serif.
+- **Pilha nativa do sistema (`--font-sans`):** `-apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif` para UI e títulos (`tracking-tight`, peso 600-700, `tabular-nums` em durações, faixas e contadores).
+- **Mono do sistema (`--font-mono`):** `ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace` reservada exclusivamente a `<kbd>`, logs, inputs hex e chaves de desbloqueio.
+- Sem fontes externas ou genéricas.
 
 ## Forma (regra única)
 

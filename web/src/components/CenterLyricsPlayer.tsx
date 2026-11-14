@@ -1,15 +1,10 @@
-import {
-  EqualizerIcon,
-  MicrophoneStageIcon,
-  PlayIcon,
-  RadioIcon,
-} from "@phosphor-icons/react";
+import { EqualizerIcon, PlayIcon, RadioIcon } from "./icons";
 import { useT } from "../i18n";
 import { cn } from "../lib/format";
 import { useEqualizer } from "../player/equalizer";
 import { selectCurrent, usePlayer, useStatusText } from "../player/player";
 import { useLibrary } from "../stores/library";
-import { useThemeStore, WORLD_BADGE_BY_SCENE } from "../stores/themeStore";
+import { useThemeStore } from "../stores/themeStore";
 import { useUi } from "../stores/ui";
 import { Artwork } from "./Artwork";
 import { FavoriteButton, ModeSwitch, OfflineButton } from "./Controls";
@@ -32,33 +27,24 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
   const history = useLibrary((s) => s.history);
   const favorites = useLibrary((s) => s.favorites);
   const sceneStyle = useThemeStore((s) => s.sceneStyle);
-  const worldBadge = WORLD_BADGE_BY_SCENE[sceneStyle];
   const hasWorldScene = sceneStyle !== "none";
 
   if (!track) {
     const starter = favorites.length ? favorites : history;
     return (
       <div className="flex h-full min-h-0 flex-col items-center justify-center overflow-hidden p-6 text-center">
-        <div className="mb-3 grid size-16 place-items-center rounded-3xl bg-accent-soft text-accent-text ring-1 ring-accent/30">
-          <MicrophoneStageIcon size={36} weight="duotone" />
-        </div>
-        {worldBadge && (
-          <span className="mb-2 rounded-full border border-accent/40 bg-accent-soft px-3 py-0.5 font-mono text-[11px] font-bold tracking-widest text-accent-text">
-            {worldBadge}
-          </span>
-        )}
-        <h2 className="text-xl font-bold tracking-tight text-fg">Center Stage &amp; Karaoke Studio</h2>
-        <p className="mt-1 max-w-md text-sm text-fg-2">
-          Select any song from the sidebar to launch the 1080p HD video stage and auto-centered karaoke lyrics here.
+        <h2 className="text-lg font-semibold tracking-tight text-fg">Nothing playing</h2>
+        <p className="mt-1 max-w-sm text-sm text-fg-2">
+          Choose a track from your library or search to start listening.
         </p>
         {starter.length > 0 && (
           <button
             type="button"
             onClick={() => playList(starter, 0)}
-            className="mt-4 flex h-10 items-center gap-2 rounded-full bg-accent px-5 text-xs font-semibold text-accent-ink shadow-md transition-transform hover:scale-105 active:scale-95"
+            className="mt-4 flex h-10 items-center gap-2 rounded-full bg-accent px-5 text-xs font-semibold text-accent-ink transition-transform hover:scale-105 active:scale-95"
           >
-            <PlayIcon size={16} weight="fill" />
-            <span>Play Your Music</span>
+            <PlayIcon size={15} weight="fill" />
+            <span>Play Music</span>
           </button>
         )}
       </div>

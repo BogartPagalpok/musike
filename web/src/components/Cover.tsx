@@ -1,4 +1,4 @@
-import { ClockCounterClockwiseIcon, DownloadSimpleIcon, HardDriveIcon, HeartIcon, StorefrontIcon } from "@phosphor-icons/react";
+import { ClockCounterClockwiseIcon, DownloadSimpleIcon, HardDriveIcon, HeartIcon, SwatchesIcon } from "./icons";
 import { cn } from "../lib/format";
 import type { Track } from "../lib/types";
 import { Artwork } from "./Artwork";
@@ -16,8 +16,8 @@ export function Cover({ kind, tracks, className, iconSize = 40 }: { kind: CoverK
   }
   if (kind === "themes") {
     return (
-      <span className={cn("grid place-items-center bg-accent text-accent-ink", className)}>
-        <StorefrontIcon size={iconSize} weight="fill" />
+      <span className={cn("grid place-items-center bg-surface-4 text-fg", className)}>
+        <SwatchesIcon size={iconSize} />
       </span>
     );
   }

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { cn } from "../lib/format";
-import { useThemeStore, WORLD_BADGE_BY_SCENE } from "../stores/themeStore";
 
 const RADIO_PATH_1 =
   "M127.818 39.09v74.936a4.582 4.582 0 0 1-4.588 4.587H10.062a4.582 4.582 0 0 1-4.588-4.587V39.09a4.56 4.56 0 0 1 3.043-4.3c.03-.014.061-.043.092-.06L92.904 6.638c.826-3.303 3.823-5.78 7.386-5.78a7.65 7.65 0 0 1 7.647 7.646 7.65 7.65 0 0 1-7.647 7.646c-1.374 0-2.66-.397-3.777-1.04L38.338 34.502h84.892a4.582 4.582 0 0 1 4.588 4.588m-9.176 70.348V68.147H14.65v41.29zm0-50.467V43.678H40.648V58.97zm-87.17 0V43.678H14.65V58.97z";
@@ -26,19 +25,10 @@ export function LogoMark({ className, style }: { className?: string; style?: Rea
 }
 
 export function Logo({ className }: { className?: string }) {
-  const sceneStyle = useThemeStore((s) => s.sceneStyle);
-  const worldBadge = WORLD_BADGE_BY_SCENE[sceneStyle];
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <LogoMark className="size-8 shrink-0 text-accent-text" />
-      <span className="min-w-0">
-        <span className="block truncate text-[17px] leading-tight font-semibold tracking-tight">Illusive Sounds</span>
-        {worldBadge && (
-          <span className="mt-0.5 block truncate font-mono text-[9.5px] font-bold tracking-widest text-accent-text">
-            {worldBadge}
-          </span>
-        )}
-      </span>
+      <span className="block truncate text-[17px] leading-tight font-semibold tracking-tight">Illusive Sounds</span>
     </span>
   );
 }

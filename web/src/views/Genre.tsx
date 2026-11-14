@@ -1,4 +1,4 @@
-import { CircleNotchIcon, MusicNotesIcon, PlayIcon, ShuffleIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { CircleNotchIcon, MusicNotesIcon, PlayIcon, ShuffleIcon, WarningCircleIcon } from "../components/icons";
 import { useState, type ReactNode } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router";
 import { Artwork } from "../components/Artwork";
@@ -75,7 +75,7 @@ function GenreBody({ id, lang }: { id: string; lang: Lang }) {
       )}
     >
       {label}
-      {count !== undefined && <span className="ml-1.5 font-mono text-xs opacity-60">{count}</span>}
+      {count !== undefined && <span className="ml-1.5 text-xs tabular-nums opacity-60">{count}</span>}
     </button>
   );
 

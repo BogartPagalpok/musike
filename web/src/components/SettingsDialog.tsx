@@ -4,19 +4,7 @@ import {
   CaretRightIcon,
   CheckIcon,
   DownloadSimpleIcon,
-  DropIcon,
-  GridFourIcon,
-  HouseIcon,
-  ListIcon,
-  PaletteIcon,
-  RowsIcon,
-  SidebarSimpleIcon,
-  SparkleIcon,
-  StorefrontIcon,
-  TerminalWindowIcon,
-  WaveformIcon,
-  type Icon,
-} from "@phosphor-icons/react";
+} from "./icons";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
@@ -53,18 +41,8 @@ function Group({ title, footer, children, className }: { title?: string; footer?
   );
 }
 
-function IconTile({ icon: I, color }: { icon: Icon; color: string }) {
-  return (
-    <span className="grid size-[30px] shrink-0 place-items-center rounded-[8px] text-white" style={{ backgroundColor: color }}>
-      <I size={18} weight="fill" />
-    </span>
-  );
-}
-
-/** One row. Hairline divider starts after the icon, like iOS. */
+/** One clean settings row. */
 function Row({
-  icon,
-  color,
   label,
   sub,
   value,
@@ -73,8 +51,6 @@ function Row({
   right,
   danger,
 }: {
-  icon?: Icon;
-  color?: string;
   label: ReactNode;
   sub?: ReactNode;
   value?: ReactNode;
@@ -89,11 +65,10 @@ function Row({
       type={onClick ? "button" : undefined}
       onClick={onClick}
       className={cn(
-        "group/row flex min-h-[50px] w-full items-center gap-3 pl-4 text-left",
+        "group/row flex min-h-[50px] w-full items-center pl-4 text-left",
         onClick && "transition-colors active:bg-surface-3 md:hover:bg-surface-3/60",
       )}
     >
-      {icon && color && <IconTile icon={icon} color={color} />}
       <span className="flex min-h-[50px] min-w-0 flex-1 items-center gap-2 border-b border-line py-2.5 pr-4 group-last/row:border-b-0">
         <span className="min-w-0 flex-1">
           <span className={cn("block text-[15px] leading-tight", danger ? "text-danger" : "text-fg")}>{label}</span>
@@ -130,8 +105,8 @@ function Switch({ checked, onChange, label }: { checked: boolean; onChange: (v: 
   );
 }
 
-function ToggleRow({ icon, color, label, sub, checked, onChange }: { icon?: Icon; color?: string; label: string; sub?: string; checked: boolean; onChange: (v: boolean) => void }) {
-  return <Row icon={icon} color={color} label={label} sub={sub} right={<Switch checked={checked} onChange={onChange} label={label} />} />;
+function ToggleRow({ label, sub, checked, onChange }: { label: string; sub?: string; checked: boolean; onChange: (v: boolean) => void }) {
+  return <Row label={label} sub={sub} right={<Switch checked={checked} onChange={onChange} label={label} />} />;
 }
 
 /* ---------- Pages ---------- */
@@ -187,12 +162,10 @@ function ThemePage({ go }: { go: (p: Page) => void }) {
     SKIN_PACKS.find((p) => p.id === activePackId)?.name ?? (activePackId === "custom-mix" ? "Custom Mix" : undefined);
   return (
     <>
-      <Group title="World Skins & Custom UI">
+      <Group title="Themes">
         <Row
-          icon={StorefrontIcon}
-          color="#ef4444"
-          label="Theme Store & World Skins"
-          sub="Itachi Blood Moon, Naruto Konoha, One Piece, 8-Bit & Custom"
+          label="Themes"
+          sub="Custom player, playhead styles & backdrops"
           value={activePackName}
           chevron
           onClick={() => go("store")}
@@ -446,44 +419,38 @@ function RootPage({ go }: { go: (p: Page) => void }) {
 
       <Group title={t.settings.appearance}>
         <Row
-          icon={StorefrontIcon}
-          color="#ef4444"
-          label="Theme Store & World Skins"
+          label="Themes"
           value={activePackName}
           chevron
           onClick={() => go("store")}
         />
-        <Row icon={PaletteIcon} color="#5e5ce6" label={t.settings.theme} value={t.settings.themes[theme]} chevron onClick={() => go("theme")} />
+        <Row label={t.settings.theme} value={t.settings.themes[theme]} chevron onClick={() => go("theme")} />
         <Row
-          icon={DropIcon}
-          color="#ff375f"
           label={t.customize.accent}
           right={<span className="size-5 rounded-full ring-1 ring-line" style={{ backgroundColor: a.accent }} />}
           chevron
           onClick={() => go("accent")}
         />
-        <ToggleRow icon={SparkleIcon} color="#8e8e93" label={t.customize.texture} checked={a.texture} onChange={(v) => a.set({ texture: v })} />
+        <ToggleRow label={t.customize.texture} checked={a.texture} onChange={(v) => a.set({ texture: v })} />
       </Group>
 
       {isMd && (
         <Group title={t.customize.layout}>
           <Row
-            icon={GridFourIcon}
-            color="#0a84ff"
             label="Workspace"
             value={LAYOUTS.find((l) => l.id === a.layoutTemplate)?.title}
             chevron
             onClick={() => go("layout")}
           />
-          <ToggleRow icon={WaveformIcon} color="#30d158" label={t.customize.panel} checked={panelOpen} onChange={setPanelDocked} />
-          <ToggleRow icon={ListIcon} color="#ff9f0a" label={t.customize.sidebarPlaylists} checked={a.sidebarPlaylists} onChange={(v) => a.set({ sidebarPlaylists: v })} />
-          <ToggleRow icon={SidebarSimpleIcon} color="#64d2ff" label={t.customize.compactSidebar} checked={a.compactSidebar} onChange={(v) => a.set({ compactSidebar: v })} />
-          <ToggleRow icon={RowsIcon} color="#bf5af2" label={t.customize.albumColumn} checked={a.albumColumn} onChange={(v) => a.set({ albumColumn: v })} />
+          <ToggleRow label={t.customize.panel} checked={panelOpen} onChange={setPanelDocked} />
+          <ToggleRow label={t.customize.sidebarPlaylists} checked={a.sidebarPlaylists} onChange={(v) => a.set({ sidebarPlaylists: v })} />
+          <ToggleRow label={t.customize.compactSidebar} checked={a.compactSidebar} onChange={(v) => a.set({ compactSidebar: v })} />
+          <ToggleRow label={t.customize.albumColumn} checked={a.albumColumn} onChange={(v) => a.set({ albumColumn: v })} />
         </Group>
       )}
 
       <Group title={t.customize.home}>
-        <ToggleRow icon={HouseIcon} color="#ff9f0a" label={t.customize.homeShortcuts} checked={a.homeShortcuts} onChange={(v) => a.set({ homeShortcuts: v })} />
+        <ToggleRow label={t.customize.homeShortcuts} checked={a.homeShortcuts} onChange={(v) => a.set({ homeShortcuts: v })} />
         <ToggleRow label={t.nav.recentlyPlayed} checked={a.homeRecent} onChange={(v) => a.set({ homeRecent: v })} />
         <ToggleRow label={t.home.yourFavorites} checked={a.homeFavorites} onChange={(v) => a.set({ homeFavorites: v })} />
       </Group>
@@ -491,8 +458,6 @@ function RootPage({ go }: { go: (p: Page) => void }) {
       {capabilities.engineSettings && (
         <Group title={t.settings.engine}>
           <Row
-            icon={TerminalWindowIcon}
-            color="#3a3a3c"
             label="yt-dlp"
             value={engineValue}
             right={y?.updateAvailable || (info && !y?.path) ? <span className="size-2 rounded-full bg-accent" /> : undefined}
@@ -557,7 +522,7 @@ export function SettingsDialog() {
 
   const titles: Record<Page, string> = {
     root: t.settings.title,
-    store: "Theme Store",
+    store: "Themes",
     theme: t.settings.theme,
     accent: t.customize.accent,
     layout: t.customize.layout,

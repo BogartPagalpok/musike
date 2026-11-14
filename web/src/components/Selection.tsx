@@ -1,4 +1,4 @@
-import { CheckIcon, HeartIcon, PlayIcon, PlaylistIcon, VideoCameraIcon } from "@phosphor-icons/react";
+import { CheckIcon, HeartIcon, PlayIcon, PlaylistIcon, VideoCameraIcon } from "./icons";
 import { useState, type ReactNode } from "react";
 import { useT } from "../i18n";
 import { cn, formatTime } from "../lib/format";
@@ -173,7 +173,7 @@ export function SelectableRow({
       </button>
 
       {position !== undefined && (
-        <span className="hidden w-6 shrink-0 text-center font-mono text-[13px] text-fg-3 tabular-nums md:block">{position}</span>
+        <span className="hidden w-6 shrink-0 text-center text-[13px] text-fg-3 tabular-nums md:block">{position}</span>
       )}
 
       <button type="button" onClick={onPlay} aria-label={t.common.playX(track.title)} className="group/art relative shrink-0">
@@ -201,7 +201,7 @@ export function SelectableRow({
 
       {isFavorite && <HeartIcon size={15} weight="fill" className="shrink-0 text-accent-text" aria-label={t.common.inFavorites} />}
 
-      <span className="hidden w-11 shrink-0 text-right font-mono text-[13px] text-fg-3 tabular-nums md:block">
+      <span className="hidden w-11 shrink-0 text-right text-[13px] text-fg-3 tabular-nums md:block">
         {track.duration ? formatTime(track.duration) : ""}
       </span>
 

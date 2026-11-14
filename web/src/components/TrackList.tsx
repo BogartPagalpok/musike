@@ -1,4 +1,4 @@
-import { CheckCircleIcon, ClockIcon, DotsThreeIcon, HeartIcon, PlayIcon, VideoCameraIcon } from "@phosphor-icons/react";
+import { CheckCircleIcon, ClockIcon, DotsThreeIcon, HeartIcon, PlayIcon, VideoCameraIcon } from "./icons";
 import { memo, type MouseEvent } from "react";
 import { useT } from "../i18n";
 import { cn, formatTime } from "../lib/format";
@@ -58,7 +58,7 @@ const TrackRow = memo(function TrackRow({ track, position, onPlay, playlistId, s
 
       <span
         className={cn(
-          "pointer-events-none items-center justify-center font-mono text-[13px] text-fg-3 tabular-nums",
+          "pointer-events-none items-center justify-center text-[13px] text-fg-3 tabular-nums",
           showArtwork ? "hidden @[500px]/tracklist:flex" : "flex",
         )}
       >
@@ -109,7 +109,7 @@ const TrackRow = memo(function TrackRow({ track, position, onPlay, playlistId, s
         >
           <HeartIcon size={17} weight={isFavorite ? "fill" : "regular"} />
         </button>
-        <span className="pointer-events-none w-11 text-right font-mono text-[13px] text-fg-3 tabular-nums">
+        <span className="pointer-events-none w-11 text-right text-[13px] text-fg-3 tabular-nums">
           {track.duration ? formatTime(track.duration) : ""}
         </span>
       </div>
@@ -166,7 +166,7 @@ export function TrackList({
                 : "hidden @[500px]/tracklist:grid @[500px]/tracklist:grid-cols-[28px_44px_1fr_auto_auto]",
           )}
         >
-          <span className="text-center font-mono">#</span>
+          <span className="text-center">#</span>
           {showArtwork && <span />}
           <span>{t.trackList.title}</span>
           {showAlbum && <span className="hidden @[720px]/tracklist:block">{t.trackList.album}</span>}

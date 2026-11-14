@@ -1,9 +1,8 @@
-import { ArrowLeftIcon, GearSixIcon, SwatchesIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, GearSixIcon } from "./icons";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router";
 import { useT } from "../i18n";
 import { cn } from "../lib/format";
-import { paths } from "../lib/routes";
 import { needsAttention, useSystem } from "../stores/system";
 import { useUi } from "../stores/ui";
 import { LogoMark } from "./Brand";
@@ -23,7 +22,6 @@ export function PageHeader({
   className?: string;
 }) {
   const setSettingsOpen = useUi((s) => s.setSettingsOpen);
-  const navigate = useNavigate();
   const attention = useSystem((s) => needsAttention(s.info));
   const t = useT();
   return (
@@ -43,13 +41,6 @@ export function PageHeader({
           <span className="min-w-0 flex-1 truncate text-[17px] font-semibold tracking-tight md:hidden">Illusive Sounds</span>
         )}
         {actions}
-        <IconButton
-          label={t.nav.themes}
-          onClick={() => navigate(paths.themes)}
-          className="text-accent-text md:hidden"
-        >
-          <SwatchesIcon size={21} weight="duotone" />
-        </IconButton>
         <IconButton
           label={attention ? t.nav.settingsUpdate : t.nav.settings}
           onClick={() => setSettingsOpen(true)}

@@ -1,4 +1,4 @@
-import { EqualizerIcon, KeyboardIcon, MicrophoneStageIcon, QueueIcon } from "@phosphor-icons/react";
+import { EqualizerIcon, KeyboardIcon, MicrophoneStageIcon, QueueIcon } from "./icons";
 import { cn } from "../lib/format";
 import { useT } from "../i18n";
 import { useEqualizer } from "../player/equalizer";

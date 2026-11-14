@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MicrophoneStageIcon } from "@phosphor-icons/react";
+import { MicrophoneStageIcon } from "./icons";
 import { useT } from "../i18n";
 import { cn } from "../lib/format";
 import type { Track } from "../lib/types";
@@ -451,18 +451,18 @@ export function LyricsView({ className, compact = false }: { className?: string;
               <button
                 type="button"
                 onClick={() => setUserOffset((o) => Math.round((o - 0.5) * 10) / 10)}
-                className="px-1 font-mono font-medium text-fg-2 hover:text-fg"
+                className="px-1 font-medium text-fg-2 tabular-nums hover:text-fg"
                 title="Lyrics earlier (-0.5s)"
               >
                 -0.5s
               </button>
-              <span className="px-0.5 font-mono text-[10px] text-fg-3">
+              <span className="px-0.5 text-[10px] text-fg-3 tabular-nums">
                 {userOffset === 0 ? "sync" : `${userOffset > 0 ? "+" : ""}${userOffset.toFixed(1)}s`}
               </span>
               <button
                 type="button"
                 onClick={() => setUserOffset((o) => Math.round((o + 0.5) * 10) / 10)}
-                className="px-1 font-mono font-medium text-fg-2 hover:text-fg"
+                className="px-1 font-medium text-fg-2 tabular-nums hover:text-fg"
                 title="Lyrics later (+0.5s)"
               >
                 +0.5s

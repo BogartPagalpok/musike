@@ -2,10 +2,9 @@ import {
   BroadcastIcon,
   MagnifyingGlassIcon,
   PlayIcon,
-  SparkleIcon,
   WarningCircleIcon,
   XIcon,
-} from "@phosphor-icons/react";
+} from "../components/icons";
 import { useEffect, useState } from "react";
 import { Artwork } from "../components/Artwork";
 import { EmptyState, PageHeader } from "../components/Page";
@@ -235,9 +234,8 @@ export default function Podcasts() {
       {/* Featured Popular Shows Grid */}
       <div className="@container/shows px-4 @[680px]/shows:px-6">
         <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-base font-semibold tracking-tight text-fg flex items-center gap-2">
-            <SparkleIcon size={18} className="text-accent-text" />
-            <span>{t.podcasts.popularShows}</span>
+          <h2 className="text-base font-semibold tracking-tight text-fg">
+            {t.podcasts.popularShows}
           </h2>
           <span className="text-xs text-fg-3">{t.podcasts.showsCount(POPULAR_SHOWS.length)}</span>
         </div>

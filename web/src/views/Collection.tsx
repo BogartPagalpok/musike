@@ -1,4 +1,4 @@
-import { DotsThreeIcon, MagnifyingGlassIcon, PauseIcon, PencilSimpleIcon, PlayIcon, ShuffleIcon, TrashIcon } from "@phosphor-icons/react";
+import { DotsThreeIcon, MagnifyingGlassIcon, PauseIcon, PencilSimpleIcon, PlayIcon, ShuffleIcon, TrashIcon } from "../components/icons";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { Cover, type CoverKind } from "../components/Cover";
@@ -100,7 +100,7 @@ export default function Collection({ kind }: Props) {
           <div className="flex min-w-0 flex-col items-center gap-2 text-center @[620px]/collection:items-start @[620px]/collection:text-left">
             <span className="hidden text-xs font-medium text-fg-2 @[620px]/collection:block">{label}</span>
             <h1 className="max-w-full text-[28px] leading-[1.1] font-bold tracking-tight break-words @[620px]/collection:text-5xl @[860px]/collection:text-6xl">{name}</h1>
-            <p className="font-mono text-[13px] text-fg-2">
+            <p className="text-[13px] text-fg-2 tabular-nums">
               {t.common.tracks(tracks.length)}
               {total > 0 && <> · {t.time.total(total)}</>}
             </p>

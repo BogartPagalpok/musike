@@ -8,7 +8,7 @@ import {
   ShuffleIcon,
   TrashIcon,
   XIcon,
-} from "@phosphor-icons/react";
+} from "../components/icons";
 import { useMemo, useRef, useState, type DragEvent } from "react";
 import { EmptyState, PageHeader } from "../components/Page";
 import { TrackList } from "../components/TrackList";

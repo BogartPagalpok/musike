@@ -11,7 +11,7 @@ import {
   VideoCameraIcon,
   VideoCameraSlashIcon,
   XIcon,
-} from "@phosphor-icons/react";
+} from "./icons";
 import { AnimatePresence, motion, useDragControls, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";

@@ -1,4 +1,4 @@
-import { ArrowCounterClockwiseIcon, CheckIcon, EqualizerIcon, LightningIcon, PowerIcon, WaveSineIcon } from "@phosphor-icons/react";
+import { ArrowCounterClockwiseIcon } from "./icons";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useT } from "../i18n";
 import { cn } from "../lib/format";
@@ -142,7 +142,7 @@ function FrequencyCurve() {
         ))}
       </svg>
 
-      <div className="pointer-events-none absolute inset-y-2 left-2.5 flex flex-col justify-between font-mono text-[10px] text-fg-3">
+      <div className="pointer-events-none absolute inset-y-2 left-2.5 flex flex-col justify-between text-[10px] text-fg-3 tabular-nums">
         <span>+12 dB</span>
         <span>0 dB</span>
         <span>-12 dB</span>
@@ -181,7 +181,7 @@ function VerticalBandSlider({
     <div className="flex flex-col items-center gap-1.5 select-none">
       <span
         className={cn(
-          "font-mono text-[10px] tabular-nums transition-colors",
+          "text-[10px] tabular-nums transition-colors",
           gain !== 0 && !disabled ? "font-semibold text-accent-text" : "text-fg-3",
         )}
       >
@@ -238,7 +238,7 @@ function VerticalBandSlider({
         />
       </div>
 
-      <span className="font-mono text-[10px] font-medium text-fg-2">{formatFreq(freq)}</span>
+      <span className="text-[10px] font-medium text-fg-2 tabular-nums">{formatFreq(freq)}</span>
     </div>
   );
 }
@@ -263,7 +263,7 @@ function HorizontalControl({
     <div className="flex flex-col gap-1.5 rounded-[12px] bg-surface-2 p-3 ring-1 ring-line">
       <div className="flex items-center justify-between text-xs">
         <span className="font-medium text-fg-2">{label}</span>
-        <span className="font-mono text-[11px] font-semibold text-accent-text tabular-nums">{formatDb(value)}</span>
+        <span className="text-[11px] font-semibold text-accent-text tabular-nums">{formatDb(value)}</span>
       </div>
       <div className="relative flex h-5 items-center">
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-4">
@@ -309,21 +309,11 @@ export function EqualizerDialog() {
   return (
     <Modal open={open} onClose={() => setOpen(false)} title={t.equalizer.title}>
       <div className="scroll-area -mx-2 flex max-h-[75dvh] flex-col gap-4 overflow-y-auto px-2 pb-1">
-        {/* Top bar: Power toggle + Reset */}
-        <div className="flex items-center justify-between gap-3 rounded-[14px] bg-surface-1 p-3 ring-1 ring-line">
-          <div className="flex items-center gap-3 min-w-0">
-            <span
-              className={cn(
-                "grid size-10 shrink-0 place-items-center rounded-[11px] transition-colors",
-                enabled ? "bg-accent text-accent-ink" : "bg-surface-3 text-fg-3",
-              )}
-            >
-              <EqualizerIcon size={20} weight="bold" />
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">{t.equalizer.title}</p>
-              <p className="truncate text-xs text-fg-2">{t.equalizer.subtitle}</p>
-            </div>
+        {/* Top bar: Status + Reset + On/Off */}
+        <div className="flex items-center justify-between gap-3 rounded-[14px] bg-surface-1 px-4 py-3 ring-1 ring-line">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold">{t.equalizer.title}</p>
+            <p className="truncate text-xs text-fg-2">{t.equalizer.subtitle}</p>
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
@@ -331,9 +321,9 @@ export function EqualizerDialog() {
               type="button"
               onClick={reset}
               title={t.equalizer.reset}
-              className="flex h-9 items-center gap-1.5 rounded-full bg-surface-2 px-3 text-xs font-medium text-fg-2 ring-1 ring-line transition-colors hover:bg-surface-3 hover:text-fg"
+              className="flex h-8 items-center gap-1.5 rounded-full bg-surface-2 px-3 text-xs font-medium text-fg-2 ring-1 ring-line transition-colors hover:bg-surface-3 hover:text-fg"
             >
-              <ArrowCounterClockwiseIcon size={14} />
+              <ArrowCounterClockwiseIcon size={13} />
               <span className="hidden sm:inline">{t.equalizer.reset}</span>
             </button>
             <button
@@ -342,13 +332,12 @@ export function EqualizerDialog() {
               aria-checked={enabled}
               onClick={toggleEnabled}
               className={cn(
-                "flex h-9 items-center gap-1.5 rounded-full px-3.5 text-xs font-semibold transition-all",
+                "flex h-8 items-center rounded-full px-3.5 text-xs font-semibold transition-all",
                 enabled
                   ? "bg-accent text-accent-ink shadow-sm"
                   : "bg-surface-3 text-fg-2 ring-1 ring-line hover:text-fg",
               )}
             >
-              <PowerIcon size={15} weight="bold" />
               {enabled ? t.equalizer.enabled : t.equalizer.bypassed}
             </button>
           </div>
@@ -360,8 +349,8 @@ export function EqualizerDialog() {
         {/* Presets */}
         <div className="flex flex-col gap-2">
           <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1.5 text-xs font-medium text-fg-3">
-              <WaveSineIcon size={14} /> {t.equalizer.presets}
+            <span className="text-xs font-medium text-fg-3">
+              {t.equalizer.presets}
             </span>
             {preset === "custom" && (
               <span className="rounded-full bg-accent-soft px-2.5 py-0.5 text-[11px] font-medium text-accent-text">
@@ -378,13 +367,12 @@ export function EqualizerDialog() {
                   type="button"
                   onClick={() => setPreset(id)}
                   className={cn(
-                    "flex h-8 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-all",
+                    "flex h-8 items-center rounded-full px-3 text-xs font-medium transition-all",
                     active
                       ? "bg-accent text-accent-ink font-semibold shadow-xs"
                       : "bg-surface-1 text-fg-2 ring-1 ring-line hover:bg-surface-3 hover:text-fg",
                   )}
                 >
-                  {active && <CheckIcon size={12} weight="bold" />}
                   {t.equalizer.presetNames[id]}
                 </button>
               );
@@ -422,19 +410,9 @@ export function EqualizerDialog() {
           onClick={() => setCompressor(!compressor)}
           className="flex items-center justify-between gap-3 rounded-[14px] bg-surface-1 p-3.5 text-left ring-1 ring-line transition-colors hover:bg-surface-2"
         >
-          <div className="flex items-center gap-3 min-w-0">
-            <span
-              className={cn(
-                "grid size-9 shrink-0 place-items-center rounded-[10px]",
-                compressor && enabled ? "bg-accent-soft text-accent-text" : "bg-surface-3 text-fg-3",
-              )}
-            >
-              <LightningIcon size={18} weight="fill" />
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">{t.equalizer.compressor}</p>
-              <p className="truncate text-xs text-fg-2">{t.equalizer.compressorSub}</p>
-            </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{t.equalizer.compressor}</p>
+            <p className="truncate text-xs text-fg-2">{t.equalizer.compressorSub}</p>
           </div>
           <span
             className={cn(

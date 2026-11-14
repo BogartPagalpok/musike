@@ -1,4 +1,4 @@
-import { MusicNotesIcon } from "@phosphor-icons/react";
+import { MusicNotesIcon } from "./icons";
 import { useCallback, useState } from "react";
 import { cn } from "../lib/format";
 

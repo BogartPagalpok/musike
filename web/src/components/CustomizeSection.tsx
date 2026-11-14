@@ -1,4 +1,4 @@
-import { EyedropperIcon } from "@phosphor-icons/react";
+import { EyedropperIcon } from "./icons";
 import { useEffect, useRef, useState } from "react";
 import { useT } from "../i18n";
 import { hsvToHex, isHex, rgbToHsv, toRgb } from "../lib/accent";

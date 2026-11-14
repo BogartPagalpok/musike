@@ -398,8 +398,8 @@ html:is([data-theme="synthwave"], [data-theme="candy"], [data-theme="arcade"], [
     --color-accent-soft: var(--accent-soft);
     --color-scrim: var(--scrim);
     --color-danger: var(--danger);
-    --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
-    --font-mono: "Geist Mono Variable", ui-monospace, "SFMono-Regular", monospace;
+    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+    --font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
     --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
     --radius-tile: 14px;
     --radius-art: 10px;
@@ -423,7 +423,6 @@ html:is([data-theme="synthwave"], [data-theme="candy"], [data-theme="arcade"], [
       -webkit-user-select: none;
       -webkit-touch-callout: none;
       touch-action: manipulation;
-      font-feature-settings: "ss01";
     }
     input,
     textarea {
@@ -710,11 +709,6 @@ html[data-scene="arcade8bit"] {
   --fg: #f8fafc;
   --fg-2: #cbd5e1;
   --fg-3: #94a3b8;
-}
-html[data-scene="arcade8bit"] h1,
-html[data-scene="arcade8bit"] h2,
-html[data-scene="arcade8bit"] h3 {
-  font-family: var(--font-mono);
 }
 html[data-scene="arcade8bit"] .island,
 html[data-scene="arcade8bit"] .app-main,

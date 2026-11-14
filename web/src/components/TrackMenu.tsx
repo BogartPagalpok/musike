@@ -9,7 +9,7 @@ import {
   QueueIcon,
   RadioIcon,
   TrashIcon,
-} from "@phosphor-icons/react";
+} from "./icons";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";

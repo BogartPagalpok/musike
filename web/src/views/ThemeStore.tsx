@@ -2,21 +2,12 @@ import {
   ArrowSquareOutIcon,
   CheckIcon,
   CopyIcon,
-  CrownIcon,
-  KeyIcon,
   LockKeyIcon,
-  MagicWandIcon,
-  PaletteIcon,
   PlayIcon,
-  ShieldCheckIcon,
-  ShoppingBagOpenIcon,
-  SparkleIcon,
-  StorefrontIcon,
-  SwatchesIcon,
   TrashIcon,
   UploadSimpleIcon,
   XIcon,
-} from "@phosphor-icons/react";
+} from "../components/icons";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { createPortal } from "react-dom";
 import { CustomColorPicker } from "../components/CustomizeSection";
@@ -48,9 +39,9 @@ type StoreTab = SkinCategory | "custom";
 const TABS: readonly { id: StoreTab; label: string }[] = [
   { id: "all", label: "All" },
   { id: "anime", label: "Anime" },
-  { id: "trend", label: "Cyber & Retro" },
-  { id: "music", label: "Music" },
-  { id: "custom", label: "Mix & Match" },
+  { id: "trend", label: "Cyber" },
+  { id: "music", label: "Studio" },
+  { id: "custom", label: "Custom" },
 ];
 
 const SCENE_FRAME_STYLE: Record<SceneStyle, string> = {
@@ -136,7 +127,7 @@ function PackCard({
         active ? "ring-[2px] ring-accent shadow-[0_12px_32px_rgb(0_0_0/0.4)]" : "ring-line hover:ring-line-strong",
       )}
     >
-      {/* Live Miniature App Window Showcase */}
+      {/* Scene Preview Canvas + Real Player Strip */}
       <div
         onClick={usable ? onApply : onPreview}
         role="button"
@@ -148,105 +139,36 @@ function PackCard({
             else onPreview();
           }
         }}
-        className="relative flex h-[186px] cursor-pointer flex-col justify-between overflow-hidden p-3 select-none"
+        className="relative flex h-[124px] cursor-pointer flex-col justify-end overflow-hidden p-3 select-none"
         style={{ background: pack.previewGradient }}
       >
         <ThemeSceneBackdrop sceneOverride={pack.scene} contained />
 
-        {/* Top Chrome: World Crest Badge & Status */}
-        <div className="relative z-10 flex items-center justify-between gap-2">
-          <span
-            className="inline-flex items-center gap-1 rounded-md border px-2 py-0.5 font-mono text-[10px] font-bold tracking-wider uppercase backdrop-blur-sm"
-            style={{
-              backgroundColor: "rgba(0,0,0,0.62)",
-              borderColor: `${pack.accent}66`,
-              color: pack.accent,
-            }}
-          >
-            {pack.worldLabel}
-          </span>
-          {active ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10.5px] font-bold text-accent-ink shadow-xs">
-              <CheckIcon size={11} weight="bold" />
-              Equipped
-            </span>
-          ) : !pack.free && owned ? (
-            <span className="rounded-full bg-emerald-500/25 px-2 py-0.5 text-[10.5px] font-semibold text-emerald-200 ring-1 ring-emerald-400/40 backdrop-blur-sm">
-              Owned
-            </span>
-          ) : !pack.free && saleMode === "beta" ? (
-            <span className="rounded-full bg-black/60 px-2 py-0.5 text-[10.5px] font-semibold text-amber-300 ring-1 ring-amber-400/35 backdrop-blur-sm">
-              Free Trial · ₱{pack.pricePhp}
-            </span>
-          ) : !pack.free ? (
-            <span className="rounded-full bg-black/65 px-2 py-0.5 text-[10.5px] font-bold text-white ring-1 ring-white/25 backdrop-blur-sm">
-              ₱{pack.pricePhp}
-            </span>
-          ) : (
-            <span className="rounded-full bg-black/55 px-2 py-0.5 text-[10.5px] font-semibold text-white/80 ring-1 ring-white/15 backdrop-blur-sm">
-              Free
-            </span>
-          )}
-        </div>
-
-        {/* Miniature App Layout + Controls Mockup */}
-        <div className={cn("relative z-10 mt-2 flex flex-1 flex-col justify-between border p-2 backdrop-blur-[3px]", frameCls)}>
-          <div className="flex min-h-0 flex-1 gap-2">
-            {/* Mini Sidebar Rail */}
-            <div className="flex w-11 shrink-0 flex-col gap-1 border-r border-white/10 pr-1.5">
-              <span className="h-1.5 w-full rounded-full opacity-75" style={{ backgroundColor: pack.accent }} />
-              <span className="h-1 w-4/5 rounded-full bg-white/25" />
-              <span className="h-1 w-3/4 rounded-full bg-white/15" />
-              <span className="mt-auto h-1 w-2/3 rounded-full bg-white/20" />
-            </div>
-
-            {/* Mini Stage Artwork & Lyrics */}
-            <div className="flex min-w-0 flex-1 items-center gap-2.5 pl-0.5">
-              <div
-                className={cn(
-                  "size-10 shrink-0 border",
-                  pack.scene === "arcade8bit" ? "rounded-none" : "rounded-md",
-                )}
-                style={{
-                  borderColor: pack.accent,
-                  background: `radial-gradient(circle at 35% 35%, ${pack.accent}66, rgba(0,0,0,0.65))`,
-                }}
-              />
-              <div className="flex min-w-0 flex-1 flex-col gap-1">
-                <span className="h-1.5 w-3/4 rounded-full bg-white/75" />
-                <span className="h-1 w-1/2 rounded-full opacity-80" style={{ backgroundColor: pack.secondaryAccent }} />
-                <span className="h-1 w-2/3 rounded-full bg-white/30" />
-              </div>
-            </div>
+        <div className={cn("relative z-10 flex items-center gap-2.5 border px-2.5 py-2 backdrop-blur-sm", frameCls)}>
+          <div onClick={(e) => e.stopPropagation()}>
+            <PlayDisc px={34} styleVariant={pack.playButton} playing label={`${pack.name} play button`}>
+              <PlayIcon size={14} weight="fill" />
+            </PlayDisc>
           </div>
-
-          {/* Mini Player Bar with Actual Custom PlayButton & Scrubber */}
-          <div className="mt-1.5 flex items-center gap-2.5 border-t border-white/10 pt-1.5">
-            <div onClick={(e) => e.stopPropagation()}>
-              <PlayDisc px={34} styleVariant={pack.playButton} playing label={`${pack.name} play button`}>
-                <PlayIcon size={14} weight="fill" />
-              </PlayDisc>
-            </div>
-            <div className="min-w-0 flex-1" onClick={(e) => e.stopPropagation()}>
-              <Slider
-                variant={pack.playhead}
-                isPlaying
-                value={64}
-                max={100}
-                label={`${pack.name} scrubber`}
-                onChange={() => {}}
-                className="h-4"
-              />
-            </div>
+          <div className="min-w-0 flex-1" onClick={(e) => e.stopPropagation()}>
+            <Slider
+              variant={pack.playhead}
+              isPlaying
+              value={64}
+              max={100}
+              label={`${pack.name} scrubber`}
+              onChange={() => {}}
+              className="h-4"
+            />
           </div>
         </div>
       </div>
 
-      {/* Crisp Footer: Title, 1-Line Summary, Action */}
+      {/* Title, Summary, Action */}
       <div className="flex items-center justify-between gap-3 px-3.5 py-3">
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-[14.5px] font-bold tracking-tight text-fg">{pack.name}</h3>
-          <p className="mt-0.5 truncate text-[11.5px] text-fg-2">{pack.tagline}</p>
+          <h3 className="truncate text-[14.5px] font-semibold tracking-tight text-fg">{pack.name}</h3>
+          <p className="mt-0.5 truncate text-[12px] text-fg-2">{pack.tagline}</p>
         </div>
 
         <div className="flex shrink-0 items-center gap-1.5">
@@ -254,11 +176,9 @@ function PackCard({
             <button
               type="button"
               onClick={onUnlock}
-              title={`Buy or redeem key (₱${pack.pricePhp})`}
-              aria-label={`Purchase ${pack.name}`}
-              className="grid size-8 place-items-center rounded-full bg-surface-3 text-fg-2 ring-1 ring-line transition-colors hover:bg-surface-4 hover:text-fg"
+              className="px-2 py-1 text-[11.5px] font-medium text-fg-3 transition-colors hover:text-fg"
             >
-              <ShoppingBagOpenIcon size={15} />
+              ₱{pack.pricePhp}
             </button>
           )}
           {usable ? (
@@ -266,18 +186,11 @@ function PackCard({
               type="button"
               onClick={onApply}
               className={cn(
-                "flex h-8.5 items-center gap-1 rounded-full px-3.5 text-xs font-semibold transition-transform active:scale-95",
+                "flex h-8.5 items-center rounded-full px-3.5 text-xs font-semibold transition-transform active:scale-95",
                 active ? "bg-surface-3 text-fg ring-1 ring-line-strong" : "bg-accent text-accent-ink",
               )}
             >
-              {active ? (
-                <>
-                  <CheckIcon size={13} weight="bold" />
-                  <span>Equipped</span>
-                </>
-              ) : (
-                "Equip"
-              )}
+              {active ? "Active" : "Apply"}
             </button>
           ) : (
             <div className="flex items-center gap-1.5">
@@ -294,7 +207,7 @@ function PackCard({
                 onClick={onUnlock}
                 className="flex h-8.5 items-center gap-1 rounded-full bg-accent px-3 text-xs font-semibold text-accent-ink transition-transform active:scale-95"
               >
-                <LockKeyIcon size={13} weight="bold" />
+                <LockKeyIcon size={12} weight="bold" />
                 <span>₱{pack.pricePhp}</span>
               </button>
             </div>
@@ -315,6 +228,8 @@ function CheckoutModal({
   onClose: () => void;
 }) {
   const unlockedIds = useThemeStore((s) => s.unlockedIds);
+  const saleMode = useThemeStore((s) => s.saleMode);
+  const setSaleMode = useThemeStore((s) => s.setSaleMode);
   const creatorUnlocked = useThemeStore((s) => s.creatorUnlocked);
   const paymentInfo = useThemeStore((s) => s.paymentInfo);
   const setPaymentInfo = useThemeStore((s) => s.setPaymentInfo);
@@ -398,55 +313,50 @@ function CheckoutModal({
         className="relative flex max-h-[90dvh] w-full max-w-[540px] flex-col overflow-hidden rounded-t-[20px] bg-surface-1 ring-1 ring-line-strong shadow-[0_28px_70px_rgba(0,0,0,0.65)] sm:rounded-[20px]"
       >
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-accent-soft text-accent-text">
-              {isRedeemOnly ? <KeyIcon size={18} weight="bold" /> : <CrownIcon size={18} weight="bold" />}
-            </span>
-            <div className="min-w-0">
-              <h2 className="truncate text-[16px] font-bold text-fg">{title}</h2>
-              {priceText && <p className="text-xs font-semibold text-accent-text">{priceText} · Lifetime unlock</p>}
-            </div>
+          <div className="min-w-0">
+            <h2 className="truncate text-[16px] font-semibold text-fg">{title}</h2>
+            {priceText && <p className="text-xs font-medium text-accent-text">{priceText} · Lifetime unlock</p>}
           </div>
           <button type="button" onClick={onClose} aria-label="Close" className="grid size-8 place-items-center rounded-full text-fg-2 hover:bg-surface-3 hover:text-fg">
             <XIcon size={18} />
           </button>
         </div>
 
-        <div className="scroll-area flex-1 space-y-5 overflow-y-auto px-5 py-4">
+        <div className="scroll-area flex-1 space-y-4 overflow-y-auto px-5 py-4">
           {packObj && (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-[14px] bg-accent-soft/75 p-3.5 ring-1 ring-accent/35">
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-bold text-fg">Want to try this world first?</p>
-                <p className="text-[11px] text-fg-2">Test its background scene, playhead &amp; controls live before unlocking.</p>
+                <p className="text-xs font-semibold text-fg">Try before unlocking</p>
+                <p className="text-[11.5px] text-fg-2">Preview the backdrop, playhead, and controls live.</p>
               </div>
               <button
                 type="button"
                 onClick={() => {
                   previewPack(packObj.id);
-                  toast(`Testing "${packObj.name}" live!`);
+                  toast(`Previewing "${packObj.name}"`);
                   onClose();
                 }}
-                className="h-8 shrink-0 rounded-full bg-accent px-3.5 text-xs font-bold text-accent-ink transition-transform active:scale-95"
+                className="h-8 shrink-0 rounded-full bg-accent px-3.5 text-xs font-semibold text-accent-ink transition-transform active:scale-95"
               >
-                Test Theme Free
+                Preview
               </button>
             </div>
           )}
           {!isRedeemOnly && (
             <div className="space-y-3 rounded-[14px] bg-surface-2 p-4 ring-1 ring-line">
-              <p className="text-xs font-semibold uppercase tracking-wider text-fg-3">Step 1 · Direct Payment (0% App Store Fee)</p>
+              <p className="text-xs font-semibold text-fg">Payment</p>
               <p className="text-xs leading-relaxed text-fg-2">{paymentInfo.sellerNote}</p>
               <div className="space-y-2 text-xs">
                 <div className="flex items-center justify-between gap-2 rounded-lg bg-surface-3/80 px-3 py-2">
-                  <span className="font-semibold text-fg">GCash:</span>
-                  <span className="truncate font-mono text-fg-2">{paymentInfo.gcashNumber}</span>
+                  <span className="font-semibold text-fg">GCash</span>
+                  <span className="truncate text-fg-2 tabular-nums">{paymentInfo.gcashNumber}</span>
                   <button type="button" onClick={() => copyText(paymentInfo.gcashNumber, "GCash")} className="shrink-0 text-accent-text hover:underline">
                     <CopyIcon size={14} />
                   </button>
                 </div>
                 <div className="flex items-center justify-between gap-2 rounded-lg bg-surface-3/80 px-3 py-2">
-                  <span className="font-semibold text-fg">Maya:</span>
-                  <span className="truncate font-mono text-fg-2">{paymentInfo.mayaNumber}</span>
+                  <span className="font-semibold text-fg">Maya</span>
+                  <span className="truncate text-fg-2 tabular-nums">{paymentInfo.mayaNumber}</span>
                   <button type="button" onClick={() => copyText(paymentInfo.mayaNumber, "Maya")} className="shrink-0 text-accent-text hover:underline">
                     <CopyIcon size={14} />
                   </button>
@@ -459,7 +369,7 @@ function CheckoutModal({
                   rel="noopener noreferrer"
                   className="inline-flex h-9 w-full items-center justify-center gap-2 rounded-full bg-surface-3 px-4 text-xs font-semibold text-fg ring-1 ring-line transition-colors hover:bg-surface-4"
                 >
-                  Open Online Checkout Link <ArrowSquareOutIcon size={14} />
+                  Open Checkout Link <ArrowSquareOutIcon size={14} />
                 </a>
               )}
             </div>
@@ -467,8 +377,8 @@ function CheckoutModal({
 
           {/* License Key Input */}
           <div className="space-y-2.5 rounded-[14px] bg-surface-2 p-4 ring-1 ring-line">
-            <label htmlFor="theme-unlock-key" className="block text-xs font-semibold uppercase tracking-wider text-fg-3">
-              {isRedeemOnly ? "Enter Unlock / Creator Key" : "Step 2 · Enter Unlock Key"}
+            <label htmlFor="theme-unlock-key" className="block text-xs font-semibold text-fg">
+              {isRedeemOnly ? "Unlock or Creator Code" : "Unlock Code"}
             </label>
             <div className="flex gap-2">
               <input
@@ -479,13 +389,13 @@ function CheckoutModal({
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleRedeem();
                 }}
-                placeholder="e.g. ILLUSIVE-AKATSUKI-9R2M"
+                placeholder="ILLUSIVE-AKATSUKI-9R2M"
                 className="h-10 min-w-0 flex-1 rounded-xl bg-surface-3 px-3 font-mono text-xs text-fg uppercase placeholder:normal-case placeholder:text-fg-3 ring-1 ring-line focus:outline-none focus:ring-2 focus:ring-accent"
               />
               <button
                 type="button"
                 onClick={handleRedeem}
-                className="h-10 shrink-0 rounded-xl bg-accent px-4 text-xs font-bold text-accent-ink transition-transform active:scale-95"
+                className="h-10 shrink-0 rounded-xl bg-accent px-4 text-xs font-semibold text-accent-ink transition-transform active:scale-95"
               >
                 Unlock
               </button>
@@ -494,24 +404,50 @@ function CheckoutModal({
               <p className={cn("text-xs font-medium", feedback.ok ? "text-emerald-400" : "text-danger")}>{feedback.text}</p>
             )}
             <p className="text-[11px] text-fg-3">
-              Unlocked passes on this device: {unlockedIds.length === 0 ? "None yet" : unlockedIds.join(", ")}
+              Unlocked passes: {unlockedIds.length === 0 ? "None" : unlockedIds.join(", ")}
             </p>
           </div>
 
-          {/* Creator / Seller Key Vault */}
+          {/* Creator / Seller Tools */}
           <div className="rounded-[14px] bg-surface-2 p-4 ring-1 ring-line">
             <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <ShieldCheckIcon size={17} className="text-accent-text" weight="fill" />
-                <span className="text-xs font-bold text-fg">Creator / Seller Tools</span>
-              </div>
+              <span className="text-xs font-semibold text-fg">Seller Settings</span>
               {!creatorUnlocked && (
-                <span className="text-[11px] text-fg-3">Enter creator code above to manage payment &amp; keys</span>
+                <span className="text-[11px] text-fg-3">Enter creator code above</span>
               )}
             </div>
 
             {creatorUnlocked && (
               <div className="mt-3 space-y-4 border-t border-line pt-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-fg-2">Storefront mode</span>
+                  <div role="tablist" aria-label="Store Mode" className="inline-flex rounded-full bg-surface-3 p-0.5 ring-1 ring-line">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={saleMode === "beta"}
+                      onClick={() => setSaleMode("beta")}
+                      className={cn(
+                        "h-7 rounded-full px-2.5 text-[11px] font-semibold transition-colors",
+                        saleMode === "beta" ? "bg-accent text-accent-ink" : "text-fg-2 hover:text-fg",
+                      )}
+                    >
+                      Beta Free
+                    </button>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={saleMode === "live"}
+                      onClick={() => setSaleMode("live")}
+                      className={cn(
+                        "h-7 rounded-full px-2.5 text-[11px] font-semibold transition-colors",
+                        saleMode === "live" ? "bg-accent text-accent-ink" : "text-fg-2 hover:text-fg",
+                      )}
+                    >
+                      Paid Store
+                    </button>
+                  </div>
+                </div>
                 <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <label className="text-[11px] text-fg-2">
                     GCash Number / Account
@@ -595,7 +531,6 @@ export function ThemeStoreContent({ embedded = false }: { embedded?: boolean }) 
   const fileRef = useRef<HTMLInputElement>(null);
 
   const saleMode = useThemeStore((s) => s.saleMode);
-  const setSaleMode = useThemeStore((s) => s.setSaleMode);
   const activePackId = useThemeStore((s) => s.activePackId);
   const playheadStyle = useThemeStore((s) => s.playheadStyle);
   const playButtonStyle = useThemeStore((s) => s.playButtonStyle);
@@ -639,9 +574,9 @@ export function ThemeStoreContent({ embedded = false }: { embedded?: boolean }) 
 
   return (
     <div className={cn("@container/store space-y-4", embedded && "pb-1")}>
-      {/* Compact Store Control Bar (Zero Marketing Fluff) */}
-      <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-[14px] bg-surface-2 px-3 py-2.5 ring-1 ring-line">
-        <div role="tablist" aria-label="Theme Categories" className="no-scrollbar flex max-w-full items-center gap-1 overflow-x-auto">
+      {/* Single Compact Toolbar */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div role="tablist" aria-label="Theme Categories" className="no-scrollbar flex max-w-full items-center gap-1.5 overflow-x-auto">
           {TABS.map((tItem) => (
             <button
               key={tItem.id}
@@ -650,69 +585,37 @@ export function ThemeStoreContent({ embedded = false }: { embedded?: boolean }) 
               aria-selected={tab === tItem.id}
               onClick={() => setTab(tItem.id)}
               className={cn(
-                "flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-xs font-semibold whitespace-nowrap transition-colors",
-                tab === tItem.id ? "bg-accent text-accent-ink" : "text-fg-2 hover:bg-surface-3 hover:text-fg",
+                "flex h-8 shrink-0 items-center rounded-full px-3 text-xs font-medium whitespace-nowrap transition-colors",
+                tab === tItem.id ? "bg-accent text-accent-ink font-semibold" : "bg-surface-2 text-fg-2 ring-1 ring-line hover:text-fg",
               )}
             >
-              {tItem.id === "custom" && <MagicWandIcon size={13} weight="bold" />}
               {tItem.label}
             </button>
           ))}
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
-          <div role="tablist" aria-label="Store Mode" className="inline-flex rounded-full bg-surface-3 p-0.5 ring-1 ring-line">
-            <button
-              type="button"
-              role="tab"
-              aria-selected={saleMode === "beta"}
-              onClick={() => setSaleMode("beta")}
-              className={cn(
-                "h-7 rounded-full px-2.5 text-[11px] font-semibold transition-colors",
-                saleMode === "beta" ? "bg-accent text-accent-ink" : "text-fg-2 hover:text-fg",
-              )}
-            >
-              Beta Free
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={saleMode === "live"}
-              onClick={() => setSaleMode("live")}
-              className={cn(
-                "h-7 rounded-full px-2.5 text-[11px] font-semibold transition-colors",
-                saleMode === "live" ? "bg-accent text-accent-ink" : "text-fg-2 hover:text-fg",
-              )}
-            >
-              Paid Store
-            </button>
-          </div>
-
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={() => setCheckoutTarget("redeem")}
-            className="flex h-8 items-center gap-1 rounded-full bg-surface-3 px-2.5 text-[11.5px] font-semibold text-fg ring-1 ring-line hover:bg-surface-4"
+            className="h-8 rounded-full px-2.5 text-xs font-medium text-fg-2 transition-colors hover:bg-surface-2 hover:text-fg"
           >
-            <KeyIcon size={13} weight="bold" />
-            <span>Key</span>
+            Redeem
           </button>
-
           <button
             type="button"
             onClick={() => setCheckoutTarget("all-access")}
-            className="flex h-8 items-center gap-1 rounded-full bg-accent-soft px-3 text-[11.5px] font-bold text-accent-text ring-1 ring-accent/35 hover:bg-accent hover:text-accent-ink transition-colors"
+            className="h-8 rounded-full bg-surface-2 px-3 text-xs font-semibold text-fg ring-1 ring-line transition-colors hover:bg-surface-3"
           >
-            <CrownIcon size={13} weight="fill" />
-            <span>{unlockedIds.includes(ALL_ACCESS_BUNDLE.id) ? "Pro Unlocked" : `Pro · ₱${ALL_ACCESS_BUNDLE.pricePhp}`}</span>
+            {unlockedIds.includes(ALL_ACCESS_BUNDLE.id) ? "Pro Unlocked" : `Pro · ₱${ALL_ACCESS_BUNDLE.pricePhp}`}
           </button>
-
           <button
             type="button"
             onClick={() => {
               resetCustomizations();
               toast("Restored default Pixel Wave theme.");
             }}
-            className="px-2 text-[11.5px] font-medium text-fg-3 hover:text-fg"
+            className="px-2 text-xs font-medium text-fg-3 hover:text-fg"
           >
             Reset
           </button>
@@ -753,14 +656,9 @@ export function ThemeStoreContent({ embedded = false }: { embedded?: boolean }) 
       {/* Custom Mix & Match Studio */}
       {tab === "custom" && (
         <div className="space-y-4">
-          {/* 1. Custom Playhead Picker */}
+          {/* 1. Scrubber */}
           <section className="rounded-[16px] bg-surface-2 p-4 ring-1 ring-line">
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <MagicWandIcon size={16} className="text-accent-text" weight="fill" />
-                <h3 className="text-[14px] font-bold text-fg">Playhead Scrubber</h3>
-              </div>
-            </div>
+            <h3 className="mb-3 text-[14px] font-semibold text-fg">Scrubber</h3>
             <div className="grid grid-cols-1 gap-2 @[460px]/store:grid-cols-2 @[760px]/store:grid-cols-3">
               {PLAYHEAD_META.map((item) => {
                 const selected = playheadStyle === item.id;
@@ -802,12 +700,9 @@ export function ThemeStoreContent({ embedded = false }: { embedded?: boolean }) 
             </div>
           </section>
 
-          {/* 2. Custom Play Button Picker */}
+          {/* 2. Play Button */}
           <section className="rounded-[16px] bg-surface-2 p-4 ring-1 ring-line">
-            <div className="mb-3 flex items-center gap-2">
-              <SwatchesIcon size={16} className="text-accent-text" weight="fill" />
-              <h3 className="text-[14px] font-bold text-fg">Play Button</h3>
-            </div>
+            <h3 className="mb-3 text-[14px] font-semibold text-fg">Play Button</h3>
             <div className="grid grid-cols-2 gap-2 @[460px]/store:grid-cols-4">
               {PLAY_BUTTON_META.map((item) => {
                 const selected = playButtonStyle === item.id;
@@ -850,13 +745,10 @@ export function ThemeStoreContent({ embedded = false }: { embedded?: boolean }) 
             </div>
           </section>
 
-          {/* 3. Background World Scene + Custom Wallpaper */}
+          {/* 3. Backdrop */}
           <section className="rounded-[16px] bg-surface-2 p-4 ring-1 ring-line">
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <SparkleIcon size={16} className="text-accent-text" weight="fill" />
-                <h3 className="text-[14px] font-bold text-fg">World Backdrop &amp; Wallpaper</h3>
-              </div>
+              <h3 className="text-[14px] font-semibold text-fg">Backdrop</h3>
               <div className="flex items-center gap-2">
                 <input ref={fileRef} type="file" accept="image/*" onChange={onWallpaperPick} className="hidden" />
                 <button
@@ -939,17 +831,14 @@ export function ThemeStoreContent({ embedded = false }: { embedded?: boolean }) 
                   className="h-1.5 flex-1 cursor-pointer accent-accent"
                   aria-label="Backdrop Visibility"
                 />
-                <span className="w-10 text-right font-mono text-xs text-fg-2">{Math.round(sceneIntensity * 100)}%</span>
+                <span className="w-10 text-right text-xs text-fg-2 tabular-nums">{Math.round(sceneIntensity * 100)}%</span>
               </div>
             )}
           </section>
 
-          {/* 4. Accent Color Override */}
+          {/* 4. Accent */}
           <section className="rounded-[16px] bg-surface-2 p-4 ring-1 ring-line">
-            <div className="mb-3 flex items-center gap-2">
-              <PaletteIcon size={16} className="text-accent-text" weight="fill" />
-              <h3 className="text-[14px] font-bold text-fg">Accent Colour</h3>
-            </div>
+            <h3 className="mb-3 text-[14px] font-semibold text-fg">Accent</h3>
             <div className="mb-3 flex flex-wrap gap-2">
               {ACCENTS.map(({ id, color }) => {
                 const on = accent === color.toLowerCase();
@@ -981,14 +870,7 @@ export function ThemeStoreContent({ embedded = false }: { embedded?: boolean }) 
 export default function ThemeStore() {
   return (
     <div className="@container/themes pb-12">
-      <PageHeader
-        title={
-          <span className="flex items-center gap-2">
-            <StorefrontIcon size={22} weight="fill" className="text-accent-text" />
-            Theme Store
-          </span>
-        }
-      />
+      <PageHeader title="Themes" />
       <div className="mx-auto max-w-[1320px] px-4 pt-3 @[680px]/themes:px-6">
         <ThemeStoreContent />
       </div>

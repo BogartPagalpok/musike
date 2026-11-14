@@ -46,22 +46,6 @@ function CrowSilhouette({ className }: { className?: string }) {
   );
 }
 
-/** Perched crow silhouette with crimson Sharingan eye. */
-function PerchedCrow({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 80 80" aria-hidden="true" className={className}>
-      <path
-        d="M44 18 C50 18 54 22 55 27 L66 30 L55 34 C54 44 48 54 38 60 L20 74 L14 68 L28 52 C24 44 26 32 34 24 C37 20 40 18 44 18 Z"
-        fill="#070204"
-        stroke="#ef4444"
-        strokeOpacity="0.55"
-        strokeWidth="1.5"
-      />
-      <circle cx="48" cy="26" r="2.2" fill="#ff2e3b" />
-    </svg>
-  );
-}
-
 /** Single drifting crow feather. */
 function CrowFeather({ className }: { className?: string }) {
   return (
@@ -662,46 +646,6 @@ export function WorldStageFrame({
         )}
       >
         {children}
-
-        {/* Corner Ornaments / Mascots */}
-        {scene === "akatsuki" && !compact && (
-          <>
-            <PerchedCrow className="pointer-events-none absolute -top-7 right-2 z-20 size-11 drop-shadow-[0_4px_10px_rgba(0,0,0,0.85)]" />
-            <span className="pointer-events-none absolute bottom-2 left-2 z-20 rounded-full border border-red-500/60 bg-black/80 px-2.5 py-0.5 font-mono text-[10px] font-bold tracking-widest text-red-300 backdrop-blur-sm">
-              月読 · TSUKUYOMI
-            </span>
-          </>
-        )}
-
-        {scene === "shinobi" && !compact && (
-          <span className="pointer-events-none absolute bottom-2 left-2 z-20 rounded-full border border-orange-400/60 bg-black/75 px-2.5 py-0.5 font-mono text-[10px] font-bold tracking-widest text-orange-300 backdrop-blur-sm">
-            木ノ葉 · KONOHA
-          </span>
-        )}
-
-        {scene === "grandline" && !compact && (
-          <span className="pointer-events-none absolute bottom-2 left-2 z-20 rounded border border-amber-400/70 bg-[#08162b]/85 px-2.5 py-0.5 font-mono text-[10px] font-bold tracking-widest text-amber-300">
-            WANTED · GRAND LINE
-          </span>
-        )}
-
-        {scene === "arcade8bit" && !compact && (
-          <span className="pointer-events-none absolute -top-3 left-2 z-20 border border-yellow-400 bg-[#0b0d1f] px-2 py-0.5 font-mono text-[9.5px] font-bold tracking-wider text-yellow-300">
-            STAGE 01 · 8-BIT
-          </span>
-        )}
-
-        {scene === "cyberpunk" && !compact && (
-          <span className="pointer-events-none absolute bottom-2 left-2 z-20 border border-cyan-400/70 bg-black/80 px-2 py-0.5 font-mono text-[9.5px] font-bold tracking-widest text-cyan-300">
-            NC-2077 // AUDIO
-          </span>
-        )}
-
-        {scene === "kpop" && !compact && (
-          <span className="pointer-events-none absolute bottom-2 left-2 z-20 rounded-full border border-pink-300/70 bg-black/70 px-2.5 py-0.5 text-[10px] font-bold tracking-widest text-pink-200 backdrop-blur-sm">
-            ★ Y2K IDOL ★
-          </span>
-        )}
       </div>
     </div>
   );

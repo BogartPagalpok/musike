@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, ArrowsClockwiseIcon, CaretDownIcon, CheckIcon, ListBulletsIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { ArrowLeftIcon, ArrowsClockwiseIcon, CaretDownIcon, CheckIcon, ListBulletsIcon, WarningCircleIcon } from "../components/icons";
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router";
 import { create } from "zustand";

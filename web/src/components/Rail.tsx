@@ -12,9 +12,8 @@ import {
   PlusIcon,
   QueueIcon,
   SidebarSimpleIcon,
-  StorefrontIcon,
   SwatchesIcon,
-} from "@phosphor-icons/react";
+} from "./icons";
 import { useState, type ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router";
 import { useT } from "../i18n";
@@ -180,15 +179,6 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
               <div className="flex shrink-0 items-center gap-1">
                 <button
                   type="button"
-                  onClick={() => navigate(paths.themes)}
-                  aria-label={t.nav.themes}
-                  title={t.nav.themes}
-                  className="grid size-8 place-items-center rounded-lg text-fg-2 transition-colors hover:bg-surface-3 hover:text-accent-text"
-                >
-                  <SwatchesIcon size={17} weight="duotone" />
-                </button>
-                <button
-                  type="button"
                   onClick={() =>
                     setAppearance({
                       layoutTemplate: layoutTemplate === "center-lyrics" ? "default" : "center-lyrics",
@@ -246,11 +236,10 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
                 aria-selected={sidebarTab === "browse"}
                 onClick={() => setAppearance({ sidebarTab: "browse" })}
                 className={cn(
-                  "flex h-7 items-center justify-center gap-1.5 rounded-[7px] px-1 text-xs font-medium transition-colors min-w-0 truncate",
+                  "flex h-7 items-center justify-center rounded-[7px] px-1 text-xs font-medium transition-colors min-w-0 truncate",
                   sidebarTab === "browse" ? "bg-surface-4 text-fg shadow-2xs font-semibold" : "text-fg-2 hover:text-fg",
                 )}
               >
-                <BooksIcon size={14} className="shrink-0" />
                 <span className="truncate">{t.nav.library}</span>
               </button>
               <button
@@ -259,11 +248,10 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
                 aria-selected={sidebarTab === "playing"}
                 onClick={() => setAppearance({ sidebarTab: "playing" })}
                 className={cn(
-                  "flex h-7 items-center justify-center gap-1.5 rounded-[7px] px-1 text-xs font-medium transition-colors min-w-0 truncate",
+                  "flex h-7 items-center justify-center rounded-[7px] px-1 text-xs font-medium transition-colors min-w-0 truncate",
                   sidebarTab === "playing" ? "bg-surface-4 text-fg shadow-2xs font-semibold" : "text-fg-2 hover:text-fg",
                 )}
               >
-                <QueueIcon size={14} className="shrink-0" />
                 <span className="truncate">{t.nowPlaying.tabPlaying}</span>
               </button>
               <button
@@ -272,11 +260,10 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
                 aria-selected={sidebarTab === "lyrics"}
                 onClick={() => setAppearance({ sidebarTab: "lyrics" })}
                 className={cn(
-                  "flex h-7 items-center justify-center gap-1.5 rounded-[7px] px-1 text-xs font-medium transition-colors min-w-0 truncate",
+                  "flex h-7 items-center justify-center rounded-[7px] px-1 text-xs font-medium transition-colors min-w-0 truncate",
                   sidebarTab === "lyrics" ? "bg-surface-4 text-fg shadow-2xs font-semibold" : "text-fg-2 hover:text-fg",
                 )}
               >
-                <MicrophoneStageIcon size={14} className="shrink-0" />
                 <span className="truncate">{t.nowPlaying.tabLyrics}</span>
               </button>
             </div>
@@ -427,9 +414,9 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
                       <ClockCounterClockwiseIcon size={19} />
                     </span>
                   </RailLink>
-                  <RailLink to={paths.themes} label={t.nav.themes} sub="Naruto, One Piece & More" isExpanded={isExpanded}>
-                    <span className="grid size-full place-items-center bg-accent-soft text-accent-text">
-                      <StorefrontIcon size={19} weight="fill" />
+                  <RailLink to={paths.themes} label={t.nav.themes} sub="Custom player & backdrops" isExpanded={isExpanded}>
+                    <span className="grid size-full place-items-center bg-surface-3 text-fg-2">
+                      <SwatchesIcon size={19} />
                     </span>
                   </RailLink>
                   {sidebarPlaylists &&

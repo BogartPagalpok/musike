@@ -1,4 +1,4 @@
-import { MusicNotesIcon, PauseIcon, PlayIcon, ShuffleIcon, WarningCircleIcon } from "@phosphor-icons/react";
+import { MusicNotesIcon, PauseIcon, PlayIcon, ShuffleIcon, WarningCircleIcon } from "../components/icons";
 import { useState } from "react";
 import { useLocation, useParams } from "react-router";
 import { AlbumRow } from "../components/AlbumTiles";

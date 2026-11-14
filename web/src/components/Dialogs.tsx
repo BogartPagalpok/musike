@@ -1,4 +1,4 @@
-import { CheckIcon, PlusIcon } from "@phosphor-icons/react";
+import { CheckIcon, PlusIcon } from "./icons";
 import { useEffect, useState, type FormEvent } from "react";
 import { useT, type Messages } from "../i18n";
 import { cn } from "../lib/format";

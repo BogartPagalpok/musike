@@ -1,4 +1,4 @@
-import { QueueIcon, XIcon } from "@phosphor-icons/react";
+import { QueueIcon, XIcon } from "./icons";
 import { useT } from "../i18n";
 import { cn, formatTime } from "../lib/format";
 import { usePlayer } from "../player/player";
@@ -45,7 +45,7 @@ export function QueueList({ compact = false }: { compact?: boolean }) {
           <Equalizer live={live} className="mr-2" />
         ) : (
           <>
-            <span className="pointer-events-none font-mono text-xs text-fg-3 tabular-nums group-hover:hidden">
+            <span className="pointer-events-none text-xs text-fg-3 tabular-nums group-hover:hidden">
               {track.duration ? formatTime(track.duration) : ""}
             </span>
             <button
@@ -73,7 +73,7 @@ export function QueueList({ compact = false }: { compact?: boolean }) {
       <section>
         <div className="flex items-center justify-between px-2 pb-1.5">
           <h3 className="text-xs font-medium text-fg-3">
-            {t.queue.upNext} <span className="font-mono">{upcoming.length}</span>
+            {t.queue.upNext} <span className="tabular-nums">{upcoming.length}</span>
           </h3>
           {upcoming.length > 0 && (
             <button type="button" onClick={clearUpcoming} className="text-xs font-medium text-fg-2 hover:text-fg">

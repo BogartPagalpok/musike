@@ -6,9 +6,8 @@ import {
   PlayIcon,
   PlaylistIcon,
   ShuffleIcon,
-  SparkleIcon,
   WarningCircleIcon,
-} from "@phosphor-icons/react";
+} from "../components/icons";
 import { useEffect, useState } from "react";
 import { Link, useLocation, useParams } from "react-router";
 import { Artwork } from "../components/Artwork";
@@ -115,7 +114,7 @@ export default function Album() {
               ) : (
                 <span className="font-medium">{album.artist}</span>
               ))}
-            {album?.info && <p className="font-mono text-[13px] text-fg-2">{album.info}</p>}
+            {album?.info && <p className="text-[13px] text-fg-2 tabular-nums">{album.info}</p>}
           </div>
         </div>
       </div>
@@ -179,12 +178,9 @@ export default function Album() {
             {extraRecs.length > 0 && (
               <div className="mt-8 border-t border-line pt-6">
                 <div className="mb-3 flex items-center justify-between px-2 md:px-3">
-                  <div className="flex items-center gap-2">
-                    <SparkleIcon size={18} weight="fill" className="text-accent-text" />
-                    <div>
-                      <h2 className="text-base font-semibold tracking-tight">Recommended</h2>
-                      <p className="text-xs text-fg-2">Dynamic songs based on {album.title}</p>
-                    </div>
+                  <div>
+                    <h2 className="text-base font-semibold tracking-tight">Recommended</h2>
+                    <p className="text-xs text-fg-2">More songs based on {album.title}</p>
                   </div>
                   <button
                     type="button"
