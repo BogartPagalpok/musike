@@ -125,7 +125,7 @@ export const capabilities = { video: true, engineSettings: false, retryOnError: 
 export async function explainStreamError(url: string): Promise<{ message: string; code?: ErrorCode }> {
   const t = getT();
   try {
-    const res = await fetch(url, { headers: { Range: "bytes=0-0", [LANG_HEADER]: getLang() } });
+    const res = await fetch(url, { headers: { Range: "bytes=0-2097151", [LANG_HEADER]: getLang() } });
     if (res.ok) return { message: t.player.browserCantPlay };
     const body = await res.json().catch(() => ({}));
     return { message: body.error ?? t.player.httpError(res.status), code: body.code };

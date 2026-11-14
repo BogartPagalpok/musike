@@ -515,11 +515,28 @@ export function MagnifyingGlassIcon({ weight, ...props }: IconProps) {
 
 export function MicrophoneStageIcon({ weight, ...props }: IconProps) {
   const sw = strokeW(weight);
+  if (weight === "fill") {
+    return (
+      <SvgIcon weight={weight} {...props}>
+        <path
+          fillRule="evenodd"
+          clipRule="evenodd"
+          fill="currentColor"
+          d="M2.25 1.5h9.5A1.5 1.5 0 0 1 13.25 3v6.25a1.5 1.5 0 0 1-1.5 1.5H6L3.1 13.1a.35.35 0 0 1-.57-.28v-2.07H2.25a1.5 1.5 0 0 1-1.5-1.5V3a1.5 1.5 0 0 1 1.5-1.5Zm1.4 2.75a.65.65 0 1 0 0 1.3h6.7a.65.65 0 1 0 0-1.3h-6.7Zm0 2.75a.65.65 0 1 0 0 1.3h4.3a.65.65 0 1 0 0-1.3h-4.3Z"
+        />
+      </SvgIcon>
+    );
+  }
   return (
     <SvgIcon weight={weight} {...props}>
-      <path d="M9.5 6.5c0 0.66304 -0.26339 1.29893 -0.73223 1.76777C8.29893 8.73661 7.66304 9 7 9c-0.66304 0 -1.29893 -0.26339 -1.76777 -0.73223C4.76339 7.79893 4.5 7.16304 4.5 6.5V3c0 -0.66304 0.26339 -1.29893 0.73223 -1.76777C5.70107 0.763392 6.33696 0.5 7 0.5c0.66304 0 1.29893 0.263392 1.76777 0.73223C9.23661 1.70107 9.5 2.33696 9.5 3v3.5Z" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M12 7c0.0013 0.59132 -0.1142 1.17707 -0.3398 1.72363 -0.2257 0.54656 -0.5571 1.04316 -0.9753 1.46127 -0.4181 0.4181 -0.91469 0.7496 -1.46126 0.9752 -0.54656 0.2257 -1.13231 0.3412 -1.72363 0.3399h-1c-0.59132 0.0013 -1.17707 -0.1142 -1.72363 -0.3399 -0.54656 -0.2256 -1.04316 -0.5571 -1.46129 -0.9752 -0.41813 -0.41811 -0.74954 -0.91471 -0.97522 -1.46127S1.99869 7.59132 2.00001 7" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M7 11.5v2" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M2.25 1.75h9.5A1.25 1.25 0 0 1 13 3v6a1.25 1.25 0 0 1-1.25 1.25H6L3.15 12.6a.3.3 0 0 1-.5-.23v-2.12H2.25A1.25 1.25 0 0 1 1 9V3a1.25 1.25 0 0 1 1.25-1.25Z"
+        stroke="currentColor"
+        strokeWidth={sw}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M3.75 4.75h6.5M3.75 7.35h4.25" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" />
     </SvgIcon>
   );
 }
@@ -559,9 +576,8 @@ export function PlaylistIcon({ weight, ...props }: IconProps) {
   const sw = strokeW(weight);
   return (
     <SvgIcon weight={weight} {...props}>
-      <path d="M3.6875 5.65625c0 -0.55228 0.44772 -1 1 -1h7.75c0.5523 0 1 0.44772 1 1v5.99995c0 0.5523 -0.4477 1 -1 1h-7.75c-0.55228 0 -1 -0.4477 -1 -1V5.65625Z" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M10.5 2.875v-0.28125c0 -0.55228 -0.4477 -1 -1 -1H1.75c-0.55228 0 -1 0.44772 -1 1v6c0 0.55228 0.44772 1 1 1h0.1875" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="m7.5 6.78125 3 1.875 -3 1.87495V6.78125Z" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M1.25 3h9.5M1.25 6.75h9.5M1.25 10.5h5.5" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9.25 8.5 13 10.75 9.25 13V8.5Z" fill="currentColor" stroke="currentColor" strokeWidth={0.6} strokeLinejoin="round" />
     </SvgIcon>
   );
 }
@@ -580,9 +596,8 @@ export function QueueIcon({ weight, ...props }: IconProps) {
   const sw = strokeW(weight);
   return (
     <SvgIcon weight={weight} {...props}>
-      <path d="M3.6875 5.65625c0 -0.55228 0.44772 -1 1 -1h7.75c0.5523 0 1 0.44772 1 1v5.99995c0 0.5523 -0.4477 1 -1 1h-7.75c-0.55228 0 -1 -0.4477 -1 -1V5.65625Z" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M10.5 2.875v-0.28125c0 -0.55228 -0.4477 -1 -1 -1H1.75c-0.55228 0 -1 0.44772 -1 1v6c0 0.55228 0.44772 1 1 1h0.1875" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="m7.5 6.78125 3 1.875 -3 1.87495V6.78125Z" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M1.25 2.25 4.75 4.25 1.25 6.25V2.25Z" fill="currentColor" stroke="currentColor" strokeWidth={0.6} strokeLinejoin="round" />
+      <path d="M6.75 4.25h6M1.25 8h11.5M1.25 11.75h11.5" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
     </SvgIcon>
   );
 }
@@ -605,7 +620,10 @@ export function RepeatIcon({ weight, ...props }: IconProps) {
   const sw = strokeW(weight);
   return (
     <SvgIcon weight={weight} {...props}>
-      <path d="M10.5 10.0001c0.4036 0.0387 0.8107 -0.01229 1.1923 -0.14936 0.3816 -0.13708 0.7281 -0.35683 1.0148 -0.64352 0.2867 -0.28669 0.5064 -0.63323 0.6435 -1.01479 0.1371 -0.38157 0.1494 -1.19232 0.1494 -1.19232s-0.0123 -0.81074 -0.1494 -1.19231c-0.1371 -0.38157 -0.3568 -0.7281 -0.6435 -1.01479 -0.2867 -0.28669 -0.6332 -0.50645 -1.0148 -0.64352 -0.3816 -0.13708 -0.7887 -0.18809 -1.1923 -0.14938 -2.75 0 -4.25 5.99999 -7 5.99999 -0.40359 0.0387 -0.81075 -0.01229 -1.19231 -0.14936 -0.38157 -0.13708 -0.72811 -0.35683 -1.0148 -0.64352 -0.28669 -0.28669 -0.506439 -0.63323 -0.643515 -1.01479C0.512299 7.81086 0.5 7.00011 0.5 7.00011s0.012299 -0.81074 0.149375 -1.19231c0.137076 -0.38157 0.356825 -0.7281 0.643515 -1.01479 0.28669 -0.28669 0.63323 -0.50645 1.0148 -0.64352 0.38156 -0.13708 0.78872 -0.18809 1.19231 -0.14938 2.75 0 4.25 5.99999 7 5.99999Z" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M1.75 6.25V5.25A2.25 2.25 0 0 1 4 3h7.5" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9.75 1.25 11.75 3 9.75 4.75" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12.25 7.75V8.75A2.25 2.25 0 0 1 10 11H2.5" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4.25 9.25 2.25 11 4.25 12.75" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
     </SvgIcon>
   );
 }
@@ -719,12 +737,11 @@ export function UploadSimpleIcon({ weight, ...props }: IconProps) {
 
 export function VideoCameraIcon({ weight, ...props }: IconProps) {
   const sw = strokeW(weight);
+  const fill = weight === "fill" ? "currentColor" : "none";
   return (
     <SvgIcon weight={weight} {...props}>
-      <path d="M3.5 6.5c1.65685 0 3 -1.34315 3 -3s-1.34315 -3 -3 -3 -3 1.34315 -3 3 1.34315 3 3 3Z" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M10.5 6.5c1.1046 0 2 -0.89543 2 -2s-0.8954 -2 -2 -2c-1.10457 0 -2 0.89543 -2 2s0.89543 2 2 2Z" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M10 9H4.5c-0.55228 0 -1 0.44772 -1 1v2.5c0 0.5523 0.44772 1 1 1H10c0.5523 0 1 -0.4477 1 -1V10c0 -0.55228 -0.4477 -1 -1 -1Z" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M13.5 10v2.5" fill="none" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
+      <rect x="0.75" y="3.25" width="8.5" height="7.5" rx="1.6" fill={fill} stroke="currentColor" strokeWidth={sw} strokeLinejoin="round" />
+      <path d="M9.25 5.6 13.25 3.6v6.8l-4-2V5.6Z" fill={fill} stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
     </SvgIcon>
   );
 }
@@ -875,8 +892,11 @@ export function RepeatOnceIcon({ weight, ...props }: IconProps) {
   const sw = strokeW(weight);
   return (
     <SvgIcon weight={weight} {...props}>
-      <path d="M10.5 10.0001c0.4036 0.0387 0.8107 -0.01229 1.1923 -0.14936 0.3816 -0.13708 0.7281 -0.35683 1.0148 -0.64352 0.2867 -0.28669 0.5064 -0.63323 0.6435 -1.01479 0.1371 -0.38157 0.1494 -1.19232 0.1494 -1.19232s-0.0123 -0.81074 -0.1494 -1.19231c-0.1371 -0.38157 -0.3568 -0.7281 -0.6435 -1.01479 -0.2867 -0.28669 -0.6332 -0.50645 -1.0148 -0.64352 -0.3816 -0.13708 -0.7887 -0.18809 -1.1923 -0.14938 -2.75 0 -4.25 5.99999 -7 5.99999 -0.40359 0.0387 -0.81075 -0.01229 -1.19231 -0.14936 -0.38157 -0.13708 -0.72811 -0.35683 -1.0148 -0.64352 -0.28669 -0.28669 -0.506439 -0.63323 -0.643515 -1.01479C0.512299 7.81086 0.5 7.00011 0.5 7.00011s0.012299 -0.81074 0.149375 -1.19231c0.137076 -0.38157 0.356825 -0.7281 0.643515 -1.01479 0.28669 -0.28669 0.63323 -0.50645 1.0148 -0.64352 0.38156 -0.13708 0.78872 -0.18809 1.19231 -0.14938 2.75 0 4.25 5.99999 7 5.99999Z" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="11.4" cy="2.1" r="1.4" fill="currentColor" />
+      <path d="M1.75 6.25V5.25A2.25 2.25 0 0 1 4 3h7.5" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9.75 1.25 11.75 3 9.75 4.75" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M12.25 7.75V8.75A2.25 2.25 0 0 1 10 11H2.5" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4.25 9.25 2.25 11 4.25 12.75" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6.1 5.75 7.25 4.85v4.3" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
     </SvgIcon>
   );
 }

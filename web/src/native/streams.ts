@@ -13,8 +13,8 @@ import { nativeResolverAvailable, resolveNatively } from "./ytplayer";
  */
 
 const ios = Capacitor.getPlatform() === "ios";
-const PLATFORM_CLIENTS = ios ? ["IOS", "ANDROID", "VISIONOS"] : DEFAULT_CLIENTS;
-const CLIENTS_KEY = ios ? "musike:stream-clients-ios-v2" : "musike:stream-clients-v2";
+const PLATFORM_CLIENTS = ios ? ["VISIONOS", "IOS", "ANDROID"] : DEFAULT_CLIENTS;
+const CLIENTS_KEY = ios ? "musike:stream-clients-ios-v3" : "musike:stream-clients-v3";
 
 const cache = new Map<string, DirectAudio>();
 const inflight = new Map<string, Promise<DirectAudio>>();

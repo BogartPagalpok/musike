@@ -267,7 +267,7 @@ export function Theater() {
 
           <div
             className={cn(
-              "safe-bottom pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/85 to-transparent px-4 pt-16 pb-4 md:px-8 md:pb-6",
+              "pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/85 to-transparent px-4 pt-16 pb-[calc(1rem+env(safe-area-inset-bottom))] md:px-8 md:pb-[calc(1.5rem+env(safe-area-inset-bottom))]",
               fade,
             )}
           >

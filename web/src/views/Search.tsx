@@ -208,19 +208,20 @@ export default function Search() {
 
   return (
     <div className="@container/search pb-8">
-      <div className="safe-top sticky top-0 z-10 flex flex-col gap-2.5 border-b border-line/60 bg-bg/85 px-4 pt-2 pb-3 backdrop-blur-2xl @[680px]/search:gap-3 @[680px]/search:bg-surface-1/95 @[680px]/search:px-6 @[680px]/search:pt-4">
-        <div className="flex h-11 items-center gap-3 md:hidden">
-          <LogoMark className="size-7 shrink-0 text-accent-text" />
-          <h1 className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight">{t.search.title}</h1>
-          <IconButton
-            label={attention ? t.nav.settingsUpdate : t.nav.settings}
-            onClick={() => setSettingsOpen(true)}
-            className="-mr-2"
-          >
-            <GearSixIcon size={22} />
-            {attention && <span className="absolute top-2 right-2 size-2 rounded-full bg-accent ring-2 ring-bg" />}
-          </IconButton>
-        </div>
+      <header className="app-header safe-top sticky top-0 z-10 border-b border-line/60 bg-bg/85 backdrop-blur-2xl @[680px]/search:bg-surface-1/95">
+        <div className="flex flex-col gap-2.5 px-4 pt-2 pb-3 @[680px]/search:gap-3 @[680px]/search:px-6 @[680px]/search:pt-4">
+          <div className="flex h-12 items-center gap-3 md:hidden">
+            <LogoMark className="size-7 shrink-0 text-accent-text" />
+            <h1 className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight">{t.search.title}</h1>
+            <IconButton
+              label={attention ? t.nav.settingsUpdate : t.nav.settings}
+              onClick={() => setSettingsOpen(true)}
+              className="-mr-2"
+            >
+              <GearSixIcon size={22} />
+              {attention && <span className="absolute top-2 right-2 size-2 rounded-full bg-accent ring-2 ring-bg" />}
+            </IconButton>
+          </div>
         <form
           role="search"
           onSubmit={(e) => {
@@ -333,7 +334,8 @@ export default function Search() {
         )}
 
         {!linkId && genresOpen && <GenrePanel id="genre-panel" />}
-      </div>
+        </div>
+      </header>
 
       <div className="mt-4 px-2 @[680px]/search:px-3">
         {linkId && (

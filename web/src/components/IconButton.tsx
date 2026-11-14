@@ -121,7 +121,7 @@ export const PlayDisc = forwardRef<HTMLButtonElement, PlayDiscProps>(function Pl
       title={label}
       style={{ width: px, height: px }}
       className={cn(
-        "relative grid shrink-0 place-items-center overflow-hidden rounded-full transition-transform duration-200 ease-out-expo",
+        "group/disc relative grid shrink-0 place-items-center overflow-hidden rounded-full transition-transform duration-200 ease-out-expo",
         "hover:scale-[1.04] active:scale-[0.95] disabled:opacity-40",
         variant === "default" && "bg-accent text-accent-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.45)]",
         isLightForeground && "text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]",
@@ -131,7 +131,13 @@ export const PlayDisc = forwardRef<HTMLButtonElement, PlayDiscProps>(function Pl
       {...rest}
     >
       <PlayDiscDecor variant={variant} playing={isPlaying} />
-      <span className="relative z-10 grid place-items-center">{children}</span>
+      {variant === "default" ? (
+        <span className="relative z-10 grid place-items-center">{children}</span>
+      ) : (
+        <span className="relative z-10 grid place-items-center rounded-full bg-black/50 p-1.5 text-white opacity-0 backdrop-blur-[2px] transition-opacity duration-200 group-hover/disc:opacity-95 group-focus-visible/disc:opacity-95">
+          {children}
+        </span>
+      )}
     </button>
   );
 });

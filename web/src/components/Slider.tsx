@@ -43,7 +43,7 @@ function waveParams(variant: PlayheadStyle): WaveParams {
 function sampleWaveY(variant: PlayheadStyle, x: number, phase: number, amp: number, cy = 12): number {
   if (amp <= 0) return cy;
   const { wavelength } = waveParams(variant);
-  const pos = (((x + phase) % wavelength) + wavelength) % wavelength;
+  const pos = (((x - phase) % wavelength) + wavelength) % wavelength;
   const t = pos / wavelength; // [0, 1)
 
   switch (variant) {
@@ -104,7 +104,7 @@ function PlayheadThumb({
           alt=""
           aria-hidden="true"
           className={cn(
-            "size-6 object-contain drop-shadow-[0_0_8px_rgba(250,204,21,0.85)] transition-transform",
+            "block size-6 select-none object-contain drop-shadow-[0_0_8px_rgba(250,204,21,0.85)]",
             spin,
           )}
         />
@@ -117,7 +117,7 @@ function PlayheadThumb({
           alt=""
           aria-hidden="true"
           className={cn(
-            "size-[22px] rounded-full object-contain drop-shadow-[0_0_10px_rgba(239,68,68,0.9)]",
+            "block size-[22px] rounded-full select-none object-contain drop-shadow-[0_0_10px_rgba(239,68,68,0.9)]",
             isPlaying && !dragging && "animate-[spin_4.5s_linear_infinite]",
           )}
         />
@@ -130,7 +130,7 @@ function PlayheadThumb({
           alt=""
           aria-hidden="true"
           style={{ transform: `rotate(${slopeAngle.toFixed(1)}deg)` }}
-          className="h-5 w-9 object-contain drop-shadow-[0_0_10px_rgba(192,132,252,0.85)]"
+          className="block h-5 w-7 select-none object-contain drop-shadow-[0_0_10px_rgba(192,132,252,0.85)]"
         />
       );
 
@@ -262,7 +262,7 @@ export function Slider({
   // Compute exact vertical wave deflection & slope at playhead X so icon/thumb rides the scrubber wave seamlessly.
   const yNow = isCustomSvgTrack ? sampleWaveY(variant, currentX, phase, amp, 12) : 12;
   const yAhead = isCustomSvgTrack ? sampleWaveY(variant, currentX + 4, phase, amp, 12) : 12;
-  const thumbOffsetY = yNow - 12;
+  const yNowPct = (yNow / 24) * 100;
   const slopeAngle = Math.atan2(yAhead - yNow, 4) * (180 / Math.PI) * 0.45;
 
   const trackColor = (() => {
@@ -294,7 +294,7 @@ export function Slider({
       onKeyDown={onKeyDown}
       className={cn("group relative flex h-6 cursor-pointer touch-none items-center select-none", className)}
     >
-      <div ref={track} className="relative h-6 w-full">
+      <div ref={track} className="relative h-full w-full">
         {isCustomSvgTrack ? (
           <>
             <svg
@@ -345,10 +345,11 @@ export function Slider({
             </svg>
 
             <div
-              className="pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
+              className="pointer-events-none absolute"
               style={{
-                left: `clamp(10px, ${pct}%, calc(100% - 10px))`,
-                transform: `translate(-50%, calc(-50% + ${thumbOffsetY.toFixed(2)}px))`,
+                left: `${pct}%`,
+                top: `${yNowPct.toFixed(3)}%`,
+                transform: "translate(-50%, -50%)",
               }}
             >
               <PlayheadThumb
@@ -376,10 +377,10 @@ export function Slider({
         {variant === "default" && (
           <div
             className={cn(
-              "pointer-events-none absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-fg shadow-[0_1px_4px_rgb(0_0_0/0.4)] transition-opacity",
+              "pointer-events-none absolute size-3 rounded-full bg-fg shadow-[0_1px_4px_rgb(0_0_0/0.4)] transition-opacity",
               showThumb || drag !== null ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100",
             )}
-            style={{ left: `${pct}%` }}
+            style={{ left: `${pct}%`, top: "50%", transform: "translate(-50%, -50%)" }}
           />
         )}
       </div>

@@ -118,11 +118,12 @@ function toStream(f: RawFormat, kind: "audio" | "video"): StreamFormat {
 
 function pickAudio(formats: RawFormat[]): RawFormat | undefined {
   const audio = formats.filter((f) => isAudioOnly(f) && isHttps(f));
-  // AAC in MP4 plays everywhere, including iOS Safari. Opus/WebM is the fallback.
+  // AAC in MP4 plays everywhere, including iOS Safari. Opus/WebM or muxed MP4 is the fallback.
   return (
     audio.find((f) => f.format_id === "140") ??
     audio.filter((f) => f.ext === "m4a").sort((a, b) => (b.abr ?? 0) - (a.abr ?? 0))[0] ??
-    audio.sort((a, b) => (b.abr ?? 0) - (a.abr ?? 0))[0]
+    audio.sort((a, b) => (b.abr ?? 0) - (a.abr ?? 0))[0] ??
+    pickVideo(formats)
   );
 }
 
@@ -168,7 +169,7 @@ export async function resolveDirectOnly(id: string): Promise<Resolved> {
 /** Fallback audio/video resolver via yt-dlp when direct Innertube resolution is unavailable for a track. */
 export async function resolveWithYtdlp(id: string): Promise<Resolved> {
   const stdout = await run(
-    ["--extractor-args", "youtube:player_client=android,ios", "-J", "--no-playlist", "--no-warnings", `https://www.youtube.com/watch?v=${id}`],
+    ["-J", "--no-playlist", "--no-warnings", `https://www.youtube.com/watch?v=${id}`],
     RESOLVE_TIMEOUT_MS,
   );
   const info = JSON.parse(stdout) as { title: string; duration?: number; formats: RawFormat[] };

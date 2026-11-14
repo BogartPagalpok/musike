@@ -1,3 +1,4 @@
+import { Capacitor } from "@capacitor/core";
 import { useEffect, useState, type ReactNode } from "react";
 import { cn } from "../lib/format";
 import { useThemeStore, type SceneStyle } from "../stores/themeStore";
@@ -9,14 +10,19 @@ interface Props {
   className?: string;
 }
 
-function useIsMobileViewport() {
+export function useIsMobileViewport() {
   const [mobile, setMobile] = useState(() =>
-    typeof window !== "undefined" ? window.innerWidth < 768 || window.innerHeight > window.innerWidth * 1.05 : false,
+    Capacitor.isNativePlatform() ||
+    (typeof window !== "undefined" ? window.innerWidth < 768 || window.innerHeight > window.innerWidth * 1.05 : false),
   );
 
   useEffect(() => {
     const check = () => {
-      setMobile(window.innerWidth < 768 || window.innerHeight > window.innerWidth * 1.05);
+      setMobile(
+        Capacitor.isNativePlatform() ||
+          window.innerWidth < 768 ||
+          window.innerHeight > window.innerWidth * 1.05,
+      );
     };
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
@@ -44,7 +50,7 @@ export function ThemeSceneBackdrop({ sceneOverride, customUrlOverride, contained
 
   const isAnime = scene === "shinobi" || scene === "akatsuki" || scene === "grandline";
   const mediaAsset = isAnime
-    ? (contained ? false : isMobileViewport)
+    ? isMobileViewport
       ? animeAssets[scene].mobileWallpaper
       : animeAssets[scene].pcWallpaper
     : null;
@@ -67,7 +73,7 @@ export function ThemeSceneBackdrop({ sceneOverride, customUrlOverride, contained
           ) : (
             <img src={mediaAsset.url} alt="" className="size-full object-cover" />
           )}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/38 via-black/28 to-black/68" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/10 to-black/38" />
         </>
       )}
 

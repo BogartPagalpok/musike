@@ -23,6 +23,15 @@ final class MusikeYouTube: NSObject, WKScriptMessageHandler {
     }
     private static let clients: [ClientSpec] = [
         ClientSpec(
+            name: "VISIONOS",
+            version: "1.02",
+            id: "101",
+            userAgent: userAgent,
+            fields: [
+                "platform": "DESKTOP",
+            ]
+        ),
+        ClientSpec(
             name: "ANDROID",
             version: "20.10.38",
             id: "3",
@@ -43,15 +52,6 @@ final class MusikeYouTube: NSObject, WKScriptMessageHandler {
                 "deviceModel": "iPhone16,2",
                 "osName": "iPhone",
                 "osVersion": "18.1.0.22B83",
-            ]
-        ),
-        ClientSpec(
-            name: "VISIONOS",
-            version: "1.02",
-            id: "101",
-            userAgent: userAgent,
-            fields: [
-                "platform": "DESKTOP",
             ]
         ),
     ]
@@ -113,9 +113,12 @@ final class MusikeYouTube: NSObject, WKScriptMessageHandler {
             }
             let details = result?["videoDetails"] as? [String: Any] ?? [:]
             let streamingData = result?["streamingData"] as? [String: Any]
-            let adaptiveAudio = (streamingData?["adaptiveFormats"] as? [[String: Any]] ?? [])
-                .filter { ($0["mimeType"] as? String)?.hasPrefix("audio/") == true && $0["url"] != nil }
-                .sorted { Self.int($0["bitrate"]) > Self.int($1["bitrate"]) }
+            let allowAdaptive = client.name == "VISIONOS"
+            let adaptiveAudio = allowAdaptive
+                ? (streamingData?["adaptiveFormats"] as? [[String: Any]] ?? [])
+                    .filter { ($0["mimeType"] as? String)?.hasPrefix("audio/") == true && $0["url"] != nil }
+                    .sorted { Self.int($0["bitrate"]) > Self.int($1["bitrate"]) }
+                : []
             let mp4Audio = adaptiveAudio.filter { ($0["mimeType"] as? String)?.hasPrefix("audio/mp4") == true }
             let progressive = (streamingData?["formats"] as? [[String: Any]] ?? [])
                 .filter { $0["url"] != nil }

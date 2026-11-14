@@ -14,7 +14,7 @@ import { CustomColorPicker } from "../components/CustomizeSection";
 import { PlayDisc } from "../components/IconButton";
 import { PageHeader } from "../components/Page";
 import { Slider } from "../components/Slider";
-import { ThemeSceneBackdrop } from "../components/ThemeSceneBackdrop";
+import { ThemeSceneBackdrop, useIsMobileViewport } from "../components/ThemeSceneBackdrop";
 import { cn } from "../lib/format";
 import { ACCENTS, useAppearance } from "../stores/appearance";
 import {
@@ -119,9 +119,15 @@ function AnimeAssetControls({
   const uploadAnimeAsset = useThemeStore((s) => s.uploadAnimeAsset);
   const resetAnimeAssets = useThemeStore((s) => s.resetAnimeAssets);
   const inputRefs = useRef<Partial<Record<AnimeAssetSlot, HTMLInputElement | null>>>({});
+  const isMobileViewport = useIsMobileViewport();
 
+  const visibleSlots = ASSET_SLOTS.filter(
+    (s) => s.slot === "playheadIcon" || (isMobileViewport ? s.slot === "mobileWallpaper" : s.slot === "pcWallpaper"),
+  );
   const overrides = customAnimeOverrides[anime] ?? {};
-  const hasAnyOverride = Boolean(overrides.mobileWallpaper || overrides.pcWallpaper || overrides.playheadIcon);
+  const hasAnyOverride = Boolean(
+    overrides.playheadIcon || (isMobileViewport ? overrides.mobileWallpaper : overrides.pcWallpaper),
+  );
   const resolved = animeAssets[anime];
 
   const handleFile = async (slot: AnimeAssetSlot, e: ChangeEvent<HTMLInputElement>) => {
@@ -146,7 +152,7 @@ function AnimeAssetControls({
       )}
     >
       {compact && <span className="mr-0.5 text-[10.5px] font-medium text-fg-3">Assets:</span>}
-      {ASSET_SLOTS.map(({ slot, shortLabel, fullLabel, accept }) => {
+      {visibleSlots.map(({ slot, shortLabel, fullLabel, accept }) => {
         const overridden = Boolean(overrides[slot]);
         return (
           <div key={slot} className="inline-flex">
@@ -631,6 +637,7 @@ export function ThemeStoreContent({ embedded = false }: { embedded?: boolean }) 
   const [tab, setTab] = useState<StoreTab>("all");
   const [checkoutTarget, setCheckoutTarget] = useState<SkinPack | "all-access" | "redeem" | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const isMobileViewport = useIsMobileViewport();
 
   const saleMode = useThemeStore((s) => s.saleMode);
   const activePackId = useThemeStore((s) => s.activePackId);
@@ -943,7 +950,9 @@ export function ThemeStoreContent({ embedded = false }: { embedded?: boolean }) 
             <div className="mb-3">
               <h3 className="text-[14px] font-semibold text-fg">Per-Anime Assets (Naruto / Itachi / Luffy)</h3>
               <p className="mt-0.5 text-xs text-fg-2">
-                Upload a custom Mobile Wallpaper (.mp4/image), PC Wallpaper (.mp4/image), or Scrubber Playhead Icon (.png) for each anime theme.
+                {isMobileViewport
+                  ? "Upload a custom Mobile Wallpaper (.mp4/image) or Scrubber Playhead Icon (.png) for each anime theme."
+                  : "Upload a custom PC Wallpaper (.mp4/image) or Scrubber Playhead Icon (.png) for each anime theme."}
               </p>
             </div>
             <div className="grid grid-cols-1 gap-2.5 @[640px]/store:grid-cols-3">

@@ -12,7 +12,7 @@ import { text, withClient } from "./search.js";
  * (mobile/streaming.json in the repository) without shipping a new version.
  */
 
-export const DEFAULT_CLIENTS = ["ANDROID", "IOS", "VISIONOS"];
+export const DEFAULT_CLIENTS = ["VISIONOS", "ANDROID", "IOS"];
 const REMOTE_CONFIG = "";
 
 export interface DirectAudio {
@@ -28,7 +28,7 @@ export const validClients = (v: unknown): string[] | null =>
   Array.isArray(v) && v.length > 0 && v.every((c) => typeof c === "string" && /^[A-Z_]{2,30}$/.test(c)) ? (v as string[]) : null;
 
 /**
- * Keeps signature compatibility without pulling stale external GitHub client overrides that strip ANDROID/IOS.
+ * Keeps signature compatibility without pulling stale external GitHub client overrides that strip working clients.
  */
 export async function fetchRemoteClients(_key: "clients" | "ios" = "clients"): Promise<string[] | null> {
   return null;
@@ -38,6 +38,9 @@ interface RawInnerTubeClientSpec {
   clientName: string;
   clientVersion: string;
   userAgent: string;
+  clientId?: string;
+  platform?: string;
+  needsVisitorData?: boolean;
   androidSdkVersion?: number;
   deviceMake?: string;
   deviceModel?: string;
@@ -46,9 +49,19 @@ interface RawInnerTubeClientSpec {
 }
 
 const RAW_CLIENT_SPECS: Record<string, RawInnerTubeClientSpec> = {
+  VISIONOS: {
+    clientName: "VISIONOS",
+    clientVersion: "1.02",
+    clientId: "101",
+    platform: "DESKTOP",
+    needsVisitorData: true,
+    userAgent:
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15",
+  },
   ANDROID: {
     clientName: "ANDROID",
     clientVersion: "20.10.38",
+    clientId: "3",
     androidSdkVersion: 34,
     osName: "Android",
     osVersion: "14",
@@ -57,6 +70,7 @@ const RAW_CLIENT_SPECS: Record<string, RawInnerTubeClientSpec> = {
   IOS: {
     clientName: "IOS",
     clientVersion: "20.10.4",
+    clientId: "5",
     deviceMake: "Apple",
     deviceModel: "iPhone16,2",
     osName: "iPhone",
@@ -64,6 +78,54 @@ const RAW_CLIENT_SPECS: Record<string, RawInnerTubeClientSpec> = {
     userAgent: "com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_1_0 like Mac OS X;)",
   },
 };
+
+const VISITOR_TTL_MS = 12 * 3600_000;
+let cachedVisitorData = "";
+let cachedVisitorAt = 0;
+
+async function getVisitorData(lang?: Lang): Promise<string> {
+  if (cachedVisitorData && Date.now() - cachedVisitorAt < VISITOR_TTL_MS) {
+    return cachedVisitorData;
+  }
+  const spec = RAW_CLIENT_SPECS.VISIONOS!;
+  const httpFetch = config.fetch ?? fetch;
+  try {
+    const res = await httpFetch("https://www.youtube.com/youtubei/v1/visitor_id?prettyPrint=false", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(spec.clientId ? { "X-YouTube-Client-Name": spec.clientId } : {}),
+        "X-YouTube-Client-Version": spec.clientVersion,
+        Origin: "https://www.youtube.com",
+        "User-Agent": spec.userAgent,
+      },
+      body: JSON.stringify({
+        context: {
+          client: {
+            clientName: spec.clientName,
+            clientVersion: spec.clientVersion,
+            ...(spec.platform ? { platform: spec.platform } : {}),
+            hl: lang ?? config.lang ?? "en",
+            gl: config.location ?? "US",
+          },
+        },
+      }),
+      signal: AbortSignal.timeout(5000),
+    });
+    if (res.ok) {
+      const json = (await res.json()) as { responseContext?: { visitorData?: string } };
+      const vd = json?.responseContext?.visitorData;
+      if (vd) {
+        cachedVisitorData = vd;
+        cachedVisitorAt = Date.now();
+        return vd;
+      }
+    }
+  } catch {
+    /* keep previously cached visitorData if available */
+  }
+  return cachedVisitorData;
+}
 
 interface RawInnerTubeFormat {
   itag?: number;
@@ -84,15 +146,19 @@ interface RawInnerTubePlayerResponse {
   };
 }
 
-async function fetchInnerTubePlayer(id: string, clientKey: string): Promise<RawInnerTubePlayerResponse | null> {
+async function fetchInnerTubePlayer(id: string, clientKey: string, lang?: Lang): Promise<RawInnerTubePlayerResponse | null> {
   const spec = RAW_CLIENT_SPECS[clientKey];
   if (!spec) return null;
   try {
     const httpFetch = config.fetch ?? fetch;
+    const visitorData = spec.needsVisitorData ? await getVisitorData(lang) : "";
     const res = await httpFetch("https://www.youtube.com/youtubei/v1/player?prettyPrint=false", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...(spec.clientId ? { "X-YouTube-Client-Name": spec.clientId } : {}),
+        "X-YouTube-Client-Version": spec.clientVersion,
+        Origin: "https://www.youtube.com",
         "User-Agent": spec.userAgent,
       },
       body: JSON.stringify({
@@ -101,13 +167,15 @@ async function fetchInnerTubePlayer(id: string, clientKey: string): Promise<RawI
           client: {
             clientName: spec.clientName,
             clientVersion: spec.clientVersion,
+            ...(spec.platform ? { platform: spec.platform } : {}),
+            ...(visitorData ? { visitorData } : {}),
             ...(spec.androidSdkVersion ? { androidSdkVersion: spec.androidSdkVersion } : {}),
             ...(spec.deviceMake ? { deviceMake: spec.deviceMake } : {}),
             ...(spec.deviceModel ? { deviceModel: spec.deviceModel } : {}),
             ...(spec.osName ? { osName: spec.osName } : {}),
             ...(spec.osVersion ? { osVersion: spec.osVersion } : {}),
-            hl: "en",
-            gl: "US",
+            hl: lang ?? config.lang ?? "en",
+            gl: config.location ?? "US",
           },
         },
         contentCheckOk: true,
@@ -136,16 +204,20 @@ export async function directAudio(id: string, clients: string[] = DEFAULT_CLIENT
   let reason = "";
   const ordered = clients.length ? clients : DEFAULT_CLIENTS;
 
-  // Fast path: raw InnerTube ANDROID/IOS returns verified 206-ready audio/mp4 & muxed formats in ~180ms without parser overhead.
+  // VISIONOS serves full adaptive audio without a PO token; ANDROID/IOS adaptive formats cap at 1 MB without a PO token,
+  // so only progressive muxed formats (e.g. itag 18) are safe from un-tokened ANDROID/IOS.
   for (const client of ordered) {
-    const raw = await fetchInnerTubePlayer(id, client);
+    const raw = await fetchInnerTubePlayer(id, client, lang);
     if (raw) {
       if (raw.playabilityStatus?.status && raw.playabilityStatus.status !== "OK") {
         reason = raw.playabilityStatus.reason || reason;
       } else {
-        const audioOnly = (raw.streamingData?.adaptiveFormats ?? []).filter(
-          (f) => typeof f.url === "string" && (f.mimeType?.startsWith("audio/") || f.audioChannels) && !f.width,
-        );
+        const allowAdaptive = client === "VISIONOS";
+        const audioOnly = allowAdaptive
+          ? (raw.streamingData?.adaptiveFormats ?? []).filter(
+              (f) => typeof f.url === "string" && (f.mimeType?.startsWith("audio/") || f.audioChannels) && !f.width,
+            )
+          : [];
         const bestAudio = audioOnly.sort(
           (a, b) => Number(b.mimeType?.startsWith("audio/mp4")) - Number(a.mimeType?.startsWith("audio/mp4")) || (b.bitrate ?? 0) - (a.bitrate ?? 0),
         )[0];
@@ -175,14 +247,17 @@ export async function directAudio(id: string, clients: string[] = DEFAULT_CLIENT
         reason = text(status.reason) || reason;
         continue;
       }
-      const formats: any[] = [...(info.streaming_data?.adaptive_formats ?? []), ...(info.streaming_data?.formats ?? [])].filter(
-        (f) => f.has_audio && !f.has_video && typeof f.url === "string",
-      );
+      const allowAdaptive = client === "VISIONOS";
+      const formats: any[] = allowAdaptive
+        ? [...(info.streaming_data?.adaptive_formats ?? []), ...(info.streaming_data?.formats ?? [])].filter(
+            (f) => f.has_audio && !f.has_video && typeof f.url === "string",
+          )
+        : [];
       let best = formats.sort(
         (a, b) => Number(b.mime_type?.startsWith("audio/mp4")) - Number(a.mime_type?.startsWith("audio/mp4")) || (b.bitrate ?? 0) - (a.bitrate ?? 0),
       )[0];
       if (!best) {
-        const muxed = [...(info.streaming_data?.formats ?? []), ...(info.streaming_data?.adaptive_formats ?? [])].filter(
+        const muxed = [...(info.streaming_data?.formats ?? []), ...(allowAdaptive ? (info.streaming_data?.adaptive_formats ?? []) : [])].filter(
           (f: any) => f.has_audio && typeof f.url === "string" && f.mime_type?.startsWith("video/mp4"),
         )[0];
         if (muxed) best = muxed;
