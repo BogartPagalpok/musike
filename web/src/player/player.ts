@@ -179,6 +179,15 @@ function lookupClip(track: Track): Promise<string | null> {
   return lookup;
 }
 
+/**
+ * Extension points for features that sit on top of the player (Videoke): `onEnded` may take over when a track
+ * finishes (return true to stop the normal advance), `blockRadio` stops autoplay radio from filling the queue.
+ */
+export const playerHooks: {
+  onEnded: ((track: Track) => boolean) | null;
+  blockRadio: ((track: Track) => boolean) | null;
+} = { onEnded: null, blockRadio: null };
+
 const needsClipLookup = (track: Track, preferVideo: boolean) =>
   preferVideo && track.kind === "song" && !isLocalTrack(track.id) && !clipFor.has(track.id);
 
@@ -293,7 +302,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
   async function continueWithRadio() {
     const s = get();
     const last = s.queue[s.index];
-    if (!last || isLocalTrack(last.id)) {
+    if (!last || isLocalTrack(last.id) || playerHooks.blockRadio?.(last)) {
       set({ status: "paused", statusText: null, position: 0 });
       return;
     }
@@ -328,6 +337,11 @@ export const usePlayer = create<PlayerState>((set, get) => {
 
   function onEnded() {
     const s = get();
+    const ended = s.queue[s.index];
+    if (ended && playerHooks.onEnded?.(ended)) {
+      set({ status: "paused" });
+      return;
+    }
     if (s.repeat === "one") {
       const media = activeMedia();
       if (media) {

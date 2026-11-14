@@ -1,19 +1,24 @@
-import { EqualizerIcon, PlayIcon, RadioIcon } from "./icons";
+import { ArrowsOutIcon, EqualizerIcon, MicrophoneStageIcon, PlayIcon, RadioIcon } from "./icons";
+import { useLocation } from "react-router";
 import { useT } from "../i18n";
 import { cn } from "../lib/format";
+import { paths } from "../lib/routes";
 import { useEqualizer } from "../player/equalizer";
 import { selectCurrent, usePlayer, useStatusText } from "../player/player";
 import { useLibrary } from "../stores/library";
 import { useThemeStore } from "../stores/themeStore";
 import { useUi } from "../stores/ui";
+import { useIsVideokeTrack, useVideoke } from "../stores/videoke";
 import { Artwork } from "./Artwork";
 import { FavoriteButton, ModeSwitch, OfflineButton } from "./Controls";
 import { LyricsView } from "./Lyrics";
+import { PitchGuide } from "./PitchGuide";
 import { WorldStageFrame } from "./ThemeSceneBackdrop";
 import { SLOT, VideoSlot } from "./Video";
 
 export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinema" }) {
   const t = useT();
+  const location = useLocation();
   const track = usePlayer(selectCurrent);
   const showsVideo = usePlayer((s) => s.mediaKind === "video");
   const aspect = usePlayer((s) => s.videoAspect);
@@ -22,12 +27,16 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
   const eqEnabled = useEqualizer((s) => s.enabled);
   const eqPreset = useEqualizer((s) => s.preset);
   const setEqualizerOpen = useUi((s) => s.setEqualizerOpen);
+  const setTheater = useUi((s) => s.setTheater);
   const statusText = useStatusText();
   const status = usePlayer((s) => s.status);
   const history = useLibrary((s) => s.history);
   const favorites = useLibrary((s) => s.favorites);
   const sceneStyle = useThemeStore((s) => s.sceneStyle);
   const hasWorldScene = sceneStyle !== "none";
+  const isVideokeTrack = useIsVideokeTrack();
+  const showScore = useVideoke((v) => v.showScore);
+  const isVideoke = isVideokeTrack || location.pathname === paths.videoke;
 
   if (!track) {
     const starter = favorites.length ? favorites : history;
@@ -76,21 +85,28 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
       </div>
 
       <div className="flex h-full min-h-0 w-full flex-1 flex-col gap-5 overflow-hidden @[620px]/stage:flex-row @[620px]/stage:items-center @[620px]/stage:gap-8">
-        {/* Left Stage: Floating 1080p HD Video / Artwork + Apple Music Track Header */}
+        {/* Left Stage (or Full-Width Videoke Stage): Floating 1080p HD Video / Artwork + Track Header */}
         <div
           className={cn(
-            "flex shrink-0 flex-col justify-center gap-4 overflow-hidden",
-            mode === "cinema" ? "@[620px]/stage:w-[50%]" : "@[620px]/stage:w-[46%] @[960px]/stage:w-[45%]",
+            "flex shrink-0 flex-col justify-center gap-3 overflow-hidden",
+            isVideoke
+              ? "mx-auto h-full w-full max-w-5xl flex-1"
+              : mode === "cinema"
+                ? "@[620px]/stage:w-[50%]"
+                : "@[620px]/stage:w-[46%] @[960px]/stage:w-[45%]",
           )}
         >
-          <div className="flex min-h-0 w-full items-center justify-center py-4">
+          <div className={cn("flex min-h-0 w-full items-center justify-center", isVideoke ? "flex-1 py-1" : "py-4")}>
             {showsVideo ? (
               <WorldStageFrame scene={sceneStyle} playing={status === "playing"} className="w-full">
                 <div className="w-full overflow-hidden rounded-[inherit] bg-transparent shadow-[0_24px_60px_rgba(0,0,0,0.55)] ring-1 ring-white/12">
                   <VideoSlot
                     priority={SLOT.center}
                     expandable
-                    className="mx-auto aspect-video max-h-[44dvh] w-full bg-transparent"
+                    className={cn(
+                      "mx-auto aspect-video w-full bg-transparent",
+                      isVideoke ? "max-h-[58dvh]" : "max-h-[44dvh]",
+                    )}
                     style={{ aspectRatio: Math.min(16 / 9, Math.max(9 / 16, aspect)) }}
                   />
                 </div>
@@ -109,7 +125,9 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
             )}
           </div>
 
-          <div className="flex shrink-0 flex-col gap-3 px-1">
+          {isVideoke && <PitchGuide compact className="shrink-0" />}
+
+          <div className="flex shrink-0 flex-col gap-2.5 px-1">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <h1 className="truncate text-xl font-bold tracking-tight text-fg md:text-2xl">{track.title}</h1>
@@ -125,14 +143,37 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
 
             <div className="flex flex-wrap items-center gap-2">
               <ModeSwitch />
-              <button
-                type="button"
-                onClick={() => void startRadio(track)}
-                className="flex h-8 items-center gap-1.5 rounded-full bg-surface-3/80 px-3.5 text-xs font-medium text-fg-2 backdrop-blur-md transition-colors hover:bg-surface-4 hover:text-fg"
-              >
-                <RadioIcon size={14} />
-                <span>{t.trackMenu.startRadio}</span>
-              </button>
+              {isVideoke ? (
+                <>
+                  {showsVideo && (
+                    <button
+                      type="button"
+                      onClick={() => setTheater(true)}
+                      className="flex h-8 items-center gap-1.5 rounded-full bg-surface-3/80 px-3.5 text-xs font-medium text-fg-2 backdrop-blur-md transition-colors hover:bg-surface-4 hover:text-fg"
+                    >
+                      <ArrowsOutIcon size={14} />
+                      <span>{t.videoke.fullscreen}</span>
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => showScore(track)}
+                    className="flex h-8 items-center gap-1.5 rounded-full bg-accent px-3.5 text-xs font-semibold text-accent-ink transition-transform hover:brightness-110 active:scale-95"
+                  >
+                    <MicrophoneStageIcon size={14} weight="fill" />
+                    <span>{t.videoke.finishAndScore}</span>
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void startRadio(track)}
+                  className="flex h-8 items-center gap-1.5 rounded-full bg-surface-3/80 px-3.5 text-xs font-medium text-fg-2 backdrop-blur-md transition-colors hover:bg-surface-4 hover:text-fg"
+                >
+                  <RadioIcon size={14} />
+                  <span>{t.trackMenu.startRadio}</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setEqualizerOpen(true)}
@@ -150,10 +191,12 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
           </div>
         </div>
 
-        {/* Right Stage: Seamless Apple Music Live Lyrics with top/bottom gradient fade */}
-        <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-          <LyricsView className="h-full min-h-0 flex-1" />
-        </div>
+        {/* Right Stage: Seamless Apple Music Live Lyrics (Hidden in Videoke Mode because the video IS the lyrics) */}
+        {!isVideoke && (
+          <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+            <LyricsView className="h-full min-h-0 flex-1" />
+          </div>
+        )}
       </div>
     </div>
   );

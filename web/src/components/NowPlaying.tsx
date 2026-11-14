@@ -24,10 +24,12 @@ import { selectCurrent, usePlayer, useStatusText } from "../player/player";
 import { useAppearance } from "../stores/appearance";
 import { useThemeStore } from "../stores/themeStore";
 import { useUi, type PanelTab } from "../stores/ui";
+import { useIsVideokeTrack, useVideoke } from "../stores/videoke";
 import { Artwork } from "./Artwork";
 import { FavoriteButton, ModeSwitch, OfflineButton, Scrubber, Transport } from "./Controls";
 import { IconButton } from "./IconButton";
 import { LyricsView } from "./Lyrics";
+import { PitchGuide } from "./PitchGuide";
 import { QueueList } from "./Queue";
 import { ThemeSceneBackdrop, WorldStageFrame } from "./ThemeSceneBackdrop";
 import { SLOT, VideoSlot } from "./Video";
@@ -116,12 +118,14 @@ export function PanelBody({ tab, slot }: { tab: PanelTab; slot: number }) {
   const openPanel = useUi((s) => s.openPanel);
   const layoutTemplate = useAppearance((s) => s.layoutTemplate);
   const centerHasStage = layoutTemplate === "center-lyrics" || layoutTemplate === "cinema";
+  const isVideoke = useIsVideokeTrack();
+  const showScore = useVideoke((v) => v.showScore);
   const t = useT();
 
   if (!track) {
     return <p className="px-2 py-16 text-center text-sm text-fg-2">{t.nowPlaying.playSomething}</p>;
   }
-  if (tab === "lyrics") {
+  if (tab === "lyrics" && !isVideoke) {
     return (
       <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden px-1 pb-2">
         {showsVideo && !centerHasStage && <Stage track={track} slot={slot} />}
@@ -137,14 +141,25 @@ export function PanelBody({ tab, slot }: { tab: PanelTab; slot: number }) {
           <TrackHeading track={track} />
           <ModeSwitch />
           <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => void startRadio(track)}
-              className="flex h-9 items-center justify-center gap-1.5 rounded-full bg-surface-3 px-3 text-xs font-medium transition-colors hover:bg-surface-4 active:scale-[0.98]"
-            >
-              <RadioIcon size={16} className="shrink-0" />
-              <span className="truncate">{t.trackMenu.startRadio}</span>
-            </button>
+            {isVideoke ? (
+              <button
+                type="button"
+                onClick={() => showScore(track)}
+                className="flex h-9 items-center justify-center gap-1.5 rounded-full bg-accent px-3 text-xs font-semibold text-accent-ink transition-transform hover:brightness-110 active:scale-[0.98]"
+              >
+                <MicrophoneStageIcon size={16} weight="fill" className="shrink-0" />
+                <span className="truncate">{t.videoke.finishAndScore}</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void startRadio(track)}
+                className="flex h-9 items-center justify-center gap-1.5 rounded-full bg-surface-3 px-3 text-xs font-medium transition-colors hover:bg-surface-4 active:scale-[0.98]"
+              >
+                <RadioIcon size={16} className="shrink-0" />
+                <span className="truncate">{t.trackMenu.startRadio}</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setEqualizerOpen(true)}
@@ -157,19 +172,23 @@ export function PanelBody({ tab, slot }: { tab: PanelTab; slot: number }) {
               <span className="truncate">{eqEnabled ? t.equalizer.presetNames[eqPreset] : t.dialogs.shortcuts.equalizer}</span>
             </button>
           </div>
-          <div className="overflow-hidden">
-            <div className="flex items-center justify-between px-1 pt-2 pb-1">
-              <span className="text-[13px] font-semibold text-fg">{t.nowPlaying.tabLyrics}</span>
-              <button
-                type="button"
-                onClick={() => openPanel("lyrics")}
-                className="text-[11px] font-medium text-fg-3 transition-colors hover:text-fg"
-              >
-                {t.nowPlaying.showLyrics}
-              </button>
+          {isVideoke ? (
+            <PitchGuide compact />
+          ) : (
+            <div className="overflow-hidden">
+              <div className="flex items-center justify-between px-1 pt-2 pb-1">
+                <span className="text-[13px] font-semibold text-fg">{t.nowPlaying.tabLyrics}</span>
+                <button
+                  type="button"
+                  onClick={() => openPanel("lyrics")}
+                  className="text-[11px] font-medium text-fg-3 transition-colors hover:text-fg"
+                >
+                  {t.nowPlaying.showLyrics}
+                </button>
+              </div>
+              <LyricsView compact className="h-[190px]" />
             </div>
-            <LyricsView compact className="h-[190px]" />
-          </div>
+          )}
         </>
       )}
       <div className="-mx-1">
@@ -181,14 +200,16 @@ export function PanelBody({ tab, slot }: { tab: PanelTab; slot: number }) {
 
 function PanelTabs({ tab, onTab }: { tab: PanelTab; onTab: (t: PanelTab) => void }) {
   const t = useT();
+  const isVideoke = useIsVideokeTrack();
+  const items = isVideoke
+    ? ([["playing", `${t.nowPlaying.tabPlaying} & ${t.player.queue}`]] as const)
+    : ([
+        ["playing", `${t.nowPlaying.tabPlaying} & ${t.player.queue}`],
+        ["lyrics", t.nowPlaying.tabLyrics],
+      ] as const);
   return (
     <div role="tablist" className="flex items-center rounded-[10px] bg-fg/[0.07] p-1">
-      {(
-        [
-          ["playing", `${t.nowPlaying.tabPlaying} & ${t.player.queue}`],
-          ["lyrics", t.nowPlaying.tabLyrics],
-        ] as const
-      ).map(([id, label]) => (
+      {items.map(([id, label]) => (
         <button
           key={id}
           role="tab"
@@ -425,6 +446,8 @@ export function NowPlayingSheet({ open, onClose }: { open: boolean; onClose: () 
   const eqEnabled = useEqualizer((s) => s.enabled);
   const setEqualizerOpen = useUi((s) => s.setEqualizerOpen);
   const sceneStyle = useThemeStore((s) => s.sceneStyle);
+  const isVideoke = useIsVideokeTrack();
+  const showScore = useVideoke((v) => v.showScore);
   const t = useT();
 
   const toggleView = (v: SheetView) => setView((cur) => (cur === v ? "player" : v));
@@ -591,19 +614,32 @@ export function NowPlayingSheet({ open, onClose }: { open: boolean; onClose: () 
               )}
               <Scrubber touch />
               <Transport big />
+              {isVideoke && view === "player" && <PitchGuide compact className="mt-1" />}
               <div className="flex items-center justify-around pt-1 text-fg/70">
-                <button
-                  type="button"
-                  onClick={() => toggleView("lyrics")}
-                  aria-pressed={view === "lyrics"}
-                  aria-label={view === "lyrics" ? t.nowPlaying.backToPlayer : t.nowPlaying.showLyrics}
-                  className={cn(
-                    "grid size-11 place-items-center rounded-full transition-colors active:scale-95",
-                    view === "lyrics" ? "bg-fg/15 text-fg" : "active:bg-fg/10",
-                  )}
-                >
-                  <MicrophoneStageIcon size={22} weight={view === "lyrics" ? "fill" : "regular"} />
-                </button>
+                {isVideoke ? (
+                  <button
+                    type="button"
+                    onClick={() => showScore(track)}
+                    aria-label={t.videoke.scoreMe}
+                    className="flex h-10 items-center gap-1.5 rounded-full bg-accent px-3.5 text-xs font-bold text-accent-ink transition-transform active:scale-95"
+                  >
+                    <MicrophoneStageIcon size={18} weight="fill" />
+                    <span>{t.videoke.scoreMe}</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => toggleView("lyrics")}
+                    aria-pressed={view === "lyrics"}
+                    aria-label={view === "lyrics" ? t.nowPlaying.backToPlayer : t.nowPlaying.showLyrics}
+                    className={cn(
+                      "grid size-11 place-items-center rounded-full transition-colors active:scale-95",
+                      view === "lyrics" ? "bg-fg/15 text-fg" : "active:bg-fg/10",
+                    )}
+                  >
+                    <MicrophoneStageIcon size={22} weight={view === "lyrics" ? "fill" : "regular"} />
+                  </button>
+                )}
                 {capabilities.video && (
                   <button
                     type="button"

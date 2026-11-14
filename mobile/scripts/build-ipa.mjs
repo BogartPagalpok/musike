@@ -107,6 +107,12 @@ if (hasXcode) {
   setPlist(plist, "CFBundleVersion", "string", build);
   setPlist(plist, "UIFileSharingEnabled", "bool", "true");
   setPlist(plist, "LSSupportsOpeningDocumentsInPlace", "bool", "true");
+  setPlist(
+    plist,
+    "NSMicrophoneUsageDescription",
+    "string",
+    "Illusive Sounds uses the microphone for live pitch tracking and scoring in Videoke mode.",
+  );
 }
 mkdirSync(dirname(target), { recursive: true });
 rmSync(target, { force: true });

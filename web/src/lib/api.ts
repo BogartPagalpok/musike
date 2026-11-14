@@ -36,7 +36,7 @@ async function request<T>(path: string, init?: RequestInit & { json?: unknown })
 }
 
 export const api: MusikeApi = {
-  search: (q: string, type: "song" | "video" | "podcast", signal?: AbortSignal) =>
+  search: (q: string, type: "song" | "video" | "podcast" | "karaoke", signal?: AbortSignal) =>
     request<{ tracks: Track[] }>(`/api/search?q=${encodeURIComponent(q)}&type=${type}`, { signal }).then((r) => r.tracks),
   suggest: (q: string, signal?: AbortSignal) =>
     request<{ suggestions: string[] }>(`/api/suggest?q=${encodeURIComponent(q)}`, { signal }).then((r) => r.suggestions),

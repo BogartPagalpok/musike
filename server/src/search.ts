@@ -113,12 +113,43 @@ function reason(e: unknown): string {
   return status ? `HTTP ${status}` : message.slice(0, 80);
 }
 
+const KARAOKE_MATCH =
+  /\b(karaoke|videoke|instrumental|minus\s*one|backing\s*track|off\s*vocal|no\s*vocal|sing\s*king|covers\s*ph|karafun|acousticheaven|myallkaraoke|my\s*all\s*time\s*karaoke|stingray|atomic\s*karaoke|karaokey|karaokeys|musisi)\b/i;
+const NON_KARAOKE_NOISE = /\b(official\s+music\s+video|live\s+on\s+wish|reaction|tutorial|guitar\s+lesson)\b/i;
+
 /**
  * YouTube Music first; then plain YouTube search (another endpoint, videos only), which also covers the Android app,
  * where there is no yt-dlp; then yt-dlp on a computer.
  */
-export async function search(query: string, type: "song" | "video" | "podcast", lang?: Lang): Promise<Track[]> {
+export async function search(query: string, type: "song" | "video" | "podcast" | "karaoke", lang?: Lang): Promise<Track[]> {
   const failures: string[] = [];
+  if (type === "karaoke") {
+    const q = /\b(karaoke|videoke|instrumental)\b/i.test(query) ? query : `${query} karaoke`;
+    try {
+      const result = await withClient((yt) => yt.search(q, { type: "video" }), lang);
+      const valid = (result.videos ?? [])
+        .map((v) => toTrack(v, "video"))
+        .filter((t): t is Track => !!t && (t.duration === 0 || (t.duration >= 60 && t.duration <= MAX_SONG_DURATION)));
+      const filtered = valid.filter((t) => {
+        const hay = `${t.title} ${t.artist}`;
+        return KARAOKE_MATCH.test(hay) && !NON_KARAOKE_NOISE.test(hay);
+      });
+      if (filtered.length >= 3) return filtered;
+      if (valid.length) return valid;
+      failures.push("YouTube karaoke search: no results");
+    } catch (e) {
+      failures.push(`YouTube karaoke search: ${reason(e)}`);
+    }
+
+    try {
+      const tracks = tracksFrom(await withClient((yt) => yt.music.search(q, { type: "video" }), lang), "video");
+      if (tracks.length) return tracks;
+      failures.push("YouTube Music karaoke search: no results");
+    } catch (e) {
+      failures.push(`YouTube Music karaoke search: ${reason(e)}`);
+    }
+  }
+
   if (type === "podcast") {
     const q = /podcast/i.test(query) ? query : `${query} podcast`;
     try {
@@ -146,15 +177,22 @@ export async function search(query: string, type: "song" | "video" | "podcast", 
   }
 
   try {
-    const musicSearchType = type === "podcast" ? "video" : type;
-    const tracks = tracksFrom(await withClient((yt) => yt.music.search(query, { type: musicSearchType }), lang), musicSearchType);
+    const musicSearchType = type === "podcast" || type === "karaoke" ? "video" : type;
+    const effectiveQuery =
+      type === "karaoke" && !/\b(karaoke|videoke|instrumental)\b/i.test(query) ? `${query} karaoke` : query;
+    const tracks = tracksFrom(
+      await withClient((yt) => yt.music.search(effectiveQuery, { type: musicSearchType }), lang),
+      musicSearchType,
+    );
     if (tracks.length) return tracks;
     failures.push("YouTube Music: no results");
   } catch (e) {
     failures.push(`YouTube Music: ${reason(e)}`);
   }
   try {
-    const result = await withClient((yt) => yt.search(query, { type: "video" }), lang);
+    const effectiveQuery =
+      type === "karaoke" && !/\b(karaoke|videoke|instrumental)\b/i.test(query) ? `${query} karaoke` : query;
+    const result = await withClient((yt) => yt.search(effectiveQuery, { type: "video" }), lang);
     const tracks = (result.videos ?? []).map((v) => toTrack(v, "video")).filter((t): t is Track => !!t);
     if (tracks.length) return tracks;
     failures.push("YouTube: no results");
@@ -163,7 +201,9 @@ export async function search(query: string, type: "song" | "video" | "podcast", 
   }
   let entries: Awaited<ReturnType<typeof ytdlpSearch>>;
   try {
-    entries = await ytdlpSearch(query);
+    const effectiveQuery =
+      type === "karaoke" && !/\b(karaoke|videoke|instrumental)\b/i.test(query) ? `${query} karaoke` : query;
+    entries = await ytdlpSearch(effectiveQuery);
   } catch (err) {
     // yt-dlp's own problem (missing, outdated) is what to fix on a computer. On a phone there is no yt-dlp, so say
     // what YouTube answered: that's what a bug report needs.

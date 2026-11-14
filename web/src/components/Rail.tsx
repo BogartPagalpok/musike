@@ -27,6 +27,7 @@ import { useOffline } from "../stores/offline";
 import { needsAttention, useSystem } from "../stores/system";
 import { useThemeStore } from "../stores/themeStore";
 import { useUi } from "../stores/ui";
+import { useIsVideokeTrack } from "../stores/videoke";
 import { Artwork } from "./Artwork";
 import { Logo, LogoMark } from "./Brand";
 import { NamePlaylistDialog } from "./Dialogs";
@@ -36,6 +37,7 @@ import { SLOT } from "./Video";
 const nav = [
   { to: paths.home, key: "home", Icon: HouseIcon, end: true },
   { to: paths.podcasts, key: "podcasts", Icon: BroadcastIcon, end: false },
+  { to: paths.videoke, key: "videoke", Icon: MicrophoneStageIcon, end: false },
   { to: paths.search, key: "search", Icon: MagnifyingGlassIcon, end: false },
   { to: paths.library, key: "library", Icon: BooksIcon, end: false },
   { to: paths.device, key: "device", Icon: HardDriveIcon, end: false },
@@ -146,6 +148,8 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
   const navigate = useNavigate();
   const [creating, setCreating] = useState(false);
   const [resizing, setResizing] = useState(false);
+  const isVideoke = useIsVideokeTrack();
+  const activeSidebarTab = isVideoke && sidebarTab === "lyrics" ? "browse" : sidebarTab;
 
   const isExpanded = !compactSidebar;
   const isStageLayout = layoutTemplate === "center-lyrics" && !!embeddedRoutes;
@@ -229,15 +233,19 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
         {/* Unified Toolbar Tab Switcher (When Expanded & Track Active) */}
         {isExpanded && track && (
           <div className="shrink-0 px-3 pt-2 pb-1.5">
-            <div role="tablist" aria-label="Sidebar views" className="grid grid-cols-3 gap-1 rounded-[10px] bg-fg/[0.06] p-1">
+            <div
+              role="tablist"
+              aria-label="Sidebar views"
+              className={cn("grid gap-1 rounded-[10px] bg-fg/[0.06] p-1", isVideoke ? "grid-cols-2" : "grid-cols-3")}
+            >
               <button
                 type="button"
                 role="tab"
-                aria-selected={sidebarTab === "browse"}
+                aria-selected={activeSidebarTab === "browse"}
                 onClick={() => setAppearance({ sidebarTab: "browse" })}
                 className={cn(
                   "flex h-7 items-center justify-center rounded-[7px] px-1 text-xs font-medium transition-colors min-w-0 truncate",
-                  sidebarTab === "browse" ? "bg-surface-4 text-fg shadow-2xs font-semibold" : "text-fg-2 hover:text-fg",
+                  activeSidebarTab === "browse" ? "bg-surface-4 text-fg shadow-2xs font-semibold" : "text-fg-2 hover:text-fg",
                 )}
               >
                 <span className="truncate">{t.nav.library}</span>
@@ -245,54 +253,56 @@ export function Rail({ embeddedRoutes }: { embeddedRoutes?: ReactNode }) {
               <button
                 type="button"
                 role="tab"
-                aria-selected={sidebarTab === "playing"}
+                aria-selected={activeSidebarTab === "playing"}
                 onClick={() => setAppearance({ sidebarTab: "playing" })}
                 className={cn(
                   "flex h-7 items-center justify-center rounded-[7px] px-1 text-xs font-medium transition-colors min-w-0 truncate",
-                  sidebarTab === "playing" ? "bg-surface-4 text-fg shadow-2xs font-semibold" : "text-fg-2 hover:text-fg",
+                  activeSidebarTab === "playing" ? "bg-surface-4 text-fg shadow-2xs font-semibold" : "text-fg-2 hover:text-fg",
                 )}
               >
                 <span className="truncate">{t.nowPlaying.tabPlaying}</span>
               </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={sidebarTab === "lyrics"}
-                onClick={() => setAppearance({ sidebarTab: "lyrics" })}
-                className={cn(
-                  "flex h-7 items-center justify-center rounded-[7px] px-1 text-xs font-medium transition-colors min-w-0 truncate",
-                  sidebarTab === "lyrics" ? "bg-surface-4 text-fg shadow-2xs font-semibold" : "text-fg-2 hover:text-fg",
-                )}
-              >
-                <span className="truncate">{t.nowPlaying.tabLyrics}</span>
-              </button>
+              {!isVideoke && (
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={activeSidebarTab === "lyrics"}
+                  onClick={() => setAppearance({ sidebarTab: "lyrics" })}
+                  className={cn(
+                    "flex h-7 items-center justify-center rounded-[7px] px-1 text-xs font-medium transition-colors min-w-0 truncate",
+                    activeSidebarTab === "lyrics" ? "bg-surface-4 text-fg shadow-2xs font-semibold" : "text-fg-2 hover:text-fg",
+                  )}
+                >
+                  <span className="truncate">{t.nowPlaying.tabLyrics}</span>
+                </button>
+              )}
             </div>
           </div>
         )}
 
         {/* View Mode 1: Now Playing & Interactive Queue */}
-        {isExpanded && track && sidebarTab === "playing" && (
+        {isExpanded && track && activeSidebarTab === "playing" && (
           <div className="scroll-area min-h-0 flex-1 overflow-y-auto px-2 pt-2">
             <PanelBody tab="playing" slot={SLOT.panel} />
           </div>
         )}
 
         {/* View Mode 2: Real-time Synced Karaoke Lyrics */}
-        {isExpanded && track && sidebarTab === "lyrics" && (
+        {isExpanded && track && activeSidebarTab === "lyrics" && (
           <div className="scroll-area flex min-h-0 flex-1 flex-col overflow-hidden px-2 pt-2">
             <PanelBody tab="lyrics" slot={SLOT.panel} />
           </div>
         )}
 
         {/* View Mode 3: Navigation, Library & Collection (Default) */}
-        {(!isExpanded || !track || sidebarTab === "browse") && (
+        {(!isExpanded || !track || activeSidebarTab === "browse") && (
           <>
             {/* Top Navigation Links */}
             {isExpanded && isStageLayout ? (
               <div className="shrink-0 px-3 pt-2 pb-1.5">
                 <nav
                   aria-label={t.nav.main}
-                  className="grid grid-cols-5 gap-1 rounded-[10px] bg-fg/[0.07] p-1"
+                  className="grid grid-cols-6 gap-1 rounded-[10px] bg-fg/[0.07] p-1"
                 >
                   {nav.map(({ to, key, Icon, end }) => (
                     <NavLink

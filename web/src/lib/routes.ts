@@ -2,6 +2,7 @@
 export const paths = {
   home: "/",
   podcasts: "/podcasts",
+  videoke: "/videoke",
   search: "/search",
   searchList: "/search/list",
   genre: (id: string) => `/search/genre/${encodeURIComponent(id)}`,

@@ -5,6 +5,7 @@ import { useEqualizer } from "../player/equalizer";
 import { selectCurrent, usePlayer, useStatusText } from "../player/player";
 import { useAppearance } from "../stores/appearance";
 import { useUi } from "../stores/ui";
+import { useIsVideokeTrack } from "../stores/videoke";
 import { Artwork } from "./Artwork";
 import { FavoriteButton, ModeSwitch, OfflineButton, Scrubber, Transport, Volume } from "./Controls";
 import { IconButton } from "./IconButton";
@@ -22,6 +23,7 @@ export function PlayerBar() {
   const sidebarTab = useAppearance((s) => s.sidebarTab);
   const compactSidebar = useAppearance((s) => s.compactSidebar);
   const setAppearance = useAppearance((s) => s.set);
+  const isVideoke = useIsVideokeTrack();
 
   const toggleSidebarTab = (tab: "lyrics" | "playing") => {
     if (compactSidebar) {
@@ -76,14 +78,16 @@ export function PlayerBar() {
           >
             <EqualizerIcon size={18} weight={eqEnabled ? "fill" : "regular"} />
           </IconButton>
-          <IconButton
-            label={t.nowPlaying.tabLyrics}
-            size="sm"
-            active={!compactSidebar && sidebarTab === "lyrics"}
-            onClick={() => toggleSidebarTab("lyrics")}
-          >
-            <MicrophoneStageIcon size={18} weight={!compactSidebar && sidebarTab === "lyrics" ? "fill" : "regular"} />
-          </IconButton>
+          {!isVideoke && (
+            <IconButton
+              label={t.nowPlaying.tabLyrics}
+              size="sm"
+              active={!compactSidebar && sidebarTab === "lyrics"}
+              onClick={() => toggleSidebarTab("lyrics")}
+            >
+              <MicrophoneStageIcon size={18} weight={!compactSidebar && sidebarTab === "lyrics" ? "fill" : "regular"} />
+            </IconButton>
+          )}
           <IconButton
             label={`${t.nowPlaying.tabPlaying} & ${t.player.queue}`}
             size="sm"

@@ -57,7 +57,7 @@ const SYSTEM: SystemInfo = {
 };
 
 export const api: MusikeApi = {
-  search: (q, type, signal) =>
+  search: (q, type: "song" | "video" | "podcast" | "karaoke", signal) =>
     call(async () => {
       if (!q.trim()) throw fail(400, "emptyQuery");
       return search(q.trim().slice(0, 200), type, getLang());

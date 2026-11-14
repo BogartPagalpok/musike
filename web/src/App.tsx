@@ -14,6 +14,7 @@ import { ThemeSceneBackdrop } from "./components/ThemeSceneBackdrop";
 import { Toasts } from "./components/Toasts";
 import { TrackMenu } from "./components/TrackMenu";
 import { PipVideoSlot, Theater } from "./components/Video";
+import { VideokeScore } from "./components/VideokeScore";
 import { MD, useMediaQuery } from "./hooks/useMediaQuery";
 import { useShortcuts } from "./hooks/useShortcuts";
 import { getT } from "./i18n";
@@ -38,6 +39,7 @@ import Library from "./views/Library";
 import Podcasts from "./views/Podcasts";
 import Search from "./views/Search";
 import ThemeStore from "./views/ThemeStore";
+import Videoke from "./views/Videoke";
 
 const SHEET_HASH = `#${NOW_PLAYING_HASH}`;
 
@@ -125,6 +127,7 @@ export default function App() {
     <Routes>
       <Route path={paths.home} element={<Home />} />
       <Route path={paths.podcasts} element={<Podcasts />} />
+      <Route path={paths.videoke} element={<Videoke />} />
       <Route path={paths.search} element={<Search />} />
       <Route path={paths.searchList} element={<BatchSearch />} />
       <Route path="/search/genre/:id" element={<Genre />} />
@@ -199,6 +202,7 @@ export default function App() {
       <EqualizerDialog />
       <SettingsDialog />
       <DataDialog />
+      <VideokeScore />
       <Toasts />
     </div>
   );

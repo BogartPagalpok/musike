@@ -1,4 +1,12 @@
-import { BooksIcon, BroadcastIcon, HardDriveIcon, HouseIcon, MagnifyingGlassIcon, SkipForwardIcon } from "./icons";
+import {
+  BooksIcon,
+  BroadcastIcon,
+  HardDriveIcon,
+  HouseIcon,
+  MagnifyingGlassIcon,
+  MicrophoneStageIcon,
+  SkipForwardIcon,
+} from "./icons";
 import { useRef, type TouchEvent } from "react";
 import { NavLink, useNavigate } from "react-router";
 import { cn } from "../lib/format";
@@ -12,6 +20,7 @@ import { PlayDisc } from "./IconButton";
 const tabs = [
   { to: paths.home, key: "home", Icon: HouseIcon, end: true },
   { to: paths.podcasts, key: "podcasts", Icon: BroadcastIcon, end: false },
+  { to: paths.videoke, key: "videoke", Icon: MicrophoneStageIcon, end: false },
   { to: paths.search, key: "search", Icon: MagnifyingGlassIcon, end: false },
   { to: paths.library, key: "library", Icon: BooksIcon, end: false },
   { to: paths.device, key: "device", Icon: HardDriveIcon, end: false },
@@ -24,7 +33,7 @@ export function TabBar() {
       aria-label={t.nav.main}
       className="app-tabbar safe-bottom fixed inset-x-0 bottom-0 z-20 border-t border-line-strong bg-surface-1/96 backdrop-blur-2xl"
     >
-      <ul className="mx-auto grid h-[56px] max-w-md grid-cols-5">
+      <ul className="mx-auto grid h-[56px] max-w-md grid-cols-6">
         {tabs.map(({ to, key, Icon, end }) => (
           <li key={to}>
             <NavLink
@@ -32,15 +41,15 @@ export function TabBar() {
               end={end}
               className={({ isActive }) =>
                 cn(
-                  "relative flex h-full flex-col items-center justify-center gap-0.5 text-[10.5px] font-medium transition-all active:scale-90",
+                  "relative flex h-full min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[10px] font-medium transition-all active:scale-90 sm:text-[10.5px]",
                   isActive ? "font-semibold text-accent-text" : "text-fg-2",
                 )
               }
             >
               {({ isActive }) => (
                 <>
-                  <Icon size={22} weight={isActive ? "fill" : "regular"} />
-                  {t.nav[key]}
+                  <Icon size={21} weight={isActive ? "fill" : "regular"} />
+                  <span className="max-w-full truncate">{t.nav[key]}</span>
                 </>
               )}
             </NavLink>
