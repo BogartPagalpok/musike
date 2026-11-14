@@ -475,9 +475,13 @@ export const useVideoke = create<VideokeState>((set, get) => ({
   startMic: async () => {
     if (get().micOn) return;
     try {
-      micStream = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false },
-      });
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: false },
+        });
+      } catch {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
     } catch {
       toast("Microphone permission denied or unavailable", "error");
       return;
@@ -487,6 +491,9 @@ export const useVideoke = create<VideokeState>((set, get) => ({
       micStream.getTracks().forEach((tr) => tr.stop());
       micStream = null;
       return;
+    }
+    if (micCtx.state === "suspended") {
+      await micCtx.resume().catch(() => {});
     }
     const ctx = micCtx;
     const analyser = ctx.createAnalyser();
