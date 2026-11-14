@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router";
 import { capabilities } from "../lib/api";
 import { paths } from "../lib/routes";
-import { selectCurrent, usePlayer } from "../player/player";
+import { handleExternalMediaAction, selectCurrent, usePlayer } from "../player/player";
 import { useLibrary } from "../stores/library";
 import { useUi } from "../stores/ui";
 import { isTvMode } from "../tv/tvMode";
@@ -16,6 +16,28 @@ export function useShortcuts() {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // Hardware media keys work globally even when typing in search/inputs
+      if (e.key === "MediaPlayPause" || e.key === "AudioPlay" || e.key === "AudioPause" || e.code === "MediaPlayPause") {
+        e.preventDefault();
+        handleExternalMediaAction("toggle");
+        return;
+      }
+      if (e.key === "MediaTrackNext" || e.key === "MediaNextTrack" || e.key === "AudioNext" || e.code === "MediaTrackNext") {
+        e.preventDefault();
+        handleExternalMediaAction("next");
+        return;
+      }
+      if (e.key === "MediaTrackPrevious" || e.key === "MediaPreviousTrack" || e.key === "AudioPrev" || e.code === "MediaTrackPrevious") {
+        e.preventDefault();
+        handleExternalMediaAction("previous");
+        return;
+      }
+      if (e.key === "MediaStop" || e.code === "MediaStop") {
+        e.preventDefault();
+        handleExternalMediaAction("pause");
+        return;
+      }
+
       if (e.ctrlKey || e.metaKey || e.altKey || isTyping(e.target)) return;
       if (useUi.getState().menu || useUi.getState().addToPlaylist) return;
       // On Android TV the arrow keys belong to focus navigation, not to volume/seek.

@@ -1,42 +1,22 @@
 import { create } from "zustand";
 import type { ThemeId } from "../lib/accent";
+import {
+  clearAnimeAssetGroup,
+  loadAllAnimeAssetUrls,
+  saveAnimeAssetBlob,
+  type AnimeAssetSlot,
+  type AnimeThemeKey,
+  type LoadedAnimeCustomAssets,
+} from "../lib/themeAssetsDb";
 import { useAppearance } from "./appearance";
 import { useUi } from "./ui";
 
-export type PlayheadStyle =
-  | "default"
-  | "pixel"
-  | "shinobi"
-  | "akatsuki"
-  | "grandline"
-  | "kpop"
-  | "arcade8bit"
-  | "vinyl"
-  | "cyberpunk";
-
-export type PlayButtonStyle =
-  | "default"
-  | "shinobi"
-  | "akatsuki"
-  | "grandline"
-  | "kpop"
-  | "arcade8bit"
-  | "vinyl"
-  | "cyberpunk";
-
-export type SceneStyle =
-  | "none"
-  | "shinobi"
-  | "akatsuki"
-  | "grandline"
-  | "kpop"
-  | "arcade8bit"
-  | "vinyl"
-  | "cyberpunk"
-  | "custom";
+export type PlayheadStyle = "default" | "pixel" | "shinobi" | "akatsuki" | "grandline";
+export type PlayButtonStyle = "default" | "shinobi" | "akatsuki" | "grandline";
+export type SceneStyle = "none" | "shinobi" | "akatsuki" | "grandline" | "custom";
 
 export type SaleMode = "beta" | "live";
-export type SkinCategory = "all" | "anime" | "trend" | "music";
+export type SkinCategory = "all" | "anime" | "music";
 
 export interface SkinPack {
   id: string;
@@ -59,9 +39,27 @@ export interface SkinPack {
   unlockCode: string;
 }
 
+export const ANIME_THEME_ASSETS_DEFAULT: Record<AnimeThemeKey, Required<LoadedAnimeCustomAssets>> = {
+  shinobi: {
+    mobileWallpaper: { url: "/themes/naruto-mobile.mp4", isVideo: true },
+    pcWallpaper: { url: "/themes/naruto-pc.mp4", isVideo: true },
+    playheadIcon: "/themes/naruto-shuriken.png",
+  },
+  akatsuki: {
+    mobileWallpaper: { url: "/themes/itachi-mobile.mp4", isVideo: true },
+    pcWallpaper: { url: "/themes/itachi-pc.mp4", isVideo: true },
+    playheadIcon: "/themes/itachi-sharingan.png",
+  },
+  grandline: {
+    mobileWallpaper: { url: "/themes/luffy-mobile.mp4", isVideo: true },
+    pcWallpaper: { url: "/themes/luffy-pc.mp4", isVideo: true },
+    playheadIcon: "/themes/luffy-strawhat.png",
+  },
+};
+
 export const ALL_ACCESS_BUNDLE = {
   id: "all-access",
-  title: "All-Access Pro Pass (All Themes + Custom Wallpaper)",
+  title: "All-Access Pro Pass (All Anime Themes + Custom Uploads)",
   pricePhp: 199,
   priceUsd: 4.99,
   unlockCode: "ILLUSIVE-VIP-ALL-2026",
@@ -70,13 +68,33 @@ export const ALL_ACCESS_BUNDLE = {
 
 export const SKIN_PACKS: readonly SkinPack[] = [
   {
+    id: "classic-minimal",
+    name: "Studio Minimal",
+    badge: "Default Free",
+    worldLabel: "STUDIO · OLED",
+    category: "music",
+    tagline: "Clean obsidian flat scrubber and distraction-free focus.",
+    highlights: ["Precision straight scrubber", "Solid high-contrast play disc", "Deep obsidian contrast"],
+    free: true,
+    pricePhp: 0,
+    priceUsd: 0,
+    playhead: "default",
+    playButton: "default",
+    scene: "none",
+    baseTheme: "dark",
+    accent: "#34d399",
+    secondaryAccent: "#22d3ee",
+    previewGradient: "linear-gradient(135deg, #090b0f 0%, #10161d 60%, #13221f 100%)",
+    unlockCode: "",
+  },
+  {
     id: "pixel-original",
     name: "Google Pixel Wave",
-    badge: "Default Free",
+    badge: "Free",
     worldLabel: "PIXEL · MATERIAL",
     category: "music",
     tagline: "Animated squiggly Material You scrubber and Volt play disc.",
-    highlights: ["Squiggly wave scrubber", "Clean Volt disc play button", "Distraction-free surface"],
+    highlights: ["Squiggly wave scrubber", "Clean Volt disc play button", "Material You style"],
     free: true,
     pricePhp: 0,
     priceUsd: 0,
@@ -90,33 +108,33 @@ export const SKIN_PACKS: readonly SkinPack[] = [
     unlockCode: "",
   },
   {
-    id: "classic-minimal",
-    name: "Studio Minimal",
-    badge: "Free",
-    worldLabel: "STUDIO · OLED",
-    category: "music",
-    tagline: "Crisp obsidian flat rail scrubber for pure OLED focus.",
-    highlights: ["Precision straight scrubber", "Solid high-contrast play disc", "Deep obsidian contrast"],
-    free: true,
-    pricePhp: 0,
-    priceUsd: 0,
-    playhead: "default",
-    playButton: "default",
-    scene: "none",
-    baseTheme: "oled",
-    accent: "#34d399",
-    secondaryAccent: "#22d3ee",
-    previewGradient: "linear-gradient(135deg, #060709 0%, #0d1614 60%, #11241f 100%)",
-    unlockCode: "",
+    id: "naruto-shinobi",
+    name: "Naruto: Hidden Leaf Moon",
+    badge: "Naruto World",
+    worldLabel: "木ノ葉 · SHINOBI",
+    category: "anime",
+    tagline: "Moonlit Konoha live wallpaper, golden chakra scrubber & spinning Shuriken playhead.",
+    highlights: ["Live Mobile & PC wallpaper", "Moonlight gold UI palette", "Animated Shuriken playhead"],
+    free: false,
+    pricePhp: 79,
+    priceUsd: 1.99,
+    playhead: "shinobi",
+    playButton: "shinobi",
+    scene: "shinobi",
+    baseTheme: "midnight",
+    accent: "#facc15",
+    secondaryAccent: "#eab308",
+    previewGradient: "linear-gradient(145deg, #0b0d14 0%, #171c2b 58%, #362c0b 100%)",
+    unlockCode: "ILLUSIVE-SHINOBI-7X9K",
   },
   {
     id: "akatsuki-cloud",
-    name: "Itachi: Tsukuyomi & Crows",
+    name: "Itachi: Tsukuyomi Blood Moon",
     badge: "Naruto World",
     worldLabel: "月読 · UCHIHA",
     category: "anime",
-    tagline: "Blood Moon eclipse, flying crows, Uchiha utility pole silhouette & crimson Sharingan UI.",
-    highlights: ["Blood Moon & Crows scene", "Mangekyō Sharingan UI frame", "Crimson slash playhead"],
+    tagline: "Blood Moon silhouette live wallpaper, crimson wave scrubber & Mangekyō Sharingan playhead.",
+    highlights: ["Live Mobile & PC wallpaper", "Crimson Blood Moon UI palette", "Animated Sharingan playhead"],
     free: false,
     pricePhp: 79,
     priceUsd: 1.99,
@@ -126,37 +144,17 @@ export const SKIN_PACKS: readonly SkinPack[] = [
     baseTheme: "oled",
     accent: "#ef4444",
     secondaryAccent: "#dc2626",
-    previewGradient: "linear-gradient(150deg, #090204 0%, #31070d 55%, #120406 100%)",
+    previewGradient: "linear-gradient(150deg, #070203 0%, #2a060c 58%, #120407 100%)",
     unlockCode: "ILLUSIVE-AKATSUKI-9R2M",
   },
   {
-    id: "naruto-shinobi",
-    name: "Naruto: Konoha & Six Paths",
-    badge: "Naruto World",
-    worldLabel: "木ノ葉 · SHINOBI",
-    category: "anime",
-    tagline: "Hokage Rock twilight sky, Kurama chakra seal, Kunai playhead & ninja scroll UI.",
-    highlights: ["Hokage Rock twilight scene", "Uzumaki Chakra Seal frame", "Kunai & Rasengan playhead"],
-    free: false,
-    pricePhp: 79,
-    priceUsd: 1.99,
-    playhead: "shinobi",
-    playButton: "shinobi",
-    scene: "shinobi",
-    baseTheme: "sunset",
-    accent: "#f97316",
-    secondaryAccent: "#38bdf8",
-    previewGradient: "linear-gradient(145deg, #1b0d07 0%, #441c09 52%, #112a3d 100%)",
-    unlockCode: "ILLUSIVE-SHINOBI-7X9K",
-  },
-  {
     id: "onepiece-grandline",
-    name: "One Piece: Gear 5 & Grand Line",
-    badge: "Anime World",
-    worldLabel: "GRAND LINE · NIKA",
+    name: "Luffy: Gear 5 Nika Moon",
+    badge: "One Piece",
+    worldLabel: "GEAR 5 · NIKA",
     category: "anime",
-    tagline: "Thousand Sunny silhouette, Nika clouds, Log Pose frame & Straw Hat playhead.",
-    highlights: ["Thousand Sunny & Nika sky", "Wanted Gold stage frame", "Straw Hat & Haki playhead"],
+    tagline: "Gear 5 moonlight live wallpaper, Nika violet pulse scrubber & Straw Hat playhead.",
+    highlights: ["Live Mobile & PC wallpaper", "Gear 5 violet moon UI palette", "Animated Straw Hat playhead"],
     free: false,
     pricePhp: 79,
     priceUsd: 1.99,
@@ -164,137 +162,41 @@ export const SKIN_PACKS: readonly SkinPack[] = [
     playButton: "grandline",
     scene: "grandline",
     baseTheme: "midnight",
-    accent: "#fbbf24",
-    secondaryAccent: "#38bdf8",
-    previewGradient: "linear-gradient(145deg, #061224 0%, #102a49 55%, #3d2c0b 100%)",
+    accent: "#c084fc",
+    secondaryAccent: "#a855f7",
+    previewGradient: "linear-gradient(145deg, #090612 0%, #1c1138 58%, #2f1a4d 100%)",
     unlockCode: "ILLUSIVE-GRANDLINE-5G1P",
-  },
-  {
-    id: "y2k-idol",
-    name: "Y2K Cyber Idol & Chrome Heart",
-    badge: "Trend",
-    worldLabel: "Y2K · CYBER IDOL",
-    category: "trend",
-    tagline: "Liquid chrome aura, holographic 4-point stars, glossy frame & chrome heart playhead.",
-    highlights: ["Liquid Chrome Aura scene", "Y2K Glossy Stage frame", "Chrome Heart playhead"],
-    free: false,
-    pricePhp: 59,
-    priceUsd: 1.49,
-    playhead: "kpop",
-    playButton: "kpop",
-    scene: "kpop",
-    baseTheme: "rose",
-    accent: "#f472b6",
-    secondaryAccent: "#67e8f9",
-    previewGradient: "linear-gradient(145deg, #1b0c1b 0%, #3f1338 55%, #163147 100%)",
-    unlockCode: "ILLUSIVE-Y2KIDOL-3K8V",
-  },
-  {
-    id: "retro-8bit",
-    name: "8-Bit Arcade Pixel Runner",
-    badge: "Retro",
-    worldLabel: "8-BIT · CRT",
-    category: "trend",
-    tagline: "Stepped RPG window borders, pixel city skyline, CRT scanlines & pixel cat playhead.",
-    highlights: ["Pixel City & CRT scanlines", "8-Bit RPG Stage window", "Bouncing Pixel Cat playhead"],
-    free: false,
-    pricePhp: 59,
-    priceUsd: 1.49,
-    playhead: "arcade8bit",
-    playButton: "arcade8bit",
-    scene: "arcade8bit",
-    baseTheme: "arcade",
-    accent: "#facc15",
-    secondaryAccent: "#4ade80",
-    previewGradient: "linear-gradient(180deg, #0b0d1f 0%, #1d153b 60%, #24210c 100%)",
-    unlockCode: "ILLUSIVE-8BIT-8P4C",
-  },
-  {
-    id: "vinyl-audiophile",
-    name: "Hi-Fi Vinyl & Warm Tube Studio",
-    badge: "Music Lover",
-    worldLabel: "HI-FI · ANALOG",
-    category: "music",
-    tagline: "Spinning grooved LP deck overlay, warm tube-amp VU meters & turntable stylus scrubber.",
-    highlights: ["Tube Amp & VU dial scene", "Spinning LP Platter frame", "Stylus cartridge playhead"],
-    free: false,
-    pricePhp: 59,
-    priceUsd: 1.49,
-    playhead: "vinyl",
-    playButton: "vinyl",
-    scene: "vinyl",
-    baseTheme: "sunset",
-    accent: "#f59e0b",
-    secondaryAccent: "#fbbf24",
-    previewGradient: "linear-gradient(150deg, #17100b 0%, #342010 55%, #1b1410 100%)",
-    unlockCode: "ILLUSIVE-VINYL-6V3L",
-  },
-  {
-    id: "cyberpunk-neon",
-    name: "Night City Edgerunner",
-    badge: "Cyber HUD",
-    worldLabel: "NC-2077 · HUD",
-    category: "trend",
-    tagline: "Chamfered Night City HUD panels, neon perspective grid, cyber skyline & laser scrubber.",
-    highlights: ["Cyber Skyline & Neon Grid", "Chamfered HUD UI panels", "Sawtooth laser playhead"],
-    free: false,
-    pricePhp: 59,
-    priceUsd: 1.49,
-    playhead: "cyberpunk",
-    playButton: "cyberpunk",
-    scene: "cyberpunk",
-    baseTheme: "synthwave",
-    accent: "#22d3ee",
-    secondaryAccent: "#f43f5e",
-    previewGradient: "linear-gradient(155deg, #07131d 0%, #141738 55%, #300f29 100%)",
-    unlockCode: "ILLUSIVE-CYBER-2N9X",
   },
 ];
 
 export const PLAYHEAD_META: readonly { id: PlayheadStyle; label: string; desc: string }[] = [
+  { id: "default", label: "Studio Flat", desc: "Clean minimal straight progress track" },
   { id: "pixel", label: "Pixel Wave", desc: "Google Material You animated squiggly bar" },
-  { id: "default", label: "Classic Flat", desc: "Minimal straight progress track" },
-  { id: "shinobi", label: "Kunai & Rasengan", desc: "Chakra wave with spinning Rasengan & Kunai" },
-  { id: "akatsuki", label: "Sharingan Slash", desc: "Crimson bar with 3-Tomoe Sharingan thumb" },
-  { id: "grandline", label: "Straw Hat", desc: "Grand Line ocean wave & Straw Hat crest" },
-  { id: "kpop", label: "Chrome Heart", desc: "Y2K holographic wave with chrome heart" },
-  { id: "arcade8bit", label: "8-Bit Cat Runner", desc: "Stepped pixel HP bar with pixel cat sprite" },
-  { id: "vinyl", label: "Vinyl Stylus", desc: "Warm amber VU pulse with turntable cartridge" },
-  { id: "cyberpunk", label: "Laser Hex", desc: "Electric cyber wave with hex core thumb" },
+  { id: "shinobi", label: "Shuriken Chakra", desc: "Golden zig-zag wave with riding Shuriken" },
+  { id: "akatsuki", label: "Tsukuyomi Pulse", desc: "Crimson crest wave with Mangekyō Sharingan" },
+  { id: "grandline", label: "Gear 5 Bounce", desc: "Nika moonlight wave with Straw Hat rider" },
 ];
 
 export const PLAY_BUTTON_META: readonly { id: PlayButtonStyle; label: string; desc: string }[] = [
-  { id: "default", label: "Classic Disc", desc: "Solid accent circular play button" },
-  { id: "shinobi", label: "Rasengan Seal", desc: "Spinning blue/orange chakra spiral disc" },
-  { id: "akatsuki", label: "Sharingan Eye", desc: "Crimson 3-tomoe Sharingan iris disc" },
-  { id: "grandline", label: "Pirate Compass", desc: "Golden Gear 5 / Straw Hat compass disc" },
-  { id: "kpop", label: "Y2K Chrome", desc: "Iridescent pink-cyan glossy star disc" },
-  { id: "arcade8bit", label: "8-Bit Coin", desc: "Chunky pixel-bevelled retro button" },
-  { id: "vinyl", label: "Spinning Vinyl", desc: "Grooved LP record that spins when playing" },
-  { id: "cyberpunk", label: "Cyber Core", desc: "Chamfered mecha HUD hex reactor" },
+  { id: "default", label: "Studio Disc", desc: "Solid accent circular play button" },
+  { id: "shinobi", label: "Hidden Leaf Seal", desc: "Moonlight gold chakra spiral disc" },
+  { id: "akatsuki", label: "Mangekyō Disc", desc: "Crimson Tsukuyomi Sharingan iris disc" },
+  { id: "grandline", label: "Nika Moonlight", desc: "Gear 5 violet moonlight ring disc" },
 ];
 
 export const SCENE_META: readonly { id: SceneStyle; label: string; desc: string }[] = [
-  { id: "none", label: "None (Clean)", desc: "Pure theme surface with optional grain" },
-  { id: "akatsuki", label: "Blood Moon & Crows", desc: "Itachi Tsukuyomi moon, utility pole & crows" },
-  { id: "shinobi", label: "Hokage Rock & Chakra", desc: "Konoha twilight, Uzumaki seal & embers" },
-  { id: "grandline", label: "Thousand Sunny Sea", desc: "Grand Line moon, pirate ship & Nika clouds" },
-  { id: "kpop", label: "Y2K Liquid Chrome", desc: "Iridescent chrome rings, stars & concert glow" },
-  { id: "arcade8bit", label: "8-Bit Pixel City", desc: "Retro skyline, pixel moon & CRT scanlines" },
-  { id: "vinyl", label: "Vinyl & Tube Amp", desc: "Spinning LP deck, VU meter & warm glow" },
-  { id: "cyberpunk", label: "Night City HUD", desc: "Neon grid, megabuilding skyline & scanbars" },
-  { id: "custom", label: "Custom Wallpaper", desc: "Your uploaded image or animated GIF" },
+  { id: "none", label: "Clean Studio", desc: "Pure dark surface with album glow" },
+  { id: "shinobi", label: "Naruto Moon", desc: "Live Naruto Konoha rooftop moonlight video" },
+  { id: "akatsuki", label: "Itachi Blood Moon", desc: "Live Itachi Tsukuyomi crimson moon video" },
+  { id: "grandline", label: "Luffy Gear 5", desc: "Live Gear 5 Nika moonlight video" },
+  { id: "custom", label: "Custom Photo", desc: "Your uploaded image or animated GIF" },
 ];
 
 export const WORLD_BADGE_BY_SCENE: Record<SceneStyle, string | null> = {
   none: null,
-  akatsuki: "月読 · UCHIHA",
   shinobi: "木ノ葉 · SHINOBI",
-  grandline: "GRAND LINE · NIKA",
-  kpop: "Y2K · CYBER IDOL",
-  arcade8bit: "8-BIT · CRT",
-  vinyl: "HI-FI · ANALOG",
-  cyberpunk: "NC-2077 · HUD",
+  akatsuki: "月読 · UCHIHA",
+  grandline: "GEAR 5 · NIKA",
   custom: "CUSTOM · WORLD",
 };
 
@@ -329,8 +231,8 @@ const STORAGE_KEY = "musike:theme-store-v1";
 
 const DEFAULT_STATE: StoredThemeState = {
   saleMode: "beta",
-  activePackId: "pixel-original",
-  playheadStyle: "pixel",
+  activePackId: "classic-minimal",
+  playheadStyle: "default",
   playButtonStyle: "default",
   sceneStyle: "none",
   customBgDataUrl: null,
@@ -345,10 +247,11 @@ function syncSceneAttribute(sceneStyle: SceneStyle) {
   document.documentElement.dataset.scene = sceneStyle;
 }
 
+const VALID_PACK_IDS = new Set<string>(SKIN_PACKS.map((p) => p.id).concat("custom-mix"));
 const VALID_PLAYHEADS = new Set<string>(PLAYHEAD_META.map((p) => p.id));
 const VALID_PLAY_BUTTONS = new Set<string>(PLAY_BUTTON_META.map((p) => p.id));
 const VALID_SCENES = new Set<string>(SCENE_META.map((p) => p.id));
-const TESTING_BETA_MIGRATION_KEY = "musike:theme-testing-reset-v2";
+const CLEANUP_AI_THEMES_MIGRATION_KEY = "musike:theme-clean-anime-v3";
 
 function readStoredState(): StoredThemeState {
   try {
@@ -358,11 +261,9 @@ function readStoredState(): StoredThemeState {
       paymentInfo: { ...DEFAULT_PAYMENT_INFO },
     };
     if (raw.saleMode === "beta" || raw.saleMode === "live") out.saleMode = raw.saleMode;
-    if (localStorage.getItem(TESTING_BETA_MIGRATION_KEY) !== "1") {
-      out.saleMode = "beta";
-      localStorage.setItem(TESTING_BETA_MIGRATION_KEY, "1");
+    if (typeof raw.activePackId === "string" && VALID_PACK_IDS.has(raw.activePackId)) {
+      out.activePackId = raw.activePackId;
     }
-    if (typeof raw.activePackId === "string" && raw.activePackId) out.activePackId = raw.activePackId;
     if (typeof raw.playheadStyle === "string" && VALID_PLAYHEADS.has(raw.playheadStyle)) {
       out.playheadStyle = raw.playheadStyle as PlayheadStyle;
     }
@@ -389,6 +290,23 @@ function readStoredState(): StoredThemeState {
       if (typeof pi.checkoutUrl === "string") out.paymentInfo.checkoutUrl = pi.checkoutUrl;
       if (typeof pi.sellerNote === "string") out.paymentInfo.sellerNote = pi.sellerNote;
     }
+
+    // One-time v1.5.7 migration: reset removed AI themes or default pixel wave to clean Studio Minimal
+    if (localStorage.getItem(CLEANUP_AI_THEMES_MIGRATION_KEY) !== "1") {
+      localStorage.setItem(CLEANUP_AI_THEMES_MIGRATION_KEY, "1");
+      if (
+        !VALID_PLAYHEADS.has(String(raw.playheadStyle)) ||
+        !VALID_SCENES.has(String(raw.sceneStyle)) ||
+        out.activePackId === "pixel-original"
+      ) {
+        out.activePackId = DEFAULT_STATE.activePackId;
+        out.playheadStyle = DEFAULT_STATE.playheadStyle;
+        out.playButtonStyle = DEFAULT_STATE.playButtonStyle;
+        out.sceneStyle = DEFAULT_STATE.sceneStyle;
+      }
+      persistState(out);
+    }
+
     syncSceneAttribute(out.sceneStyle);
     return out;
   } catch {
@@ -416,7 +334,7 @@ function persistState(state: StoredThemeState) {
       }),
     );
   } catch {
-    /* ignore quota errors cleanly; customBgDataUrl may be too large on some devices */
+    /* ignore quota errors */
   }
 }
 
@@ -428,7 +346,24 @@ export function canUsePack(pack: Pick<SkinPack, "id" | "free">, unlockedIds: rea
   return saleMode === "beta" || isPackOwned(pack, unlockedIds);
 }
 
+export function mergeAnimeAssets(
+  custom: Partial<Record<AnimeThemeKey, LoadedAnimeCustomAssets>>,
+): Record<AnimeThemeKey, Required<LoadedAnimeCustomAssets>> {
+  const mergeOne = (k: AnimeThemeKey): Required<LoadedAnimeCustomAssets> => ({
+    mobileWallpaper: custom[k]?.mobileWallpaper ?? ANIME_THEME_ASSETS_DEFAULT[k].mobileWallpaper,
+    pcWallpaper: custom[k]?.pcWallpaper ?? ANIME_THEME_ASSETS_DEFAULT[k].pcWallpaper,
+    playheadIcon: custom[k]?.playheadIcon ?? ANIME_THEME_ASSETS_DEFAULT[k].playheadIcon,
+  });
+  return {
+    shinobi: mergeOne("shinobi"),
+    akatsuki: mergeOne("akatsuki"),
+    grandline: mergeOne("grandline"),
+  };
+}
+
 interface ThemeStoreState extends StoredThemeState {
+  animeAssets: Record<AnimeThemeKey, Required<LoadedAnimeCustomAssets>>;
+  customAnimeOverrides: Partial<Record<AnimeThemeKey, LoadedAnimeCustomAssets>>;
   setSaleMode: (mode: SaleMode) => void;
   setPlayheadStyle: (style: PlayheadStyle) => void;
   setPlayButtonStyle: (style: PlayButtonStyle) => void;
@@ -436,6 +371,8 @@ interface ThemeStoreState extends StoredThemeState {
   setSceneIntensity: (intensity: number) => void;
   setCustomBgDataUrl: (url: string | null) => void;
   setPaymentInfo: (patch: Partial<SellerPaymentInfo>) => void;
+  uploadAnimeAsset: (anime: AnimeThemeKey, slot: AnimeAssetSlot, file: File) => Promise<void>;
+  resetAnimeAssets: (anime: AnimeThemeKey) => Promise<void>;
   applyPack: (packId: string) => boolean;
   previewPack: (packId: string) => void;
   redeemCode: (rawCode: string) => { ok: boolean; label: string; scope: "pack" | "all" | "creator" | "invalid" };
@@ -446,11 +383,12 @@ const initial = readStoredState();
 
 export const useThemeStore = create<ThemeStoreState>((set, get) => ({
   ...initial,
+  animeAssets: mergeAnimeAssets({}),
+  customAnimeOverrides: {},
 
   setSaleMode: (saleMode) =>
     set((s) => {
       const next: StoredThemeState = { ...s, saleMode };
-      // If switching to live sale mode while currently using a locked premium pack, fall back to the free Pixel pack.
       if (saleMode === "live") {
         const activePack = SKIN_PACKS.find((p) => p.id === s.activePackId);
         if (activePack && !isPackOwned(activePack, s.unlockedIds)) {
@@ -513,6 +451,46 @@ export const useThemeStore = create<ThemeStoreState>((set, get) => ({
       persistState(next);
       return next;
     }),
+
+  uploadAnimeAsset: async (anime, slot, file) => {
+    await saveAnimeAssetBlob(anime, slot, file);
+    const url = URL.createObjectURL(file);
+    set((s) => {
+      const prevAnime = s.customAnimeOverrides[anime] ?? {};
+      const oldEntry = prevAnime[slot];
+      if (typeof oldEntry === "string" && oldEntry.startsWith("blob:")) URL.revokeObjectURL(oldEntry);
+      else if (oldEntry && typeof oldEntry === "object" && oldEntry.url.startsWith("blob:")) URL.revokeObjectURL(oldEntry.url);
+
+      const updated: LoadedAnimeCustomAssets = {
+        ...prevAnime,
+        [slot]: slot === "playheadIcon" ? url : { url, isVideo: file.type.startsWith("video/") || /\.(mp4|webm|mov)$/i.test(file.name) },
+      };
+      const overrides = { ...s.customAnimeOverrides, [anime]: updated };
+      return {
+        customAnimeOverrides: overrides,
+        animeAssets: mergeAnimeAssets(overrides),
+      };
+    });
+  },
+
+  resetAnimeAssets: async (anime) => {
+    await clearAnimeAssetGroup(anime);
+    set((s) => {
+      const prevAnime = s.customAnimeOverrides[anime];
+      if (prevAnime) {
+        for (const v of Object.values(prevAnime)) {
+          if (typeof v === "string" && v.startsWith("blob:")) URL.revokeObjectURL(v);
+          else if (v && typeof v === "object" && v.url.startsWith("blob:")) URL.revokeObjectURL(v.url);
+        }
+      }
+      const overrides = { ...s.customAnimeOverrides };
+      delete overrides[anime];
+      return {
+        customAnimeOverrides: overrides,
+        animeAssets: mergeAnimeAssets(overrides),
+      };
+    });
+  },
 
   applyPack: (packId) => {
     const pack = SKIN_PACKS.find((p) => p.id === packId);
@@ -611,3 +589,11 @@ export const useThemeStore = create<ThemeStoreState>((set, get) => ({
   },
 }));
 
+// Hydrate any user-uploaded per-anime assets saved in IndexedDB across app restarts.
+void loadAllAnimeAssetUrls().then((overrides) => {
+  if (!Object.keys(overrides).length) return;
+  useThemeStore.setState({
+    customAnimeOverrides: overrides,
+    animeAssets: mergeAnimeAssets(overrides),
+  });
+});

@@ -32,6 +32,7 @@ import {
   type SkinCategory,
   type SkinPack,
 } from "../stores/themeStore";
+import type { AnimeAssetSlot, AnimeThemeKey } from "../lib/themeAssetsDb";
 import { toast } from "../stores/ui";
 
 type StoreTab = SkinCategory | "custom";
@@ -39,22 +40,29 @@ type StoreTab = SkinCategory | "custom";
 const TABS: readonly { id: StoreTab; label: string }[] = [
   { id: "all", label: "All" },
   { id: "anime", label: "Anime" },
-  { id: "trend", label: "Cyber" },
   { id: "music", label: "Studio" },
   { id: "custom", label: "Custom" },
 ];
 
 const SCENE_FRAME_STYLE: Record<SceneStyle, string> = {
   none: "border-white/15 rounded-lg bg-black/35",
-  akatsuki: "border-red-500/60 rounded-lg bg-[#140407]/70 shadow-[0_0_20px_rgba(239,68,68,0.22)]",
-  shinobi: "border-orange-400/55 rounded-lg bg-[#1a0d07]/68 shadow-[0_0_18px_rgba(249,115,22,0.2)]",
-  grandline: "border-amber-400/60 rounded-lg bg-[#09182e]/68 shadow-[0_0_18px_rgba(251,191,36,0.2)]",
-  kpop: "border-pink-300/65 rounded-xl bg-[#220b28]/65 shadow-[0_0_18px_rgba(244,114,182,0.24)]",
-  arcade8bit: "border-2 border-yellow-400 rounded-none bg-[#0d102c]/80 shadow-[3px_3px_0_#000]",
-  vinyl: "border-amber-500/55 rounded-lg bg-[#1a1009]/72 shadow-[0_0_18px_rgba(245,158,11,0.2)]",
-  cyberpunk: "border-cyan-400/65 rounded-sm bg-[#091326]/72 shadow-[0_0_18px_rgba(34,211,238,0.22)]",
+  shinobi: "border-yellow-400/55 rounded-lg bg-[#0b0d14]/75 shadow-[0_0_18px_rgba(250,204,21,0.18)]",
+  akatsuki: "border-red-500/60 rounded-lg bg-[#070203]/75 shadow-[0_0_20px_rgba(239,68,68,0.22)]",
+  grandline: "border-purple-400/60 rounded-lg bg-[#090612]/75 shadow-[0_0_18px_rgba(192,132,252,0.22)]",
   custom: "border-white/25 rounded-lg bg-black/45",
 };
+
+const ANIME_META: readonly { key: AnimeThemeKey; label: string }[] = [
+  { key: "shinobi", label: "Naruto (Shinobi Moon)" },
+  { key: "akatsuki", label: "Itachi (Blood Moon)" },
+  { key: "grandline", label: "Luffy (Gear 5)" },
+];
+
+const ASSET_SLOTS: readonly { slot: AnimeAssetSlot; shortLabel: string; fullLabel: string; accept: string }[] = [
+  { slot: "mobileWallpaper", shortLabel: "Mobile", fullLabel: "Mobile Wallpaper", accept: "video/mp4,video/webm,image/*" },
+  { slot: "pcWallpaper", shortLabel: "PC", fullLabel: "PC Wallpaper", accept: "video/mp4,video/webm,image/*" },
+  { slot: "playheadIcon", shortLabel: "Icon", fullLabel: "Scrubber Icon", accept: "image/png,image/webp,image/svg+xml,image/gif,image/*" },
+];
 
 async function readWallpaperFile(file: File): Promise<string> {
   if (file.type === "image/gif") {
@@ -99,6 +107,96 @@ async function readWallpaperFile(file: File): Promise<string> {
   });
 }
 
+function AnimeAssetControls({
+  anime,
+  compact = false,
+}: {
+  anime: AnimeThemeKey;
+  compact?: boolean;
+}) {
+  const animeAssets = useThemeStore((s) => s.animeAssets);
+  const customAnimeOverrides = useThemeStore((s) => s.customAnimeOverrides);
+  const uploadAnimeAsset = useThemeStore((s) => s.uploadAnimeAsset);
+  const resetAnimeAssets = useThemeStore((s) => s.resetAnimeAssets);
+  const inputRefs = useRef<Partial<Record<AnimeAssetSlot, HTMLInputElement | null>>>({});
+
+  const overrides = customAnimeOverrides[anime] ?? {};
+  const hasAnyOverride = Boolean(overrides.mobileWallpaper || overrides.pcWallpaper || overrides.playheadIcon);
+  const resolved = animeAssets[anime];
+
+  const handleFile = async (slot: AnimeAssetSlot, e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    try {
+      await uploadAnimeAsset(anime, slot, file);
+      const label = ASSET_SLOTS.find((s) => s.slot === slot)?.fullLabel ?? slot;
+      toast(`Updated ${label} for ${ANIME_META.find((a) => a.key === anime)?.label ?? anime}.`);
+    } catch (err) {
+      toast((err as Error).message || "Could not load asset file.", "error");
+    }
+  };
+
+  return (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      className={cn(
+        "flex flex-wrap items-center gap-1.5",
+        compact ? "border-t border-white/8 px-3.5 py-2" : "mt-2",
+      )}
+    >
+      {compact && <span className="mr-0.5 text-[10.5px] font-medium text-fg-3">Assets:</span>}
+      {ASSET_SLOTS.map(({ slot, shortLabel, fullLabel, accept }) => {
+        const overridden = Boolean(overrides[slot]);
+        return (
+          <div key={slot} className="inline-flex">
+            <input
+              ref={(el) => {
+                inputRefs.current[slot] = el;
+              }}
+              type="file"
+              accept={accept}
+              onChange={(e) => handleFile(slot, e)}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => inputRefs.current[slot]?.click()}
+              title={`Upload ${fullLabel}`}
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-semibold transition-colors",
+                overridden
+                  ? "bg-accent/20 text-accent-text ring-1 ring-accent/45 hover:bg-accent/30"
+                  : "bg-surface-3/80 text-fg-2 ring-1 ring-line hover:bg-surface-4 hover:text-fg",
+              )}
+            >
+              {slot === "playheadIcon" && resolved?.playheadIcon && (
+                <img src={resolved.playheadIcon} alt="" className="size-3 rounded-full object-contain" />
+              )}
+              <UploadSimpleIcon size={10} weight="bold" />
+              <span>{compact ? shortLabel : fullLabel}</span>
+            </button>
+          </div>
+        );
+      })}
+      {hasAnyOverride && (
+        <button
+          type="button"
+          onClick={() => {
+            void resetAnimeAssets(anime);
+            toast("Restored bundled anime assets.");
+          }}
+          title="Restore bundled assets"
+          className="ml-auto inline-flex items-center gap-1 rounded-full bg-surface-3 px-2 py-1 text-[10.5px] font-medium text-danger ring-1 ring-line hover:bg-surface-4"
+        >
+          <TrashIcon size={10} />
+          <span>Reset</span>
+        </button>
+      )}
+    </div>
+  );
+}
+
 function PackCard({
   pack,
   active,
@@ -119,6 +217,8 @@ function PackCard({
   onUnlock: () => void;
 }) {
   const frameCls = SCENE_FRAME_STYLE[pack.scene];
+  const animeKey: AnimeThemeKey | null =
+    pack.scene === "shinobi" || pack.scene === "akatsuki" || pack.scene === "grandline" ? pack.scene : null;
 
   return (
     <article
@@ -214,6 +314,8 @@ function PackCard({
           )}
         </div>
       </div>
+
+      {animeKey && <AnimeAssetControls anime={animeKey} compact />}
     </article>
   );
 }
@@ -613,7 +715,7 @@ export function ThemeStoreContent({ embedded = false }: { embedded?: boolean }) 
             type="button"
             onClick={() => {
               resetCustomizations();
-              toast("Restored default Pixel Wave theme.");
+              toast("Restored default Studio Minimal theme.");
             }}
             className="px-2 text-xs font-medium text-fg-3 hover:text-fg"
           >
@@ -836,7 +938,25 @@ export function ThemeStoreContent({ embedded = false }: { embedded?: boolean }) 
             )}
           </section>
 
-          {/* 4. Accent */}
+          {/* 4. Per-Anime Asset Uploads */}
+          <section className="rounded-[16px] bg-surface-2 p-4 ring-1 ring-line">
+            <div className="mb-3">
+              <h3 className="text-[14px] font-semibold text-fg">Per-Anime Assets (Naruto / Itachi / Luffy)</h3>
+              <p className="mt-0.5 text-xs text-fg-2">
+                Upload a custom Mobile Wallpaper (.mp4/image), PC Wallpaper (.mp4/image), or Scrubber Playhead Icon (.png) for each anime theme.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-2.5 @[640px]/store:grid-cols-3">
+              {ANIME_META.map((a) => (
+                <div key={a.key} className="rounded-[12px] bg-surface-3/65 p-3 ring-1 ring-line">
+                  <div className="text-xs font-bold text-fg">{a.label}</div>
+                  <AnimeAssetControls anime={a.key} />
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* 5. Accent */}
           <section className="rounded-[16px] bg-surface-2 p-4 ring-1 ring-line">
             <h3 className="mb-3 text-[14px] font-semibold text-fg">Accent</h3>
             <div className="mb-3 flex flex-wrap gap-2">

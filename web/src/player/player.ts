@@ -84,7 +84,7 @@ export const videoEl = document.createElement("video");
 videoEl.playsInline = true;
 videoEl.preload = "auto";
 videoEl.setAttribute("playsinline", "");
-videoEl.className = "block h-full w-full object-contain bg-black";
+videoEl.className = "block h-full w-full object-cover bg-transparent";
 host.__musikeSingletonVideo = videoEl;
 registerEqMedia(audio);
 registerEqMedia(videoEl);
@@ -375,6 +375,14 @@ export const usePlayer = create<PlayerState>((set, get) => {
     if (!isLocalTrack(track?.id) && capabilities.retryOnError && retryCount < 3) {
       retryCount++;
       const at = Math.max(media.currentTime || 0, get().position || 0);
+      load(get().index, { startAt: at, autoplay: true });
+      return;
+    }
+    // If video playback fails repeatedly for a track, gracefully fall back to audio instead of skipping the song.
+    if (media === videoEl && loaded?.kind === "video" && track) {
+      const at = Math.max(media.currentTime || 0, get().position || 0);
+      retryCount = 0;
+      set({ preferVideo: false });
       load(get().index, { startAt: at, autoplay: true });
       return;
     }
@@ -818,10 +826,19 @@ function syncPositionState() {
   }
 }
 
-function handleExternalMediaAction(
+let lastExternalAction = "";
+let lastExternalActionAt = 0;
+
+export function handleExternalMediaAction(
   action: DesktopMediaAction | "seek" | "audio_mode",
   position?: number,
 ) {
+  if (action !== "seek") {
+    const now = Date.now();
+    if (action === lastExternalAction && now - lastExternalActionAt < 180) return;
+    lastExternalAction = action;
+    lastExternalActionAt = now;
+  }
   const p = usePlayer.getState();
   if (action === "toggle") p.toggle();
   else if (action === "play" && p.status !== "playing" && p.status !== "loading") p.toggle();

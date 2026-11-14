@@ -43,34 +43,33 @@ function PlayDiscDecor({ variant, playing }: { variant: PlayButtonStyle; playing
       return (
         <svg viewBox="0 0 64 64" aria-hidden="true" className={cn("pointer-events-none absolute inset-0 size-full", spin)}>
           <defs>
-            <radialGradient id="shinobiGrad" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#e0f2fe" />
-              <stop offset="35%" stopColor="#38bdf8" />
-              <stop offset="85%" stopColor="#0284c7" />
-              <stop offset="100%" stopColor="#f97316" />
+            <radialGradient id="shinobiMoonGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#fef08a" />
+              <stop offset="55%" stopColor="#facc15" />
+              <stop offset="100%" stopColor="#ca8a04" />
             </radialGradient>
           </defs>
-          <circle cx="32" cy="32" r="30.5" fill="url(#shinobiGrad)" stroke="#f97316" strokeWidth="2.5" />
-          <path d="M32 10 A22 22 0 0 1 54 32" fill="none" stroke="#ffffff" strokeOpacity="0.8" strokeWidth="2.4" strokeLinecap="round" />
-          <path d="M32 54 A22 22 0 0 1 10 32" fill="none" stroke="#fed7aa" strokeOpacity="0.8" strokeWidth="2.4" strokeLinecap="round" />
-          <path d="M32 18 A14 14 0 0 1 46 32" fill="none" stroke="#bae6fd" strokeOpacity="0.85" strokeWidth="2" strokeLinecap="round" />
-          <path d="M32 46 A14 14 0 0 1 18 32" fill="none" stroke="#ffffff" strokeOpacity="0.7" strokeWidth="2" strokeLinecap="round" />
-          <circle cx="32" cy="32" r="14" fill="#0c4a6e" fillOpacity="0.55" />
+          <circle cx="32" cy="32" r="30.5" fill="url(#shinobiMoonGrad)" stroke="#0d0f17" strokeWidth="2.5" />
+          <path d="M32 10 A22 22 0 0 1 54 32" fill="none" stroke="#1e2438" strokeOpacity="0.45" strokeWidth="2.4" strokeLinecap="round" />
+          <path d="M32 54 A22 22 0 0 1 10 32" fill="none" stroke="#fefce8" strokeOpacity="0.8" strokeWidth="2.4" strokeLinecap="round" />
+          <circle cx="32" cy="32" r="17" fill="none" stroke="#0d0f17" strokeOpacity="0.35" strokeWidth="1.5" strokeDasharray="5 4" />
         </svg>
       );
 
     case "akatsuki":
       return (
         <svg viewBox="0 0 64 64" aria-hidden="true" className={cn("pointer-events-none absolute inset-0 size-full", spin)}>
-          <circle cx="32" cy="32" r="30.5" fill="#dc2626" stroke="#18181b" strokeWidth="3" />
-          <circle cx="32" cy="32" r="19.5" fill="none" stroke="#09090b" strokeWidth="1.8" strokeOpacity="0.85" />
+          <circle cx="32" cy="32" r="30.5" fill="#dc2626" stroke="#140407" strokeWidth="3" />
+          <circle cx="32" cy="32" r="19.5" fill="none" stroke="#090204" strokeWidth="1.8" strokeOpacity="0.85" />
           {[0, 120, 240].map((deg) => (
-            <g key={deg} transform={`rotate(${deg} 32 32)`}>
-              <circle cx="32" cy="12.5" r="3.4" fill="#09090b" />
-              <path d="M32 9.2 Q37 11.5 34.8 15" fill="none" stroke="#09090b" strokeWidth="2" strokeLinecap="round" />
-            </g>
+            <path
+              key={deg}
+              d="M32 32 C29 18 37 10 45 12 C38 17 37 26 32 32 Z"
+              fill="#090204"
+              transform={`rotate(${deg} 32 32)`}
+            />
           ))}
-          <circle cx="32" cy="32" r="13.5" fill="#09090b" fillOpacity="0.85" />
+          <circle cx="32" cy="32" r="12.5" fill="#090204" fillOpacity="0.88" />
         </svg>
       );
 
@@ -78,85 +77,15 @@ function PlayDiscDecor({ variant, playing }: { variant: PlayButtonStyle; playing
       return (
         <svg viewBox="0 0 64 64" aria-hidden="true" className={cn("pointer-events-none absolute inset-0 size-full", spin)}>
           <defs>
-            <radialGradient id="grandlineGrad" cx="45%" cy="40%" r="55%">
-              <stop offset="0%" stopColor="#fef08a" />
-              <stop offset="65%" stopColor="#fbbf24" />
-              <stop offset="100%" stopColor="#b45309" />
+            <radialGradient id="grandlineNikaGrad" cx="45%" cy="40%" r="55%">
+              <stop offset="0%" stopColor="#f3e8ff" />
+              <stop offset="60%" stopColor="#c084fc" />
+              <stop offset="100%" stopColor="#7e22ce" />
             </radialGradient>
           </defs>
-          <circle cx="32" cy="32" r="30.5" fill="url(#grandlineGrad)" stroke="#ef4444" strokeWidth="2.8" />
-          <circle cx="32" cy="32" r="22" fill="none" stroke="#78350f" strokeOpacity="0.45" strokeWidth="1.5" strokeDasharray="4 4" />
-          {[0, 90, 180, 270].map((deg) => (
-            <polygon
-              key={deg}
-              points="32,4 35,12 29,12"
-              fill="#78350f"
-              fillOpacity="0.55"
-              transform={`rotate(${deg} 32 32)`}
-            />
-          ))}
-        </svg>
-      );
-
-    case "kpop":
-      return (
-        <svg viewBox="0 0 64 64" aria-hidden="true" className="pointer-events-none absolute inset-0 size-full">
-          <defs>
-            <linearGradient id="kpopBtnGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#fbcfe8" />
-              <stop offset="50%" stopColor="#f472b6" />
-              <stop offset="100%" stopColor="#67e8f9" />
-            </linearGradient>
-          </defs>
-          <circle cx="32" cy="32" r="30.5" fill="url(#kpopBtnGrad)" stroke="#ffffff" strokeOpacity="0.8" strokeWidth="2" />
-          <circle cx="32" cy="32" r="24.5" fill="none" stroke="#ffffff" strokeOpacity="0.5" strokeWidth="1.2" strokeDasharray="3 3" />
-          <path d="M16 14l1.3 3.2L20.5 18.5l-3.2 1.3L16 23l-1.3-3.2-3.2-1.3 3.2-1.3z" fill="#ffffff" fillOpacity="0.9" />
-          <path d="M48 41l1.1 2.7L51.8 44.8l-2.7 1.1L48 48.6l-1.1-2.7-2.7-1.1 2.7-1.1z" fill="#ffffff" fillOpacity="0.9" />
-        </svg>
-      );
-
-    case "arcade8bit":
-      return (
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 rounded-[9px] border-2 border-[#fef08a] bg-[#facc15] shadow-[inset_3px_3px_0_rgba(255,255,255,0.6),inset_-3px_-3px_0_rgba(161,98,7,0.8)]"
-        />
-      );
-
-    case "vinyl":
-      return (
-        <svg viewBox="0 0 64 64" aria-hidden="true" className={cn("pointer-events-none absolute inset-0 size-full", spin)}>
-          <circle cx="32" cy="32" r="30.8" fill="#18181b" stroke="#f59e0b" strokeOpacity="0.85" strokeWidth="2" />
-          <circle cx="32" cy="32" r="26" fill="none" stroke="#3f3f46" strokeWidth="1" />
-          <circle cx="32" cy="32" r="22" fill="none" stroke="#27272a" strokeWidth="1" />
-          <circle cx="32" cy="32" r="18" fill="none" stroke="#3f3f46" strokeWidth="1" />
-          <circle cx="32" cy="32" r="14" fill="#d97706" fillOpacity="0.9" />
-        </svg>
-      );
-
-    case "cyberpunk":
-      return (
-        <svg viewBox="0 0 64 64" aria-hidden="true" className="pointer-events-none absolute inset-0 size-full">
-          <defs>
-            <linearGradient id="cyberBtnGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#083344" />
-              <stop offset="55%" stopColor="#0f172a" />
-              <stop offset="100%" stopColor="#4c0519" />
-            </linearGradient>
-          </defs>
-          <polygon
-            points="18,4 46,4 60,18 60,46 46,60 18,60 4,46 4,18"
-            fill="url(#cyberBtnGrad)"
-            stroke="#22d3ee"
-            strokeWidth="2.5"
-          />
-          <polygon
-            points="21,10 43,10 54,21 54,43 43,54 21,54 10,43 10,21"
-            fill="none"
-            stroke="#f43f5e"
-            strokeOpacity="0.65"
-            strokeWidth="1.2"
-          />
+          <circle cx="32" cy="32" r="30.5" fill="url(#grandlineNikaGrad)" stroke="#1a1030" strokeWidth="2.5" />
+          <circle cx="32" cy="32" r="22" fill="none" stroke="#ffffff" strokeOpacity="0.55" strokeWidth="1.8" strokeDasharray="6 4" />
+          <circle cx="32" cy="32" r="14" fill="#130524" fillOpacity="0.22" />
         </svg>
       );
 
@@ -181,8 +110,8 @@ export const PlayDisc = forwardRef<HTMLButtonElement, PlayDiscProps>(function Pl
   const variant = styleVariant ?? activeStyle;
   const isPlaying = playing ?? playerPlaying;
 
-  const isLightForeground = variant === "shinobi" || variant === "akatsuki" || variant === "vinyl" || variant === "cyberpunk";
-  const isDarkForeground = variant === "grandline" || variant === "kpop" || variant === "arcade8bit";
+  const isLightForeground = variant === "akatsuki";
+  const isDarkForeground = variant === "shinobi" || variant === "grandline";
 
   return (
     <button
@@ -192,12 +121,11 @@ export const PlayDisc = forwardRef<HTMLButtonElement, PlayDiscProps>(function Pl
       title={label}
       style={{ width: px, height: px }}
       className={cn(
-        "relative grid shrink-0 place-items-center overflow-hidden transition-transform duration-200 ease-out-expo",
+        "relative grid shrink-0 place-items-center overflow-hidden rounded-full transition-transform duration-200 ease-out-expo",
         "hover:scale-[1.04] active:scale-[0.95] disabled:opacity-40",
-        variant === "arcade8bit" ? "rounded-[9px]" : "rounded-full",
         variant === "default" && "bg-accent text-accent-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.45)]",
         isLightForeground && "text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]",
-        isDarkForeground && "text-[#140d0a]",
+        isDarkForeground && "text-[#140e00]",
         className,
       )}
       {...rest}

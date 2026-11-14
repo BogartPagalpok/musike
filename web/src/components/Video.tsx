@@ -68,7 +68,7 @@ export function VideoSlot({
     <div
       style={style}
       onDoubleClick={expandable ? openTheater : undefined}
-      className={cn("group/video relative overflow-hidden bg-black", className)}
+      className={cn("group/video relative overflow-hidden bg-transparent", className)}
     >
       <div ref={ref} className="absolute inset-0" />
       {expandable && (

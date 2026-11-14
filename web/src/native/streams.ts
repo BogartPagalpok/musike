@@ -1,5 +1,5 @@
 import { Capacitor } from "@capacitor/core";
-import { DEFAULT_CLIENTS, directAudio, directVideo, fetchRemoteClients, validClients, type DirectAudio } from "../../../server/src/directAudio";
+import { DEFAULT_CLIENTS, directAudio, directVideo, type DirectAudio } from "../../../server/src/directAudio";
 import { msg, tr } from "../../../server/src/i18n";
 import { getLang } from "../i18n";
 import { ApiError } from "../lib/apiTypes";
@@ -9,42 +9,26 @@ import { nativeResolverAvailable, resolveNatively } from "./ytplayer";
 /**
  * Resolves a track's audio on the phone, the job yt-dlp does on the server. On iOS the app's native side asks first
  * (ios/App/App/MusikeYouTube.swift); otherwise, and as iOS's fallback, the audio comes straight from YouTube's API
- * (server/src/directAudio.ts). Each platform's list of clients can be updated remotely (mobile/streaming.json); the
- * last one received is kept.
+ * (server/src/directAudio.ts).
  */
 
 const ios = Capacitor.getPlatform() === "ios";
-// On iOS VISIONOS is bot-checked from the web view while the IOS client still answers; Android uses the client
-// yt-dlp itself relies on.
-const PLATFORM_CLIENTS = ios ? ["IOS", "VISIONOS"] : DEFAULT_CLIENTS;
-const REMOTE_KEY = ios ? "ios" : "clients";
-const CLIENTS_KEY = ios ? "musike:stream-clients-ios" : "musike:stream-clients";
+const PLATFORM_CLIENTS = ios ? ["IOS", "ANDROID", "VISIONOS"] : DEFAULT_CLIENTS;
+const CLIENTS_KEY = ios ? "musike:stream-clients-ios-v2" : "musike:stream-clients-v2";
 
 const cache = new Map<string, DirectAudio>();
 const inflight = new Map<string, Promise<DirectAudio>>();
 const videoCache = new Map<string, { url: string; expiresAt: number }>();
 const videoInflight = new Map<string, Promise<string>>();
 
-function storedClients(): string[] {
-  try {
-    return validClients(JSON.parse(localStorage.getItem(CLIENTS_KEY) ?? "null")) ?? PLATFORM_CLIENTS;
-  } catch {
-    return PLATFORM_CLIENTS;
-  }
+let clients = PLATFORM_CLIENTS;
+try {
+  localStorage.removeItem("musike:stream-clients");
+  localStorage.removeItem("musike:stream-clients-ios");
+  localStorage.setItem(CLIENTS_KEY, JSON.stringify(PLATFORM_CLIENTS));
+} catch {
+  /* ignore */
 }
-
-let clients = storedClients();
-
-// Pick up a newer client list in the background; the stored one (or the default) is used meanwhile.
-void fetchRemoteClients(REMOTE_KEY).then((remote) => {
-  if (!remote) return;
-  clients = remote;
-  try {
-    localStorage.setItem(CLIENTS_KEY, JSON.stringify(remote));
-  } catch {
-    /* storage unavailable: keep it for this session */
-  }
-});
 
 /** iOS: the native resolver, or null to fall back to the in-app clients. */
 async function resolveOnIos(id: string): Promise<DirectAudio | null> {

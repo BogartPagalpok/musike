@@ -86,11 +86,11 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
           <div className="flex min-h-0 w-full items-center justify-center py-4">
             {showsVideo ? (
               <WorldStageFrame scene={sceneStyle} playing={status === "playing"} className="w-full">
-                <div className="w-full overflow-hidden rounded-[inherit] bg-black shadow-[0_24px_60px_rgba(0,0,0,0.55)] ring-1 ring-white/12">
+                <div className="w-full overflow-hidden rounded-[inherit] bg-transparent shadow-[0_24px_60px_rgba(0,0,0,0.55)] ring-1 ring-white/12">
                   <VideoSlot
                     priority={SLOT.center}
                     expandable
-                    className="mx-auto aspect-video max-h-[44dvh] w-full"
+                    className="mx-auto aspect-video max-h-[44dvh] w-full bg-transparent"
                     style={{ aspectRatio: Math.min(16 / 9, Math.max(9 / 16, aspect)) }}
                   />
                 </div>

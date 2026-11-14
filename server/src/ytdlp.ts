@@ -147,11 +147,7 @@ let directClients: string[] | null = null;
 let directClientsAt = 0;
 
 async function clientsForDirect(): Promise<string[]> {
-  if (Date.now() - directClientsAt > 6 * 3600_000) {
-    directClientsAt = Date.now();
-    directClients = (await fetchRemoteClients()) ?? directClients;
-  }
-  return directClients ?? DEFAULT_CLIENTS;
+  return DEFAULT_CLIENTS;
 }
 
 /**
@@ -171,7 +167,10 @@ export async function resolveDirectOnly(id: string): Promise<Resolved> {
 
 /** Fallback audio/video resolver via yt-dlp when direct Innertube resolution is unavailable for a track. */
 export async function resolveWithYtdlp(id: string): Promise<Resolved> {
-  const stdout = await run(["-J", "--no-playlist", "--no-warnings", `https://www.youtube.com/watch?v=${id}`], RESOLVE_TIMEOUT_MS);
+  const stdout = await run(
+    ["--extractor-args", "youtube:player_client=android,ios", "-J", "--no-playlist", "--no-warnings", `https://www.youtube.com/watch?v=${id}`],
+    RESOLVE_TIMEOUT_MS,
+  );
   const info = JSON.parse(stdout) as { title: string; duration?: number; formats: RawFormat[] };
   const audio = pickAudio(info.formats);
   if (!audio) throw new HttpError(404, msg("noAudio"));
@@ -365,6 +364,8 @@ export function downloadHd(id: string, maxHeight: 720 | 1080 = 1080): Promise<st
         if (!tools().ytdlp) throw err;
         return run(
           [
+            "--extractor-args",
+            "youtube:player_client=android,ios",
             "--no-playlist",
             "--no-warnings",
             "--no-part",

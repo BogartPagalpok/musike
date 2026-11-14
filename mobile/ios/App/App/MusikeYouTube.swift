@@ -10,16 +10,50 @@ import WebKit
 final class MusikeYouTube: NSObject, WKScriptMessageHandler {
     private weak var webView: WKWebView?
 
-    private static let playerURL = URL(string: "https://www.youtube.com/youtubei/v1/player?prettyPrint=false&alt=json")!
+    private static let playerURL = URL(string: "https://www.youtube.com/youtubei/v1/player?prettyPrint=false")!
     private static let visitorURL = URL(string: "https://www.youtube.com/youtubei/v1/visitor_id?prettyPrint=false")!
     private static let userAgent =
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 15_7_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Safari/605.1.15"
-    /// Clients to try, in order: VISIONOS hands out URLs that need no proof-of-origin token, the others are the
-    /// fallbacks YouTube leaves open on some networks.
-    private static let clients: [(name: String, version: String, id: String)] = [
-        ("VISIONOS", "1.02", "101"),
-        ("ANDROID_VR", "1.60.19", "28"),
-        ("IOS", "20.10.4", "5"),
+    private struct ClientSpec {
+        let name: String
+        let version: String
+        let id: String
+        let userAgent: String
+        let fields: [String: Any]
+    }
+    private static let clients: [ClientSpec] = [
+        ClientSpec(
+            name: "ANDROID",
+            version: "20.10.38",
+            id: "3",
+            userAgent: "com.google.android.youtube/20.10.38 (Linux; U; Android 14) gzip",
+            fields: [
+                "androidSdkVersion": 34,
+                "osName": "Android",
+                "osVersion": "14",
+            ]
+        ),
+        ClientSpec(
+            name: "IOS",
+            version: "20.10.4",
+            id: "5",
+            userAgent: "com.google.ios.youtube/20.10.4 (iPhone16,2; U; CPU iOS 18_1_0 like Mac OS X;)",
+            fields: [
+                "deviceMake": "Apple",
+                "deviceModel": "iPhone16,2",
+                "osName": "iPhone",
+                "osVersion": "18.1.0.22B83",
+            ]
+        ),
+        ClientSpec(
+            name: "VISIONOS",
+            version: "1.02",
+            id: "101",
+            userAgent: userAgent,
+            fields: [
+                "platform": "DESKTOP",
+            ]
+        ),
     ]
     private static let visitorKey = "musike:visitorData"
     private static let visitorAgeKey = "musike:visitorDataAt"
@@ -78,11 +112,17 @@ final class MusikeYouTube: NSObject, WKScriptMessageHandler {
                 return
             }
             let details = result?["videoDetails"] as? [String: Any] ?? [:]
-            let formats = ((result?["streamingData"] as? [String: Any])?["adaptiveFormats"] as? [[String: Any]] ?? [])
-                .filter { ($0["mimeType"] as? String)?.hasPrefix("audio/mp4") == true && $0["url"] != nil }
+            let streamingData = result?["streamingData"] as? [String: Any]
+            let adaptiveAudio = (streamingData?["adaptiveFormats"] as? [[String: Any]] ?? [])
+                .filter { ($0["mimeType"] as? String)?.hasPrefix("audio/") == true && $0["url"] != nil }
                 .sorted { Self.int($0["bitrate"]) > Self.int($1["bitrate"]) }
-            guard let best = formats.first, let url = best["url"] as? String else {
-                done(["error": "No audio format available for this video.", "code": "no_audio"])
+            let mp4Audio = adaptiveAudio.filter { ($0["mimeType"] as? String)?.hasPrefix("audio/mp4") == true }
+            let progressive = (streamingData?["formats"] as? [[String: Any]] ?? [])
+                .filter { $0["url"] != nil }
+                .sorted { Self.int($0["bitrate"]) > Self.int($1["bitrate"]) }
+            guard let best = mp4Audio.first ?? adaptiveAudio.first ?? progressive.first,
+                  let url = best["url"] as? String else {
+                self.tryClient(videoId: videoId, visitorData: visitorData, lang: lang, region: region, at: index + 1, done: done)
                 return
             }
             MusikeAudio.remember(url: url, duration: Double(Self.int(details["lengthSeconds"])))
@@ -97,30 +137,32 @@ final class MusikeYouTube: NSObject, WKScriptMessageHandler {
 
     private func playerBody(
         videoId: String, visitorData: String, lang: String, region: String,
-        client chosen: (name: String, version: String, id: String)
+        client chosen: ClientSpec
     ) -> [String: Any] {
-        var client = client(lang: lang, region: region, chosen: chosen)
-        client["visitorData"] = visitorData
-        client["originalUrl"] = "https://www.youtube.com/watch?v=\(videoId)"
+        var c = client(lang: lang, region: region, chosen: chosen)
+        if chosen.name == "VISIONOS" {
+            c["visitorData"] = visitorData
+        }
         return [
             "videoId": videoId,
             "racyCheckOk": true,
             "contentCheckOk": true,
-            "context": ["client": client],
-            "playbackContext": ["contentPlaybackContext": ["html5Preference": "HTML5_PREF_WANTS"]],
+            "context": ["client": c],
         ]
     }
 
-    private func client(lang: String, region: String, chosen: (name: String, version: String, id: String)? = nil) -> [String: Any] {
+    private func client(lang: String, region: String, chosen: ClientSpec? = nil) -> [String: Any] {
         let picked = chosen ?? Self.clients[0]
-        return [
+        var dict: [String: Any] = [
             "clientName": picked.name,
             "clientVersion": picked.version,
             "hl": lang,
             "gl": region,
-            "userAgent": "\(Self.userAgent),gzip(gfe)",
-            "platform": "DESKTOP",
         ]
+        for (k, v) in picked.fields {
+            dict[k] = v
+        }
+        return dict
     }
 
     /// The visitor id YouTube handed this install, kept for a day; a request without one is bot-checked.
@@ -131,7 +173,8 @@ final class MusikeYouTube: NSObject, WKScriptMessageHandler {
             done(cached)
             return
         }
-        post(Self.visitorURL, ["context": ["client": client(lang: lang, region: region)]], client: Self.clients[0]) { [weak self] json in
+        let vision = Self.clients.last!
+        post(Self.visitorURL, ["context": ["client": client(lang: lang, region: region, chosen: vision)]], client: vision) { [weak self] json in
             let fresh = ((json?["responseContext"] as? [String: Any])?["visitorData"] as? String) ?? ""
             if !fresh.isEmpty {
                 defaults.set(fresh, forKey: Self.visitorKey)
@@ -142,16 +185,15 @@ final class MusikeYouTube: NSObject, WKScriptMessageHandler {
         }
     }
 
-    private func post(_ url: URL, _ body: [String: Any], client: (name: String, version: String, id: String), done: @escaping ([String: Any]?) -> Void) {
+    private func post(_ url: URL, _ body: [String: Any], client: ClientSpec, done: @escaping ([String: Any]?) -> Void) {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         request.setValue("application/json", forHTTPHeaderField: "content-type")
         request.setValue(client.id, forHTTPHeaderField: "X-YouTube-Client-Name")
         request.setValue(client.version, forHTTPHeaderField: "X-YouTube-Client-Version")
-        request.setValue("2", forHTTPHeaderField: "X-Goog-Api-Format-Version")
         request.setValue("https://www.youtube.com", forHTTPHeaderField: "Origin")
-        request.setValue(Self.userAgent, forHTTPHeaderField: "User-Agent")
+        request.setValue(client.userAgent, forHTTPHeaderField: "User-Agent")
         URLSession(configuration: .ephemeral).downloadTask(with: request) { fileURL, _, error in
             guard error == nil, let fileURL, let data = try? Data(contentsOf: fileURL) else {
                 done(nil)

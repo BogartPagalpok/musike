@@ -1,6 +1,6 @@
-import { useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { cn } from "../lib/format";
-import type { PlayheadStyle } from "../stores/themeStore";
+import { useThemeStore, type PlayheadStyle } from "../stores/themeStore";
 
 interface Props {
   value: number;
@@ -20,152 +20,118 @@ interface Props {
   isPlaying?: boolean;
 }
 
-function makeWavePath(totalWidth: number, wavelength = 32, amp = 4.5, cy = 12) {
+interface WaveParams {
+  wavelength: number;
+  speedPx: number;
+}
+
+function waveParams(variant: PlayheadStyle): WaveParams {
+  switch (variant) {
+    case "shinobi":
+      return { wavelength: 34, speedPx: 36 };
+    case "akatsuki":
+      return { wavelength: 40, speedPx: 24 };
+    case "grandline":
+      return { wavelength: 30, speedPx: 42 };
+    case "pixel":
+    default:
+      return { wavelength: 28, speedPx: 28 };
+  }
+}
+
+/** Exact wave height at pixel X & phase so the SVG scrubber curve and playhead rider stay 100% locked together. */
+function sampleWaveY(variant: PlayheadStyle, x: number, phase: number, amp: number, cy = 12): number {
+  if (amp <= 0) return cy;
+  const { wavelength } = waveParams(variant);
+  const pos = (((x + phase) % wavelength) + wavelength) % wavelength;
+  const t = pos / wavelength; // [0, 1)
+
+  switch (variant) {
+    case "shinobi": {
+      // Crisp Kunai/Chakra triangle wave
+      const tri = t < 0.25 ? t * 4 : t < 0.75 ? 2 - t * 4 : (t - 1) * 4;
+      return cy - amp * tri;
+    }
+    case "akatsuki": {
+      // Tsukuyomi hypnotic double-harmonic wave
+      const w = Math.sin(t * Math.PI * 2) * 0.8 + Math.sin(t * Math.PI * 4) * 0.35;
+      return cy - amp * w;
+    }
+    case "grandline": {
+      // Gear 5 Nika bouncy crest wave
+      const arc = Math.abs(Math.sin(t * Math.PI)) * 1.45 - 0.55;
+      return cy - amp * arc;
+    }
+    case "pixel":
+    default:
+      return cy - Math.sin(t * Math.PI * 2) * amp;
+  }
+}
+
+function buildWavePath(variant: PlayheadStyle, totalWidth: number, phase: number, amp: number, cy = 12): string {
   if (totalWidth <= 0) return "";
-  let d = `M -${wavelength} ${cy}`;
-  for (let x = -wavelength; x <= totalWidth + wavelength * 2; x += wavelength) {
-    d += ` Q ${x + wavelength / 4} ${cy - amp}, ${x + wavelength / 2} ${cy}`;
-    d += ` Q ${x + (3 * wavelength) / 4} ${cy + amp}, ${x + wavelength} ${cy}`;
+  if (amp <= 0.05) return `M 0 ${cy} L ${totalWidth} ${cy}`;
+  const step = 3;
+  let d = `M 0 ${sampleWaveY(variant, 0, phase, amp, cy).toFixed(2)}`;
+  for (let x = step; x <= totalWidth; x += step) {
+    d += ` L ${x} ${sampleWaveY(variant, x, phase, amp, cy).toFixed(2)}`;
+  }
+  if (totalWidth % step !== 0) {
+    d += ` L ${totalWidth} ${sampleWaveY(variant, totalWidth, phase, amp, cy).toFixed(2)}`;
   }
   return d;
 }
 
-function makeStepWavePath(totalWidth: number, step = 18, amp = 3.5, cy = 12) {
-  if (totalWidth <= 0) return "";
-  let d = `M 0 ${cy}`;
-  let up = true;
-  for (let x = 0; x <= totalWidth + step; x += step) {
-    const y = up ? cy - amp : cy + amp;
-    d += ` L ${x} ${y} L ${x + step} ${y}`;
-    up = !up;
-  }
-  return d;
-}
-
-function makeZigzagPath(totalWidth: number, step = 16, amp = 4.5, cy = 12) {
-  if (totalWidth <= 0) return "";
-  let d = `M -${step} ${cy}`;
-  let up = true;
-  for (let x = -step; x <= totalWidth + step * 2; x += step) {
-    d += ` L ${x + step * 0.5} ${up ? cy - amp : cy + amp} L ${x + step} ${cy}`;
-    up = !up;
-  }
-  return d;
-}
-
-function PlayheadThumb({ variant, isPlaying, dragging }: { variant: PlayheadStyle; isPlaying: boolean; dragging: boolean }) {
-  const spin = isPlaying && !dragging ? "animate-[spin_3s_linear_infinite]" : "";
+function PlayheadThumb({
+  variant,
+  isPlaying,
+  dragging,
+  slopeAngle,
+}: {
+  variant: PlayheadStyle;
+  isPlaying: boolean;
+  dragging: boolean;
+  slopeAngle: number;
+}) {
+  const animeAssets = useThemeStore((s) => s.animeAssets);
+  const spin = isPlaying && !dragging ? "animate-[spin_2.8s_linear_infinite]" : "";
 
   switch (variant) {
     case "shinobi":
       return (
-        <div className="relative flex items-center justify-center">
-          {/* Flying Kunai + Spinning Rasengan Chakra Core */}
-          <svg width="26" height="20" viewBox="0 0 26 20" className="drop-shadow-[0_0_8px_rgba(56,189,248,0.85)]">
-            <path d="M1 10 L7 7 L7 13 Z" fill="#cbd5e1" />
-            <rect x="7" y="9" width="4" height="2" fill="#f97316" />
-            <circle cx="17" cy="10" r="7.5" fill="#0ea5e9" stroke="#e0f2fe" strokeWidth="1.5" />
-            <g className={spin} style={{ transformOrigin: "17px 10px" }}>
-              <path d="M17 4.5 A5.5 5.5 0 0 1 22.5 10" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeLinecap="round" />
-              <path d="M17 15.5 A5.5 5.5 0 0 1 11.5 10" fill="none" stroke="#bae6fd" strokeWidth="1.5" strokeLinecap="round" />
-              <circle cx="17" cy="10" r="2.2" fill="#f8fafc" />
-            </g>
-          </svg>
-        </div>
+        <img
+          src={animeAssets.shinobi.playheadIcon}
+          alt=""
+          aria-hidden="true"
+          className={cn(
+            "size-6 object-contain drop-shadow-[0_0_8px_rgba(250,204,21,0.85)] transition-transform",
+            spin,
+          )}
+        />
       );
 
     case "akatsuki":
       return (
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          className={cn("drop-shadow-[0_0_8px_rgba(239,68,68,0.9)]", spin)}
-        >
-          <circle cx="12" cy="12" r="10.5" fill="#dc2626" stroke="#09090b" strokeWidth="2" />
-          <circle cx="12" cy="12" r="6" fill="none" stroke="#09090b" strokeWidth="1.1" strokeOpacity="0.85" />
-          <circle cx="12" cy="12" r="2.6" fill="#09090b" />
-          <circle cx="12" cy="5.8" r="1.5" fill="#09090b" />
-          <circle cx="17.4" cy="15.2" r="1.5" fill="#09090b" />
-          <circle cx="6.6" cy="15.2" r="1.5" fill="#09090b" />
-        </svg>
+        <img
+          src={animeAssets.akatsuki.playheadIcon}
+          alt=""
+          aria-hidden="true"
+          className={cn(
+            "size-[22px] rounded-full object-contain drop-shadow-[0_0_10px_rgba(239,68,68,0.9)]",
+            isPlaying && !dragging && "animate-[spin_4.5s_linear_infinite]",
+          )}
+        />
       );
 
     case "grandline":
       return (
-        <svg width="24" height="18" viewBox="0 0 24 18" className="drop-shadow-[0_2px_8px_rgba(251,191,36,0.7)]">
-          <ellipse cx="12" cy="12.5" rx="11" ry="3.2" fill="#facc15" stroke="#78350f" strokeWidth="1.1" />
-          <path d="M6 11.5 C6 5.5, 18 5.5, 18 11.5 Z" fill="#fde047" stroke="#78350f" strokeWidth="1.1" />
-          <path d="M6.2 10.6 Q12 12 17.8 10.6" fill="none" stroke="#ef4444" strokeWidth="2.4" />
-        </svg>
-      );
-
-    case "kpop":
-      return (
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 24 24"
-          className={cn("drop-shadow-[0_0_8px_rgba(244,114,182,0.85)]", isPlaying && !dragging && "animate-pulse")}
-        >
-          <defs>
-            <linearGradient id="kpopThumbGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stopColor="#f9a8d4" />
-              <stop offset="50%" stopColor="#f472b6" />
-              <stop offset="100%" stopColor="#67e8f9" />
-            </linearGradient>
-          </defs>
-          <path
-            d="M12 20.5s-7.2-4.6-9-8.8C1.7 8.4 4.1 5 7.4 5c1.9 0 3.6 1 4.6 2.5C13 6 14.7 5 16.6 5 19.9 5 22.3 8.4 21 11.7c-1.8 4.2-9 8.8-9 8.8z"
-            fill="url(#kpopThumbGrad)"
-            stroke="#ffffff"
-            strokeWidth="1.4"
-          />
-          <path d="M18.5 2l.7 1.8L21 4.5l-1.8.7L18.5 7l-.7-1.8L16 4.5l1.8-.7z" fill="#ffffff" />
-        </svg>
-      );
-
-    case "arcade8bit":
-      return (
-        <svg
-          width="20"
-          height="20"
-          viewBox="0 0 16 16"
-          shapeRendering="crispEdges"
-          className={cn("drop-shadow-[0_2px_4px_rgba(0,0,0,0.65)]", isPlaying && !dragging && "animate-bounce")}
-        >
-          {/* 8-bit Pixel Cat with Headphones */}
-          <rect x="3" y="2" width="2" height="2" fill="#22d3ee" />
-          <rect x="11" y="2" width="2" height="2" fill="#22d3ee" />
-          <rect x="4" y="4" width="8" height="2" fill="#facc15" />
-          <rect x="3" y="6" width="10" height="6" fill="#fde047" />
-          <rect x="2" y="7" width="1" height="4" fill="#22d3ee" />
-          <rect x="13" y="7" width="1" height="4" fill="#22d3ee" />
-          <rect x="5" y="8" width="2" height="2" fill="#0f172a" />
-          <rect x="9" y="8" width="2" height="2" fill="#0f172a" />
-          <rect x="7" y="10" width="2" height="1" fill="#ef4444" />
-          <rect x="4" y="12" width="3" height="2" fill="#facc15" />
-          <rect x="9" y="12" width="3" height="2" fill="#facc15" />
-        </svg>
-      );
-
-    case "vinyl":
-      return (
-        <svg width="20" height="20" viewBox="0 0 24 24" className={cn("drop-shadow-[0_2px_6px_rgba(0,0,0,0.65)]", spin)}>
-          <circle cx="12" cy="12" r="10.5" fill="#18181b" stroke="#f59e0b" strokeWidth="1.3" />
-          <circle cx="12" cy="12" r="7.5" fill="none" stroke="#3f3f46" strokeWidth="0.9" />
-          <circle cx="12" cy="12" r="4" fill="#f59e0b" />
-          <circle cx="12" cy="12" r="1.4" fill="#09090b" />
-        </svg>
-      );
-
-    case "cyberpunk":
-      return (
-        <svg width="20" height="20" viewBox="0 0 24 24" className="drop-shadow-[0_0_8px_rgba(34,211,238,0.9)]">
-          <polygon points="12,2 21,7 21,17 12,22 3,17 3,7" fill="#0f172a" stroke="#22d3ee" strokeWidth="2" />
-          <polygon points="12,6.5 17,9.5 17,14.5 12,17.5 7,14.5 7,9.5" fill="#f43f5e" />
-          <circle cx="12" cy="12" r="2" fill="#ecfeff" />
-        </svg>
+        <img
+          src={animeAssets.grandline.playheadIcon}
+          alt=""
+          aria-hidden="true"
+          style={{ transform: `rotate(${slopeAngle.toFixed(1)}deg)` }}
+          className="h-5 w-9 object-contain drop-shadow-[0_0_10px_rgba(192,132,252,0.85)]"
+        />
       );
 
     case "pixel":
@@ -173,7 +139,7 @@ function PlayheadThumb({ variant, isPlaying, dragging }: { variant: PlayheadStyl
         <div
           className={cn(
             "rounded-full bg-accent shadow-[0_2px_8px_rgba(0,0,0,0.5)] transition-[transform,opacity] duration-150",
-            dragging ? "scale-125 opacity-100" : "opacity-90 group-hover:scale-110 group-hover:opacity-100",
+            dragging ? "scale-125 opacity-100" : "opacity-95 group-hover:scale-110 group-hover:opacity-100",
           )}
           style={{ width: "4px", height: "16px" }}
         />
@@ -202,11 +168,13 @@ export function Slider({
   const track = useRef<HTMLDivElement>(null);
   const [drag, setDrag] = useState<number | null>(null);
   const [trackWidth, setTrackWidth] = useState(600);
+  const [phase, setPhase] = useState(0);
   const clipId = useId();
 
   const shown = drag ?? value;
   const pct = max > 0 ? Math.min(100, Math.max(0, (shown / max) * 100)) : 0;
   const bufPct = max > 0 && buffered ? Math.min(100, (buffered / max) * 100) : 0;
+  const isCustomSvgTrack = variant !== "default";
 
   useLayoutEffect(() => {
     if (!track.current) return;
@@ -221,6 +189,23 @@ export function Slider({
     ro.observe(track.current);
     return () => ro.disconnect();
   }, []);
+
+  useEffect(() => {
+    if (!isCustomSvgTrack || !isPlaying || drag !== null) return;
+    if (typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+
+    let raf = 0;
+    let last = performance.now();
+    const { wavelength, speedPx } = waveParams(variant);
+    const tick = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      setPhase((p) => (p + dt * speedPx) % wavelength);
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [isCustomSvgTrack, isPlaying, drag, variant]);
 
   const valueAt = (clientX: number) => {
     const r = track.current!.getBoundingClientRect();
@@ -271,39 +256,23 @@ export function Slider({
 
   const currentX = (pct / 100) * trackWidth;
   const bufX = (bufPct / 100) * trackWidth;
-  const isCustomSvgTrack = variant !== "default";
-  const amp = isPlaying && drag === null ? 4.2 : 1.8;
+  const amp = drag !== null ? 0 : isPlaying ? 4.1 : 1.9;
+  const wavePath = isCustomSvgTrack ? buildWavePath(variant, trackWidth, phase, amp, 12) : "";
 
-  const wavePath = (() => {
-    if (drag !== null) return `M 0 12 L ${trackWidth} 12`;
-    switch (variant) {
-      case "arcade8bit":
-        return makeStepWavePath(trackWidth, 16, amp, 12);
-      case "cyberpunk":
-        return makeZigzagPath(trackWidth, 18, amp, 12);
-      case "vinyl":
-        return makeWavePath(trackWidth, 24, isPlaying ? 2.5 : 1, 12);
-      default:
-        return makeWavePath(trackWidth, 32, amp, 12);
-    }
-  })();
+  // Compute exact vertical wave deflection & slope at playhead X so icon/thumb rides the scrubber wave seamlessly.
+  const yNow = isCustomSvgTrack ? sampleWaveY(variant, currentX, phase, amp, 12) : 12;
+  const yAhead = isCustomSvgTrack ? sampleWaveY(variant, currentX + 4, phase, amp, 12) : 12;
+  const thumbOffsetY = yNow - 12;
+  const slopeAngle = Math.atan2(yAhead - yNow, 4) * (180 / Math.PI) * 0.45;
 
   const trackColor = (() => {
     switch (variant) {
       case "shinobi":
-        return "#38bdf8";
+        return "#facc15";
       case "akatsuki":
         return "#ef4444";
       case "grandline":
-        return "#fbbf24";
-      case "kpop":
-        return "#f472b6";
-      case "arcade8bit":
-        return "#facc15";
-      case "vinyl":
-        return "#f59e0b";
-      case "cyberpunk":
-        return "#22d3ee";
+        return "#c084fc";
       default:
         return "var(--accent)";
     }
@@ -364,50 +333,34 @@ export function Slider({
               )}
 
               <g clipPath={`url(#${clipId})`}>
-                {variant === "shinobi" && drag === null && (
-                  <path
-                    d={makeWavePath(trackWidth, 32, -amp * 0.75, 12)}
-                    fill="none"
-                    stroke="#f97316"
-                    strokeOpacity="0.65"
-                    strokeWidth="2.4"
-                    strokeLinecap="round"
-                    className={cn(isPlaying && "animate-pixel-wave")}
-                  />
-                )}
-                {variant === "cyberpunk" && drag === null && (
-                  <path
-                    d={makeZigzagPath(trackWidth, 18, -amp * 0.7, 12)}
-                    fill="none"
-                    stroke="#f43f5e"
-                    strokeOpacity="0.55"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                  />
-                )}
                 <path
                   d={wavePath}
                   fill="none"
                   stroke={trackColor}
-                  strokeWidth={variant === "vinyl" ? "4" : "3.5"}
-                  strokeLinecap={variant === "arcade8bit" ? "square" : "round"}
-                  strokeLinejoin={variant === "arcade8bit" ? "miter" : "round"}
-                  className={cn(isPlaying && drag === null && variant !== "cyberpunk" && "animate-pixel-wave")}
+                  strokeWidth="3.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                 />
               </g>
             </svg>
 
             <div
-              className="pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2 transition-transform duration-150 group-hover:scale-110"
+              className="pointer-events-none absolute top-1/2 -translate-x-1/2 -translate-y-1/2"
               style={{
-                left: `clamp(6px, ${pct}%, calc(100% - 6px))`,
+                left: `clamp(10px, ${pct}%, calc(100% - 10px))`,
+                transform: `translate(-50%, calc(-50% + ${thumbOffsetY.toFixed(2)}px))`,
               }}
             >
-              <PlayheadThumb variant={variant} isPlaying={isPlaying} dragging={drag !== null} />
+              <PlayheadThumb
+                variant={variant}
+                isPlaying={isPlaying}
+                dragging={drag !== null}
+                slopeAngle={slopeAngle}
+              />
             </div>
           </>
         ) : (
-          /* Default Slider Track */
+          /* Default Flat Studio Track */
           <div className="relative top-1/2 h-1 w-full -translate-y-1/2 overflow-hidden rounded-full bg-surface-4 transition-[height] duration-200 group-hover:h-1.5">
             <div className="absolute inset-y-0 left-0 bg-fg-3/40" style={{ width: `${bufPct}%` }} />
             <div

@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { app, BrowserWindow, ipcMain, Menu, screen, shell } from "electron";
+import { app, BrowserWindow, globalShortcut, ipcMain, Menu, screen, shell } from "electron";
 import type { RunningServer } from "../../server/src/app.js";
 import { backupLibraryOnUpdate } from "./backup.js";
 
@@ -154,6 +154,24 @@ function createMainWindow(url: string): BrowserWindow {
     if (!target.startsWith(url)) {
       event.preventDefault();
       if (/^https?:\/\//.test(target)) void shell.openExternal(target);
+    }
+  });
+  win.webContents.on("before-input-event", (event, input) => {
+    if (input.type !== "keyDown") return;
+    const k = input.key;
+    const c = input.code;
+    if (k === "MediaPlayPause" || k === "AudioPlay" || k === "AudioPause" || c === "MediaPlayPause") {
+      event.preventDefault();
+      dispatchMediaAction("toggle");
+    } else if (k === "MediaTrackNext" || k === "MediaNextTrack" || k === "AudioNext" || c === "MediaTrackNext") {
+      event.preventDefault();
+      dispatchMediaAction("next");
+    } else if (k === "MediaTrackPrevious" || k === "MediaPreviousTrack" || k === "AudioPrev" || c === "MediaTrackPrevious") {
+      event.preventDefault();
+      dispatchMediaAction("previous");
+    } else if (k === "MediaStop" || c === "MediaStop") {
+      event.preventDefault();
+      dispatchMediaAction("pause");
     }
   });
 
@@ -309,9 +327,29 @@ app.on("second-instance", () => {
 
 app.on("window-all-closed", () => app.quit());
 app.on("before-quit", () => void server?.close());
+app.on("will-quit", () => {
+  globalShortcut.unregisterAll();
+});
+
+function registerMediaShortcuts() {
+  const bindings: Array<[string, "toggle" | "next" | "previous" | "pause"]> = [
+    ["MediaPlayPause", "toggle"],
+    ["MediaNextTrack", "next"],
+    ["MediaPreviousTrack", "previous"],
+    ["MediaStop", "pause"],
+  ];
+  for (const [accel, action] of bindings) {
+    try {
+      globalShortcut.register(accel, () => dispatchMediaAction(action));
+    } catch {
+      /* ignore if OS or another app reserves the key */
+    }
+  }
+}
 
 void app.whenReady().then(() => {
   // macOS needs an app menu: without the Edit menu, Cmd+C/V/A don't reach text fields, and Cmd+Q has no home.
   rebuildPlaybackMenus();
+  registerMediaShortcuts();
   return launch();
 });

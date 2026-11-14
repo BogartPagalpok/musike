@@ -50,7 +50,7 @@ function Stage({ track, slot, className }: { track: Track; slot: number; classNa
         <VideoSlot
           priority={slot}
           expandable
-          className={cn("rounded-[16px]", portrait ? "h-[min(52dvh,560px)]" : "aspect-video w-full")}
+          className={cn("rounded-[18px] bg-transparent shadow-[0_24px_60px_rgb(0_0_0/0.45)]", portrait ? "h-[min(52dvh,560px)]" : "aspect-video w-full")}
           style={{ aspectRatio: Math.min(16 / 9, Math.max(9 / 16, aspect)) }}
         />
       </div>
@@ -394,7 +394,7 @@ function SheetMiniHeader({
           type="button"
           onClick={onVideoClick}
           title="Switch to video player"
-          className="w-28 shrink-0 overflow-hidden rounded-[8px] bg-black shadow-lg transition-transform active:scale-95"
+          className="w-28 shrink-0 overflow-hidden rounded-[8px] bg-transparent shadow-lg transition-transform active:scale-95"
         >
           <VideoSlot priority={SLOT.sheet} className="aspect-video w-full" />
         </button>
@@ -498,11 +498,11 @@ export function NowPlayingSheet({ open, onClose }: { open: boolean; onClose: () 
                 <div className={cn("absolute inset-0 flex items-center justify-center", !showsVideo && "touch-none")}>
                   {showsVideo ? (
                     <WorldStageFrame scene={sceneStyle} playing={status === "playing"} className="w-full">
-                      <div className="w-full overflow-hidden rounded-[inherit] bg-black shadow-[0_20px_50px_rgb(0_0_0/0.5)]">
+                      <div className="w-full overflow-hidden rounded-[inherit] bg-transparent shadow-[0_20px_50px_rgb(0_0_0/0.5)]">
                         <VideoSlot
                           priority={SLOT.sheet}
                           expandable
-                          className="mx-auto max-h-[100cqh] w-full"
+                          className="mx-auto max-h-[100cqh] w-full bg-transparent"
                           style={{ aspectRatio: Math.min(16 / 9, Math.max(9 / 16, aspect)) }}
                         />
                       </div>
@@ -535,7 +535,7 @@ export function NowPlayingSheet({ open, onClose }: { open: boolean; onClose: () 
                       type="button"
                       onClick={() => setView("player")}
                       title="Switch to full video player"
-                      className="group relative block w-full overflow-hidden rounded-2xl bg-black shadow-xl transition-transform active:scale-[0.98]"
+                      className="group relative block w-full overflow-hidden rounded-2xl bg-transparent shadow-xl transition-transform active:scale-[0.98]"
                     >
                       <VideoSlot
                         priority={SLOT.sheet}
