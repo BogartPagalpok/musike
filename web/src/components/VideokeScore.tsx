@@ -2,10 +2,10 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { cn } from "../lib/format";
-import { AUTO_ADVANCE_MS, playScoreSounds, useVideoke, type ScoreTone } from "../stores/videoke";
+import { AUTO_ADVANCE_MS, playScoreSounds, songbookCode, useVideoke, type ScoreTone } from "../stores/videoke";
 import { ArrowsOutIcon, MicrophoneStageIcon, PlayIcon, SkipForwardIcon, XIcon } from "./icons";
 
-const ROLL_SECONDS = 1.6;
+const ROLL_SECONDS = 1.5;
 
 const TONE_TEXT: Record<ScoreTone, string> = {
   bad: "text-danger",
@@ -14,14 +14,21 @@ const TONE_TEXT: Record<ScoreTone, string> = {
   great: "text-accent-text",
 };
 
-const TONE_BAR: Record<ScoreTone, string> = {
-  bad: "bg-danger",
-  meh: "bg-amber-400",
-  good: "bg-sky-400",
-  great: "bg-accent",
+const TONE_RING: Record<ScoreTone, string> = {
+  bad: "border-danger/45 bg-danger/12 text-danger",
+  meh: "border-amber-400/45 bg-amber-400/12 text-amber-300",
+  good: "border-sky-400/45 bg-sky-400/12 text-sky-300",
+  great: "border-accent/55 bg-accent-soft text-accent-text",
 };
 
-/** Karaoke-machine score screen: drumroll, big number, a roast, then it tucks itself away after 10 s. */
+function axisBarColor(val: number): string {
+  if (val >= 88) return "bg-emerald-400";
+  if (val >= 76) return "bg-sky-400";
+  if (val >= 62) return "bg-amber-400";
+  return "bg-danger";
+}
+
+/** Karaoke-machine & Utavie vocal judge score screen: drumroll, giant score + rank, funny roast, 5-axis breakdown. */
 export function VideokeScore() {
   const score = useVideoke((v) => v.score);
   const minimize = useVideoke((v) => v.minimize);
@@ -29,12 +36,15 @@ export function VideokeScore() {
   const dismiss = useVideoke((v) => v.dismiss);
   const playNext = useVideoke((v) => v.playNext);
   const singAgain = useVideoke((v) => v.singAgain);
+  const startMic = useVideoke((v) => v.startMic);
+  const holdScoreOpen = useVideoke((v) => v.holdScoreOpen);
+
   const [shown, setShown] = useState(0);
   const [revealed, setRevealed] = useState(false);
   const [left, setLeft] = useState(AUTO_ADVANCE_MS);
   const played = useRef(0);
 
-  // Drumroll + counter, once per score.
+  // Drumroll + spinning counter, once per score event.
   useEffect(() => {
     if (!score || played.current === score.id) return;
     played.current = score.id;
@@ -46,16 +56,17 @@ export function VideokeScore() {
         clearInterval(spin);
         setShown(score.score);
         setRevealed(true);
-      } else setShown(Math.floor(40 + Math.random() * 60));
-    }, 55);
+      } else {
+        setShown(Math.floor(35 + Math.random() * 65));
+      }
+    }, 50);
     return () => {
       clearInterval(spin);
-      // Only cut the sound if a different score replaced this one.
       if (useVideoke.getState().score?.id !== score.id) stopSound();
     };
   }, [score]);
 
-  // Countdown to the next song.
+  // Countdown to auto-minimize / next reserved song.
   useEffect(() => {
     if (!score?.advanceAt) return;
     const tick = () => setLeft(Math.max(0, (score.advanceAt ?? 0) - Date.now()));
@@ -74,6 +85,7 @@ export function VideokeScore() {
   if (!score) return null;
   const toneText = TONE_TEXT[score.tone];
   const secondsLeft = Math.ceil(left / 1000);
+  const code = songbookCode(score.track.id);
 
   return createPortal(
     <AnimatePresence>
@@ -86,107 +98,156 @@ export function VideokeScore() {
           role="dialog"
           aria-modal="true"
           aria-label="Videoke score"
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/75 p-3 backdrop-blur-md md:p-6"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/78 p-3 backdrop-blur-md md:p-6"
           onClick={minimize}
         >
           <motion.div
-            initial={{ scale: 0.88, y: 24 }}
+            initial={{ scale: 0.9, y: 20 }}
             animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.85, y: 120, opacity: 0 }}
+            exit={{ scale: 0.86, y: 110, opacity: 0 }}
             transition={{ type: "spring", stiffness: 320, damping: 28 }}
             onClick={(e) => e.stopPropagation()}
-            className="relative w-full max-w-[95vw] overflow-hidden rounded-[28px] border border-white/20 bg-surface-1/95 p-6 text-center shadow-[0_36px_100px_rgba(0,0,0,0.85)] backdrop-blur-2xl sm:max-w-lg md:max-w-2xl md:rounded-[34px] md:p-9"
+            className="scroll-area relative max-h-[92dvh] w-full max-w-[95vw] overflow-y-auto rounded-[26px] border border-white/20 bg-surface-1/95 p-5 text-center shadow-[0_36px_100px_rgba(0,0,0,0.85)] backdrop-blur-2xl sm:max-w-lg sm:p-6 md:max-w-2xl md:rounded-[32px] md:p-8"
           >
             <button
               type="button"
               onClick={minimize}
               aria-label="Minimize score"
-              className="absolute top-4 right-4 grid size-10 place-items-center rounded-full bg-surface-3/70 text-fg-2 transition-colors hover:bg-surface-4 hover:text-fg md:top-5 md:right-5 md:size-11"
+              className="absolute top-3.5 right-3.5 grid size-9 place-items-center rounded-full bg-surface-3/80 text-fg-2 transition-colors hover:bg-surface-4 hover:text-fg md:top-5 md:right-5 md:size-10"
             >
-              <XIcon size={20} />
+              <XIcon size={18} />
             </button>
 
-            <span className="inline-flex items-center gap-2 rounded-full bg-accent-soft px-4 py-1.5 text-xs font-extrabold tracking-widest text-accent-text uppercase md:text-sm">
-              <MicrophoneStageIcon size={16} weight="fill" />
-              <span>{revealed ? score.badge : "Scoring…"}</span>
-            </span>
-            <p className="mt-3 truncate text-base font-bold text-fg-2 md:text-lg">{score.track.title}</p>
-
-            <div className="my-5 flex flex-col items-center justify-center rounded-[24px] border border-line-strong bg-bg/80 py-6 shadow-inner md:my-6 md:rounded-[28px] md:py-8">
-              <span className="text-xs font-extrabold tracking-[0.26em] text-fg-3 uppercase md:text-sm">Your Score</span>
-              <motion.span
-                key={revealed ? "final" : "rolling"}
-                initial={revealed ? { scale: 1.55 } : false}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 380, damping: 14 }}
-                className={cn(
-                  "mt-1 font-mono text-[88px] leading-none font-black tracking-tighter tabular-nums sm:text-[104px] md:text-[136px]",
-                  revealed ? toneText : "text-fg",
-                )}
-              >
-                {String(shown).padStart(2, "0")}
-              </motion.span>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-3.5 py-1 text-[11px] font-extrabold tracking-widest text-accent-text uppercase md:text-xs">
+                <MicrophoneStageIcon size={14} weight="fill" />
+                <span>{revealed ? score.badge : "Judging Vocals…"}</span>
+              </span>
+              <span className="rounded-full bg-surface-3/80 px-2.5 py-1 font-mono text-[11px] font-bold text-fg-3">
+                SONG #{code}
+              </span>
             </div>
 
-            <div className="min-h-[78px] md:min-h-[92px]">
+            <p className="mt-2.5 truncate px-6 text-sm font-bold text-fg-2 md:text-base">{score.track.title}</p>
+
+            {/* Giant Score Readout + Rank Stamp */}
+            <div className="my-4 flex items-center justify-center gap-4 rounded-[22px] border border-line-strong bg-bg/85 px-5 py-5 shadow-inner md:my-5 md:gap-7 md:rounded-[26px] md:py-7">
+              <div className="flex flex-col items-center">
+                <span className="text-[11px] font-extrabold tracking-[0.24em] text-fg-3 uppercase md:text-xs">
+                  {score.heard ? "Vocal Score" : "Party Roll"}
+                </span>
+                <motion.span
+                  key={revealed ? "final" : "rolling"}
+                  initial={revealed ? { scale: 1.45 } : false}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 380, damping: 14 }}
+                  className={cn(
+                    "mt-0.5 font-mono text-[82px] leading-none font-black tracking-tighter tabular-nums sm:text-[98px] md:text-[124px]",
+                    revealed ? toneText : "text-fg",
+                  )}
+                >
+                  {String(shown).padStart(2, "0")}
+                </motion.span>
+              </div>
+
+              {revealed && (
+                <motion.div
+                  initial={{ scale: 0.4, rotate: -14, opacity: 0 }}
+                  animate={{ scale: 1, rotate: -4, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 420, damping: 16 }}
+                  className={cn(
+                    "flex size-16 shrink-0 flex-col items-center justify-center rounded-2xl border-2 shadow-lg sm:size-20 md:size-24",
+                    TONE_RING[score.tone],
+                  )}
+                >
+                  <span className="text-[9px] font-extrabold tracking-widest uppercase opacity-80 md:text-[10px]">
+                    Rank
+                  </span>
+                  <span className="font-mono text-2xl leading-none font-black sm:text-3xl md:text-4xl">
+                    {score.rank}
+                  </span>
+                </motion.div>
+              )}
+            </div>
+
+            {/* Judge's Verdict & Roast */}
+            <div className="min-h-[68px] md:min-h-[78px]">
               {revealed ? (
                 <>
-                  <h2 className={cn("text-3xl font-black tracking-tight sm:text-4xl md:text-[42px] md:leading-tight", toneText)}>
+                  <h2 className={cn("text-2xl font-black tracking-tight sm:text-3xl md:text-4xl", toneText)}>
                     {score.headline}
                   </h2>
-                  <p className="mx-auto mt-2 max-w-lg text-base leading-relaxed font-medium text-fg-2 md:text-lg">
-                    {score.roast}
+                  <p className="mx-auto mt-1.5 max-w-lg text-sm leading-relaxed font-medium text-fg-2 md:text-base">
+                    “{score.roast}”
                   </p>
                 </>
               ) : (
-                <p className="pt-5 text-base font-medium text-fg-3 md:text-lg">
-                  Checking pitch, stability, expression, technique and rhythm…
+                <p className="pt-4 text-sm font-medium text-fg-3 md:text-base">
+                  Analyzing intonation, note stability, vibrato, dynamic swell &amp; phrasing…
                 </p>
               )}
             </div>
 
+            {/* 5-Axis Utavie Vocal Breakdown + Judge's Technical Note */}
             {revealed && (
-              <div className="mt-5 grid gap-2 rounded-[18px] border border-line bg-bg/55 p-4 text-left md:mt-6 md:grid-cols-2 md:gap-x-6 md:gap-y-2.5 md:p-5">
-                {score.axes.map((ax) => (
-                  <div key={ax.label} className="flex items-center gap-3 text-xs md:text-[13px]">
-                    <span className="w-22 shrink-0 font-bold text-fg-2">{ax.label}</span>
-                    <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-3">
-                      <span className={cn("block h-full rounded-full transition-all duration-500", TONE_BAR[score.tone])} style={{ width: `${ax.value}%` }} />
-                    </span>
-                    <span className="w-8 text-right font-mono font-extrabold text-fg tabular-nums">{ax.value}</span>
-                  </div>
-                ))}
-                {!score.heard && (
-                  <p className="pt-1 text-xs text-fg-3 md:col-span-2">
-                    Mic was off, so the machine guessed. Turn on the mic for a real score.
-                  </p>
-                )}
+              <div className="mt-4 rounded-[18px] border border-line bg-bg/60 p-3.5 text-left md:mt-5 md:p-4">
+                <div className="grid gap-2 md:grid-cols-2 md:gap-x-6 md:gap-y-2.5">
+                  {score.axes.map((ax) => (
+                    <div key={ax.label} className="flex items-center gap-2.5 text-xs md:text-[13px]">
+                      <span className="w-20 shrink-0 font-bold text-fg-2">{ax.label}</span>
+                      <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-3">
+                        <span
+                          className={cn("block h-full rounded-full transition-all duration-500", axisBarColor(ax.value))}
+                          style={{ width: `${ax.value}%` }}
+                        />
+                      </span>
+                      <span className="w-8 text-right font-mono font-extrabold text-fg tabular-nums">{ax.value}</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-3 border-t border-line/70 pt-2 text-[11.5px] leading-snug text-fg-3 md:text-xs">
+                  <strong className="font-semibold text-fg-2">Judge’s report:</strong> {score.judgeNote}
+                </p>
               </div>
             )}
 
-            <div className="mt-6 grid grid-cols-2 gap-3">
+            {/* Action Buttons */}
+            <div className="mt-5 flex flex-wrap gap-2.5">
+              {!score.heard && (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await startMic();
+                    singAgain();
+                  }}
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded-full bg-emerald-500/20 px-4 text-xs font-bold text-emerald-300 ring-1 ring-emerald-400/40 transition-colors hover:bg-emerald-500/30 active:scale-95 md:text-sm"
+                >
+                  <MicrophoneStageIcon size={16} weight="fill" />
+                  <span>Turn On Mic &amp; Sing for Real Score</span>
+                </button>
+              )}
               <button
                 type="button"
                 onClick={singAgain}
-                className="flex h-12 items-center justify-center gap-2 rounded-full bg-surface-3 px-4 text-sm font-bold text-fg transition-colors hover:bg-surface-4 active:scale-95 md:h-13 md:text-base"
+                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-surface-3 px-4 text-xs font-bold text-fg transition-colors hover:bg-surface-4 active:scale-95 md:h-12 md:text-sm"
               >
-                <PlayIcon size={16} weight="fill" />
-                Sing again
+                <PlayIcon size={15} weight="fill" />
+                <span>Sing Again</span>
               </button>
               {score.hasNext ? (
                 <button
                   type="button"
                   onClick={playNext}
-                  className="flex h-12 items-center justify-center gap-2 rounded-full bg-accent px-4 text-sm font-bold text-accent-ink transition-transform hover:brightness-110 active:scale-95 md:h-13 md:text-base"
+                  className="flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-accent px-4 text-xs font-bold text-accent-ink transition-transform hover:brightness-110 active:scale-95 md:h-12 md:text-sm"
                 >
-                  <SkipForwardIcon size={16} weight="fill" />
-                  Next song
+                  <SkipForwardIcon size={15} weight="fill" />
+                  <span>Next Reserved</span>
                 </button>
               ) : (
                 <button
                   type="button"
                   onClick={dismiss}
-                  className="flex h-12 items-center justify-center rounded-full bg-accent px-4 text-sm font-bold text-accent-ink transition-transform hover:brightness-110 active:scale-95 md:h-13 md:text-base"
+                  className="flex h-11 flex-1 items-center justify-center rounded-full bg-accent px-4 text-xs font-bold text-accent-ink transition-transform hover:brightness-110 active:scale-95 md:h-12 md:text-sm"
                 >
                   Done
                 </button>
@@ -194,13 +255,25 @@ export function VideokeScore() {
             </div>
 
             {score.advanceAt && (
-              <div className="mt-5">
+              <div className="mt-4">
                 <div className="h-1.5 overflow-hidden rounded-full bg-surface-3">
-                  <div className="h-full bg-accent transition-[width] duration-100 ease-linear" style={{ width: `${(left / AUTO_ADVANCE_MS) * 100}%` }} />
+                  <div
+                    className="h-full bg-accent transition-[width] duration-100 ease-linear"
+                    style={{ width: `${(left / AUTO_ADVANCE_MS) * 100}%` }}
+                  />
                 </div>
-                <p className="mt-2 text-xs font-medium text-fg-3 md:text-sm">
-                  {score.hasNext ? `Next reserved song in ${secondsLeft}s` : `Minimizing in ${secondsLeft}s`}
-                </p>
+                <div className="mt-1.5 flex items-center justify-between text-[11px] text-fg-3 md:text-xs">
+                  <span>
+                    {score.hasNext ? `Next reserved song in ${secondsLeft}s` : `Auto-minimizing in ${secondsLeft}s`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={holdScoreOpen}
+                    className="font-semibold text-fg-2 underline-offset-2 hover:text-fg hover:underline"
+                  >
+                    Keep open
+                  </button>
+                </div>
               </div>
             )}
           </motion.div>
@@ -213,24 +286,31 @@ export function VideokeScore() {
           exit={{ opacity: 0, y: 30 }}
           className="fixed right-3 bottom-[calc(142px+env(safe-area-inset-bottom))] z-[45] md:right-5 md:bottom-[108px]"
         >
-          <div className="flex items-center gap-3 rounded-full border border-white/20 bg-surface-1/95 py-2 pr-2 pl-2 shadow-[0_16px_40px_rgba(0,0,0,0.6)] backdrop-blur-xl">
-            <button type="button" onClick={expand} className="flex min-w-0 items-center gap-3 text-left" title="Show score">
-              <span className={cn("grid size-12 shrink-0 place-items-center rounded-full bg-bg font-mono text-xl font-black tabular-nums md:size-14 md:text-2xl", toneText)}>
+          <div className="flex items-center gap-2.5 rounded-full border border-white/20 bg-surface-1/95 py-1.5 pr-2 pl-2 shadow-[0_16px_40px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+            <button type="button" onClick={expand} className="flex min-w-0 items-center gap-2.5 text-left" title="Show full score">
+              <span
+                className={cn(
+                  "grid size-11 shrink-0 place-items-center rounded-full bg-bg font-mono text-lg font-black tabular-nums md:size-13 md:text-xl",
+                  toneText,
+                )}
+              >
                 {score.score}
               </span>
-              <span className="min-w-0 max-w-[200px] md:max-w-[240px]">
-                <span className={cn("block truncate text-sm font-extrabold md:text-base", toneText)}>{score.headline}</span>
-                <span className="block truncate text-xs text-fg-3">{score.track.title}</span>
+              <span className="min-w-0 max-w-[190px] md:max-w-[230px]">
+                <span className={cn("block truncate text-xs font-extrabold md:text-sm", toneText)}>
+                  {score.rank} · {score.headline}
+                </span>
+                <span className="block truncate text-[11px] text-fg-3">{score.track.title}</span>
               </span>
-              <ArrowsOutIcon size={16} className="shrink-0 text-fg-3" />
+              <ArrowsOutIcon size={15} className="shrink-0 text-fg-3" />
             </button>
             <button
               type="button"
               onClick={dismiss}
               aria-label="Close score"
-              className="grid size-9 shrink-0 place-items-center rounded-full text-fg-3 hover:bg-surface-3 hover:text-fg"
+              className="grid size-8 shrink-0 place-items-center rounded-full text-fg-3 hover:bg-surface-3 hover:text-fg"
             >
-              <XIcon size={16} />
+              <XIcon size={15} />
             </button>
           </div>
         </motion.div>
@@ -239,4 +319,3 @@ export function VideokeScore() {
     document.body,
   );
 }
-
