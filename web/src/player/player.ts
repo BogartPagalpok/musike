@@ -748,6 +748,14 @@ audio.muted = videoEl.muted = usePlayer.getState().muted;
 
 export const selectCurrent = (s: PlayerState): Track | null => s.queue[s.index] ?? null;
 
+/** Sub-frame media playback clock (seconds) for 60fps scrolling vocal pitch guides. */
+export function getExactPlaybackTime(): number {
+  const s = usePlayer.getState();
+  const m = s.mediaKind === "video" ? videoEl : audio;
+  const ct = m.currentTime;
+  return Number.isFinite(ct) && ct > 0 ? ct : s.position;
+}
+
 /** Whether the track can be shown as video (art tracks are audio with a still image). */
 
 // Persistence: resume the same queue and position after a reload.

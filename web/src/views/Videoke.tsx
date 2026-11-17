@@ -31,29 +31,115 @@ interface KaraokeChannel {
   id: string;
   name: string;
   tagline: string;
-  suffix: string;
+  queryName: string;
   badge: string;
+  /** Strict matcher on YouTube uploader name (`track.artist`) so Sing King never leaks into other channel tabs. */
+  match?: RegExp;
 }
 
 const KARAOKE_CHANNELS: KaraokeChannel[] = [
-  { id: "all", name: "All Channels", tagline: "Best match across YouTube", suffix: "", badge: "MIX" },
-  { id: "singking", name: "Sing King", tagline: "World's #1 pop karaoke", suffix: "Sing King", badge: "SK" },
-  { id: "coversph", name: "CoversPH", tagline: "OPM & billboard hits", suffix: "CoversPH", badge: "PH" },
-  { id: "karafun", name: "KaraFun", tagline: "Studio backing tracks", suffix: "KaraFun", badge: "KF" },
-  { id: "acousticheaven", name: "AcousticHeaven", tagline: "Guitar & unplugged", suffix: "AcousticHeaven", badge: "AH" },
-  { id: "myallkaraoke", name: "MyAllKaraoke", tagline: "Classic videoke & OPM", suffix: "My All Time Karaoke", badge: "MA" },
-  { id: "stingray", name: "Stingray Karaoke", tagline: "Pro lyric videos", suffix: "Stingray Karaoke", badge: "ST" },
+  {
+    id: "all",
+    name: "All Channels",
+    tagline: "Balanced mix across karaoke channels",
+    queryName: "",
+    badge: "MIX",
+  },
+  {
+    id: "singking",
+    name: "Sing King",
+    tagline: "World's #1 pop karaoke",
+    queryName: "Sing King Karaoke",
+    badge: "SK",
+    match: /\bsing\s*king\b/i,
+  },
+  {
+    id: "coversph",
+    name: "CoversPH",
+    tagline: "OPM & billboard hits",
+    queryName: "CoversPH",
+    badge: "PH",
+    match: /\bcovers\s*ph\b/i,
+  },
+  {
+    id: "karafun",
+    name: "KaraFun",
+    tagline: "Studio backing tracks",
+    queryName: "KaraFun Karaoke",
+    badge: "KF",
+    match: /\bkarafun\b/i,
+  },
+  {
+    id: "acousticheaven",
+    name: "AcousticHeaven",
+    tagline: "Guitar & unplugged",
+    queryName: "AcousticHeaven",
+    badge: "AH",
+    match: /\bacoustic\s*heaven\b/i,
+  },
+  {
+    id: "myallkaraoke",
+    name: "MyAllKaraoke",
+    tagline: "Classic videoke & OPM",
+    queryName: "My All Time Karaoke",
+    badge: "MA",
+    match: /\b(?:my\s*all\s*(?:time\s*)?karaoke|myallkaraoke|atomic\s*karaoke|platinum\s*karaoke|megapro)\b/i,
+  },
+  {
+    id: "stingray",
+    name: "Stingray Karaoke",
+    tagline: "Pro lyric videos",
+    queryName: "Stingray Karaoke",
+    badge: "ST",
+    match: /\bstingray\b/i,
+  },
 ];
 
 const KARAOKE_CATEGORIES = [
-  { id: "trending", label: "Trending Hits", query: "top hits karaoke Sing King" },
-  { id: "pop", label: "Pop & R&B", query: "pop rnb hits karaoke Sing King" },
-  { id: "opm", label: "OPM Videoke", query: "opm classic hits karaoke CoversPH" },
-  { id: "throwback", label: "90s & 2000s", query: "90s 2000s throwback hits karaoke" },
-  { id: "rock", label: "Rock Anthems", query: "classic rock anthems karaoke" },
-  { id: "ballads", label: "Power Ballads", query: "birit power ballads love songs karaoke" },
-  { id: "acoustic", label: "Acoustic & Duets", query: "acoustic duet love song karaoke" },
+  { id: "trending", label: "Trending Hits", query: "top hits karaoke", short: "hits" },
+  { id: "pop", label: "Pop & R&B", query: "pop rnb hits karaoke", short: "pop" },
+  { id: "opm", label: "OPM Videoke", query: "opm tagalog hits karaoke", short: "opm" },
+  { id: "throwback", label: "90s & 2000s", query: "90s 2000s throwback karaoke", short: "90s 2000s" },
+  { id: "rock", label: "Rock Anthems", query: "classic rock anthems karaoke", short: "rock" },
+  { id: "ballads", label: "Power Ballads", query: "power ballads love songs karaoke", short: "ballads" },
+  { id: "acoustic", label: "Acoustic & Duets", query: "acoustic duet love song karaoke", short: "acoustic" },
 ];
+
+/**
+ * Interleaves tracks round-robin by uploader channel (`track.artist`) so no single channel
+ * (such as Sing King) monopolizes "All Channels" results.
+ */
+function interleaveByChannel(tracks: Track[]): Track[] {
+  const buckets = new Map<string, Track[]>();
+  const seenIds = new Set<string>();
+
+  for (const tr of tracks) {
+    if (seenIds.has(tr.id)) continue;
+    seenIds.add(tr.id);
+    const key = (tr.artist || "unknown").trim().toLowerCase();
+    let list = buckets.get(key);
+    if (!list) {
+      list = [];
+      buckets.set(key, list);
+    }
+    list.push(tr);
+  }
+
+  const queues = [...buckets.values()];
+  const out: Track[] = [];
+  let added = true;
+  while (added) {
+    added = false;
+    for (const q of queues) {
+      const next = q.shift();
+      if (next) {
+        out.push(next);
+        added = true;
+      }
+    }
+  }
+  return out;
+}
 
 export default function Videoke() {
   const t = useT();
@@ -107,21 +193,60 @@ export default function Videoke() {
     [activeChannel],
   );
 
-  const effectiveQuery = useMemo(() => {
-    const base = queryTerm.trim();
-    if (base) {
-      return channelObj.suffix ? `${base} ${channelObj.suffix} karaoke` : base;
-    }
-    const catQuery = KARAOKE_CATEGORIES.find((c) => c.id === activeCategory)?.query ?? KARAOKE_CATEGORIES[0].query;
-    return channelObj.suffix ? `${catQuery} ${channelObj.suffix}` : catQuery;
-  }, [queryTerm, activeCategory, channelObj]);
+  const categoryObj = useMemo(
+    () => KARAOKE_CATEGORIES.find((c) => c.id === activeCategory) ?? KARAOKE_CATEGORIES[0],
+    [activeCategory],
+  );
 
   useEffect(() => {
     const ctrl = new AbortController();
     setLoading(true);
     setError("");
-    api
-      .search(effectiveQuery, "karaoke", ctrl.signal)
+
+    const base = queryTerm.trim();
+
+    const runSearch = async () => {
+      if (channelObj.id === "all") {
+        // All Channels (MIX): blend multiple channel families and interleave round-robin so Sing King doesn't dominate!
+        if (base) {
+          const [general, alt] = await Promise.all([
+            api.search(`${base} karaoke`, "karaoke", ctrl.signal),
+            api.search(`${base} CoversPH KaraFun karaoke`, "karaoke", ctrl.signal).catch(() => [] as Track[]),
+          ]);
+          return interleaveByChannel([...general, ...alt]);
+        }
+        const [q1, q2, q3] = await Promise.all([
+          api.search(categoryObj.query, "karaoke", ctrl.signal),
+          api.search(`CoversPH ${categoryObj.short} karaoke`, "karaoke", ctrl.signal).catch(() => [] as Track[]),
+          api.search(`KaraFun AcousticHeaven ${categoryObj.short} karaoke`, "karaoke", ctrl.signal).catch(() => [] as Track[]),
+        ]);
+        return interleaveByChannel([...q2, ...q3, ...q1]);
+      }
+
+      // Specific Channel Selected: query specifically for that channel AND strictly filter out other channels!
+      const primaryQuery = base
+        ? `${channelObj.queryName} ${base} karaoke`
+        : `${channelObj.queryName} ${categoryObj.short} karaoke`;
+      const backupQuery = base ? `${base} ${channelObj.queryName}` : `${channelObj.queryName} karaoke`;
+
+      const [primary, backup] = await Promise.all([
+        api.search(primaryQuery, "karaoke", ctrl.signal),
+        api.search(backupQuery, "karaoke", ctrl.signal).catch(() => [] as Track[]),
+      ]);
+
+      const merged: Track[] = [];
+      const seen = new Set<string>();
+      for (const item of [...primary, ...backup]) {
+        if (seen.has(item.id)) continue;
+        seen.add(item.id);
+        if (!channelObj.match || channelObj.match.test(item.artist) || channelObj.match.test(item.title)) {
+          merged.push(item);
+        }
+      }
+      return merged;
+    };
+
+    runSearch()
       .then((list) => {
         setResults(list);
         setLoading(false);
@@ -131,8 +256,9 @@ export default function Videoke() {
         setError(e.message || "Failed to load karaoke songs");
         setLoading(false);
       });
+
     return () => ctrl.abort();
-  }, [effectiveQuery, retry]);
+  }, [queryTerm, channelObj, categoryObj, retry]);
 
   // Filter visible results if the user typed a 3-5 digit #code from the songbook
   const displayedResults = useMemo(() => {
@@ -247,18 +373,13 @@ export default function Videoke() {
         }
       />
 
-      {/* Main Responsive Videoke Layout:
-       *  - Sidebar mode (centerHasStage): Single clean Songbook + Reservation remote (main TV stage lives on the right).
-       *  - Wide Default mode (@[980px]/videoke): 2-column Sticky Stage + Songbook Console side-by-side!
-       *  - Mobile / Tablet: Compact Stage on top (when singing), Search + Filters + Results grouped right below!
-       */}
       <div
         className={cn(
           "grid grid-cols-1 gap-5 px-4 md:px-6",
           !centerHasStage && "@[980px]/videoke:grid-cols-[minmax(0,1.32fr)_minmax(340px,1fr)] @[980px]/videoke:items-start",
         )}
       >
-        {/* STAGE COLUMN (Hidden on mobile when nothing is playing so the Songbook sits right at the top!) */}
+        {/* STAGE COLUMN */}
         {centerHasStage ? (
           (currentTrack || upNext.length > 0) && (
             <div className="flex flex-col gap-2.5">
@@ -319,38 +440,38 @@ export default function Videoke() {
                     )}
                   </div>
 
-                  {/* Full 16:9 Karaoke Video Screen */}
-                  {showsVideo ? (
-                    <VideoSlot
-                      priority={SLOT.videoke}
-                      expandable
-                      className="mx-auto aspect-video max-h-[56dvh] w-full rounded-[14px] bg-black shadow-2xl"
-                      style={{ aspectRatio: Math.min(16 / 9, Math.max(4 / 3, aspect || 16 / 9)) }}
-                    />
-                  ) : (
-                    <div className="relative flex aspect-video max-h-[50dvh] w-full flex-col items-center justify-center overflow-hidden rounded-[14px] bg-black/85 text-center">
-                      <Artwork
-                        src={currentTrack.art}
-                        fallback={currentTrack.thumb}
-                        className="absolute inset-0 size-full object-cover opacity-35 blur-sm"
+                  {/* Unified DAM/Utavie Karaoke TV Monitor: Scrolling Vocal Guide on Top + 16:9 Karaoke Video Below! */}
+                  <div className="flex flex-col overflow-hidden rounded-[16px] border border-white/15 bg-black shadow-2xl">
+                    <PitchGuide overlay />
+                    {showsVideo ? (
+                      <VideoSlot
+                        priority={SLOT.videoke}
+                        expandable
+                        className="mx-auto aspect-video max-h-[52dvh] w-full bg-black"
+                        style={{ aspectRatio: Math.min(16 / 9, Math.max(4 / 3, aspect || 16 / 9)) }}
                       />
-                      <div className="relative z-10 flex flex-col items-center gap-2 px-4">
-                        <span className="rounded-full bg-black/70 px-3 py-1 text-xs font-medium text-white backdrop-blur-md">
-                          {statusText ?? "Loading Videoke screen…"}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setPreferVideo(true)}
-                          className="rounded-full bg-accent px-4 py-1.5 text-xs font-bold text-accent-ink"
-                        >
-                          Switch to Video Screen
-                        </button>
+                    ) : (
+                      <div className="relative flex aspect-video max-h-[46dvh] w-full flex-col items-center justify-center overflow-hidden bg-black/85 text-center">
+                        <Artwork
+                          src={currentTrack.art}
+                          fallback={currentTrack.thumb}
+                          className="absolute inset-0 size-full object-cover opacity-35 blur-sm"
+                        />
+                        <div className="relative z-10 flex flex-col items-center gap-2 px-4">
+                          <span className="rounded-full bg-black/70 px-3 py-1 text-xs font-medium text-white backdrop-blur-md">
+                            {statusText ?? "Loading Videoke screen…"}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setPreferVideo(true)}
+                            className="rounded-full bg-accent px-4 py-1.5 text-xs font-bold text-accent-ink"
+                          >
+                            Switch to Video Screen
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  )}
-
-                  {/* Utavie Scrolling Vocal Pitch Guide */}
-                  <PitchGuide compact={!isMd} />
+                    )}
+                  </div>
 
                   {/* Stage Footer Controls */}
                   <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
@@ -395,7 +516,7 @@ export default function Videoke() {
           </div>
         )}
 
-        {/* SONGBOOK & SEARCH CONSOLE COLUMN (Search Input + Channels + Results always stay together!) */}
+        {/* SONGBOOK & SEARCH CONSOLE COLUMN */}
         <div className="flex min-w-0 flex-col gap-3.5">
           <div className="flex flex-col gap-2.5">
             <form
@@ -499,9 +620,7 @@ export default function Videoke() {
               <span className="truncate">
                 {queryTerm
                   ? `Results for "${queryTerm}"${channelObj.id !== "all" ? ` · ${channelObj.name}` : ""}`
-                  : `${KARAOKE_CATEGORIES.find((c) => c.id === activeCategory)?.label ?? "Trending"} Songbook${
-                      channelObj.id !== "all" ? ` · ${channelObj.name}` : ""
-                    }`}
+                  : `${categoryObj.label} Songbook${channelObj.id !== "all" ? ` · ${channelObj.name}` : ""}`}
               </span>
             </h2>
             {displayedResults && (
@@ -531,7 +650,22 @@ export default function Videoke() {
           )}
 
           {!loading && !error && displayedResults && displayedResults.length === 0 && (
-            <p className="py-10 text-center text-sm text-fg-2">{t.search.nothingFound}</p>
+            <div className="flex flex-col items-center gap-2 rounded-[16px] border border-line bg-surface-1/60 px-4 py-8 text-center">
+              <p className="text-sm font-semibold text-fg">
+                {channelObj.id !== "all"
+                  ? `No matching upload found on ${channelObj.name}`
+                  : t.search.nothingFound}
+              </p>
+              {channelObj.id !== "all" && (
+                <button
+                  type="button"
+                  onClick={() => setActiveChannel("all")}
+                  className="mt-1 rounded-full bg-accent px-4 py-1.5 text-xs font-bold text-accent-ink hover:brightness-110"
+                >
+                  Search across All Channels instead
+                </button>
+              )}
+            </div>
           )}
 
           {!loading && !error && displayedResults && displayedResults.length > 0 && (
@@ -583,7 +717,7 @@ export default function Videoke() {
                         <span className="rounded bg-accent-soft/70 px-1.5 py-0.2 font-mono text-accent-text">
                           #{code}
                         </span>
-                        {track.artist && <span className="truncate">{track.artist}</span>}
+                        {track.artist && <span className="truncate text-fg-2">{track.artist}</span>}
                       </div>
                       <button
                         type="button"

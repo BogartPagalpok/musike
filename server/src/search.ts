@@ -114,8 +114,8 @@ function reason(e: unknown): string {
 }
 
 const KARAOKE_MATCH =
-  /\b(karaoke|videoke|instrumental|minus\s*one|backing\s*track|off\s*vocal|no\s*vocal|sing\s*king|covers\s*ph|karafun|acousticheaven|myallkaraoke|my\s*all\s*time\s*karaoke|stingray|atomic\s*karaoke|karaokey|karaokeys|musisi)\b/i;
-const NON_KARAOKE_NOISE = /\b(official\s+music\s+video|live\s+on\s+wish|reaction|tutorial|guitar\s+lesson)\b/i;
+  /\b(karaoke|videoke|instrumental|minus\s*one|backing\s*track|off\s*vocal|no\s*vocal|sing\s*king|covers\s*ph|karafun|acoustic\s*heaven|myallkaraoke|my\s*all\s*(?:time\s*)?karaoke|stingray|atomic\s*karaoke|platinum\s*karaoke|magic\s*sing|megapro|zoom\s*karaoke|sunfly|karaokey|karaokeys|musisi)\b/i;
+const NON_KARAOKE_NOISE = /\b(official\s+music\s+video|live\s+on\s+wish|reaction|vocal\s+coach|tutorial|guitar\s+lesson)\b/i;
 
 /**
  * YouTube Music first; then plain YouTube search (another endpoint, videos only), which also covers the Android app,

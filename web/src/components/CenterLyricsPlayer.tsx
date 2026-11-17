@@ -177,38 +177,49 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
             </div>
           )}
 
-          {/* Main Video / Artwork Stage */}
+          {/* Main Video / Artwork Stage (Unified DAM/Utavie TV Monitor with Vocal Pitch Guide on Top!) */}
           <div className={cn("flex min-h-0 w-full items-center justify-center", isVideoke ? "flex-1 py-0.5" : "py-4")}>
-            {showsVideo ? (
+            {isVideoke ? (
+              <WorldStageFrame scene={sceneStyle} playing={status === "playing"} className="w-full">
+                <div className="flex w-full flex-col overflow-hidden rounded-[inherit] bg-black shadow-[0_24px_60px_rgba(0,0,0,0.65)] ring-1 ring-white/15">
+                  <PitchGuide overlay className="shrink-0" />
+                  {showsVideo ? (
+                    <VideoSlot
+                      priority={SLOT.center}
+                      expandable
+                      className="mx-auto aspect-video max-h-[50dvh] w-full bg-black"
+                      style={{ aspectRatio: Math.min(16 / 9, Math.max(9 / 16, aspect)) }}
+                    />
+                  ) : (
+                    <div className="relative flex aspect-video max-h-[46dvh] w-full flex-col items-center justify-center overflow-hidden bg-black/85 text-center">
+                      <Artwork src={track.art} fallback={track.thumb} className="absolute inset-0 size-full object-cover opacity-35 blur-sm" />
+                      <div className="relative z-10 flex flex-col items-center gap-2.5 px-4">
+                        <span className="rounded-full bg-black/70 px-3.5 py-1 text-xs font-medium text-white backdrop-blur-md">
+                          {statusText ?? "Videoke video paused or in audio mode"}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setPreferVideo(true)}
+                          className="rounded-full bg-accent px-4 py-1.5 text-xs font-bold text-accent-ink transition-transform hover:scale-105"
+                        >
+                          Switch to Karaoke Video Screen
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </WorldStageFrame>
+            ) : showsVideo ? (
               <WorldStageFrame scene={sceneStyle} playing={status === "playing"} className="w-full">
                 <div className="w-full overflow-hidden rounded-[inherit] bg-black shadow-[0_24px_60px_rgba(0,0,0,0.6)] ring-1 ring-white/12">
                   <VideoSlot
                     priority={SLOT.center}
                     expandable
-                    className={cn(
-                      "mx-auto aspect-video w-full bg-black",
-                      isVideoke ? "max-h-[54dvh]" : "max-h-[44dvh]",
-                    )}
+                    className="mx-auto aspect-video max-h-[44dvh] w-full bg-black"
                     style={{ aspectRatio: Math.min(16 / 9, Math.max(9 / 16, aspect)) }}
                   />
                 </div>
               </WorldStageFrame>
-            ) : isVideoke ? (
-              <div className="relative flex aspect-video max-h-[50dvh] w-full flex-col items-center justify-center overflow-hidden rounded-[18px] bg-black/85 text-center shadow-2xl ring-1 ring-white/15">
-                <Artwork src={track.art} fallback={track.thumb} className="absolute inset-0 size-full object-cover opacity-35 blur-sm" />
-                <div className="relative z-10 flex flex-col items-center gap-2.5 px-4">
-                  <span className="rounded-full bg-black/70 px-3.5 py-1 text-xs font-medium text-white backdrop-blur-md">
-                    {statusText ?? "Videoke video paused or in audio mode"}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setPreferVideo(true)}
-                    className="rounded-full bg-accent px-4 py-1.5 text-xs font-bold text-accent-ink transition-transform hover:scale-105"
-                  >
-                    Switch to Karaoke Video Screen
-                  </button>
-                </div>
-              </div>
             ) : (
               <WorldStageFrame scene={sceneStyle} playing={status === "playing"} className="aspect-square max-h-[38dvh] w-auto">
                 <div className="relative aspect-square max-h-[38dvh] w-full overflow-hidden rounded-[inherit] shadow-[0_24px_60px_rgba(0,0,0,0.55)] ring-1 ring-white/12">
@@ -222,9 +233,6 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
               </WorldStageFrame>
             )}
           </div>
-
-          {/* Live Utavie Pitch Guide docked cleanly under the Karaoke Video */}
-          {isVideoke && <PitchGuide compact className="shrink-0" />}
 
           {/* Track Footer & Stage Action Bar */}
           <div className="flex shrink-0 flex-col gap-2 px-1">

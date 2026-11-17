@@ -4,6 +4,8 @@ import {
   CornersInIcon,
   CornersOutIcon,
   HeadphonesIcon,
+  MicrophoneStageIcon,
+  WaveformIcon,
   XIcon,
 } from "./icons";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -13,8 +15,10 @@ import { useT } from "../i18n";
 import { cn } from "../lib/format";
 import { selectCurrent, usePlayer, useStatusText, videoEl } from "../player/player";
 import { useUi } from "../stores/ui";
+import { useIsVideokeTrack, useVideoke } from "../stores/videoke";
 import { FavoriteButton, Scrubber, Transport, Volume } from "./Controls";
 import { IconButton } from "./IconButton";
+import { PitchGuide } from "./PitchGuide";
 
 /**
  * One <video> element serves every place video can appear. It is re-parented into the highest-priority
@@ -149,6 +153,9 @@ export function Theater() {
   const idle = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [chrome, setChrome] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
+  const [showGuide, setShowGuide] = useState(true);
+  const isVideoke = useIsVideokeTrack();
+  const showScore = useVideoke((v) => v.showScore);
   const visible = open && isVideo && !!track;
 
   // Leaving Video mode (or the queue emptying) closes the cinema view.
@@ -221,47 +228,84 @@ export function Theater() {
           transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
           onPointerMove={wake}
           onPointerDown={wake}
-          className={cn("fixed inset-0 z-50 bg-black", !chrome && "cursor-none")}
+          className={cn("fixed inset-0 z-50 flex flex-col bg-black", !chrome && "cursor-none")}
         >
-          {/* Click toggles play, double-click toggles fullscreen, like most video players. */}
-          <div className="absolute inset-0" onClick={() => toggle()} onDoubleClick={toggleFullscreen}>
-            <VideoSlot priority={SLOT.theater} className="size-full bg-black" />
-          </div>
+          {/* In Videoke Fullscreen: Keep the scrolling Vocal Pitch Guide pinned cleanly at the top of the TV screen! */}
+          {isVideoke && showGuide && (
+            <div className="overlay-top relative z-20 shrink-0 cursor-auto" onClick={(e) => e.stopPropagation()}>
+              <PitchGuide overlay />
+            </div>
+          )}
 
-          <div
-            className={cn(
-              "overlay-top pointer-events-none absolute inset-x-0 top-0 bg-linear-to-b from-black/80 to-transparent px-4 pb-12 md:px-6",
-              fade,
-            )}
-          >
-            <div className="pointer-events-auto flex items-start gap-3 pt-3">
-              <div className="min-w-0 flex-1 text-white">
-                <p className="truncate text-lg font-semibold tracking-tight md:text-xl">{track.title}</p>
-                <p className="truncate text-sm text-white/70">{statusText ?? track.artist}</p>
+          {/* Main Video Display Area */}
+          <div className="relative min-h-0 flex-1" onClick={() => toggle()} onDoubleClick={toggleFullscreen}>
+            <VideoSlot priority={SLOT.theater} className="size-full bg-black" />
+
+            <div
+              className={cn(
+                "pointer-events-none absolute inset-x-0 top-0 bg-linear-to-b from-black/80 to-transparent px-4 pb-12 md:px-6",
+                !(isVideoke && showGuide) && "overlay-top",
+                fade,
+              )}
+            >
+              <div className="pointer-events-auto flex items-start gap-2.5 pt-3" onClick={(e) => e.stopPropagation()}>
+                <div className="min-w-0 flex-1 text-white">
+                  <p className="truncate text-lg font-semibold tracking-tight md:text-xl">{track.title}</p>
+                  <p className="truncate text-sm text-white/70">{statusText ?? track.artist}</p>
+                </div>
+                {isVideoke ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setShowGuide((g) => !g)}
+                      className={cn(
+                        "flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold backdrop-blur-md transition-colors active:scale-95",
+                        showGuide
+                          ? "border-sky-400/40 bg-sky-500/20 text-sky-200"
+                          : "border-white/25 bg-white/10 text-white hover:bg-white/20",
+                      )}
+                    >
+                      <WaveformIcon size={15} />
+                      <span>{showGuide ? "Hide Guide" : "Vocal Guide"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void close();
+                        showScore(track);
+                      }}
+                      className="flex h-9 items-center gap-1.5 rounded-full bg-accent px-3.5 text-xs font-bold text-accent-ink transition-transform hover:brightness-110 active:scale-95"
+                    >
+                      <MicrophoneStageIcon size={15} weight="fill" />
+                      <span>{t.videoke.scoreMe}</span>
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPreferVideo(false);
+                      setTheater(false);
+                    }}
+                    aria-label="Listen in background (Minimize video)"
+                    title="Listen in background (Switch to continuous audio)"
+                    className="flex h-9 items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 text-xs font-semibold text-white backdrop-blur-md transition-colors hover:bg-white/20 active:scale-95"
+                  >
+                    <HeadphonesIcon size={15} weight="fill" />
+                    <span>Listen</span>
+                  </button>
+                )}
+                <IconButton
+                  label={fullscreen ? t.video.exitFullscreen : t.video.fullscreen}
+                  onClick={toggleFullscreen}
+                  className="text-white/85 hover:bg-white/15 hover:text-white"
+                >
+                  {fullscreen ? <CornersInIcon size={22} /> : <CornersOutIcon size={22} />}
+                </IconButton>
+                <IconButton label={t.video.close} onClick={close} className="text-white/85 hover:bg-white/15 hover:text-white">
+                  {fullscreen ? <ArrowsInIcon size={22} /> : <XIcon size={22} />}
+                </IconButton>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setPreferVideo(false);
-                  setTheater(false);
-                }}
-                aria-label="Listen in background (Minimize video)"
-                title="Listen in background (Switch to continuous audio)"
-                className="flex h-9 items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 text-xs font-semibold text-white backdrop-blur-md transition-colors hover:bg-white/20 active:scale-95"
-              >
-                <HeadphonesIcon size={15} weight="fill" />
-                <span>Listen</span>
-              </button>
-              <IconButton
-                label={fullscreen ? t.video.exitFullscreen : t.video.fullscreen}
-                onClick={toggleFullscreen}
-                className="text-white/85 hover:bg-white/15 hover:text-white"
-              >
-                {fullscreen ? <CornersInIcon size={22} /> : <CornersOutIcon size={22} />}
-              </IconButton>
-              <IconButton label={t.video.close} onClick={close} className="text-white/85 hover:bg-white/15 hover:text-white">
-                {fullscreen ? <ArrowsInIcon size={22} /> : <XIcon size={22} />}
-              </IconButton>
             </div>
           </div>
 
