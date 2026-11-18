@@ -139,7 +139,7 @@ function PlayheadThumb({
         <div
           className={cn(
             "rounded-full bg-accent shadow-[0_2px_8px_rgba(0,0,0,0.5)] transition-[transform,opacity] duration-150",
-            dragging ? "scale-125 opacity-100" : "opacity-95 group-hover:scale-110 group-hover:opacity-100",
+            dragging ? "scale-125 opacity-100" : "opacity-95 group-hover:opacity-100",
           )}
           style={{ width: "4px", height: "16px" }}
         />

@@ -48,7 +48,7 @@ const SCENE_FRAME_STYLE: Record<SceneStyle, string> = {
   none: "border-white/15 rounded-lg bg-black/35",
   shinobi: "border-yellow-400/55 rounded-lg bg-[#0b0d14]/75 shadow-[0_0_18px_rgba(250,204,21,0.18)]",
   akatsuki: "border-red-500/60 rounded-lg bg-[#070203]/75 shadow-[0_0_20px_rgba(239,68,68,0.22)]",
-  grandline: "border-purple-400/60 rounded-lg bg-[#090612]/75 shadow-[0_0_18px_rgba(192,132,252,0.22)]",
+  grandline: "border-[#c084fc]/60 rounded-lg bg-[#090612]/80 shadow-[0_0_18px_rgba(192,132,252,0.22)]",
   cassette: "border-[#3c4046]/55 rounded-lg bg-[#e8e3d5]/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]",
   mirrorflame: "border-orange-500/55 rounded-lg bg-[#16181d]/88 shadow-[0_0_18px_rgba(255,122,0,0.22)]",
   sandtopo: "border-[#6b5b3e]/40 rounded-2xl bg-[#e3d3b3]/88 shadow-[0_6px_18px_rgba(92,74,42,0.22)]",
@@ -232,25 +232,21 @@ function PackCard({
   return (
     <article
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-[16px] bg-surface-2 ring-1 transition-all",
+        "group relative flex flex-col overflow-hidden rounded-xl bg-surface-2 ring-1 transition-colors duration-150",
         active ? "ring-[2px] ring-accent shadow-[0_12px_32px_rgb(0_0_0/0.4)]" : "ring-line hover:ring-line-strong",
       )}
     >
       {/* Scene Preview Canvas + Real Player Strip */}
       <div
-        onClick={usable ? onApply : onPreview}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            if (usable) onApply();
-            else onPreview();
-          }
-        }}
-        className="relative flex h-[124px] cursor-pointer flex-col justify-end overflow-hidden p-3 select-none"
+        className="relative flex h-[124px] flex-col justify-end overflow-hidden p-3 select-none"
         style={{ background: pack.previewGradient }}
       >
+        <button
+          type="button"
+          onClick={usable ? onApply : onPreview}
+          aria-label={`${usable ? "Apply" : "Preview"} ${pack.name}`}
+          className="absolute inset-0 z-[5]"
+        />
         <ThemeSceneBackdrop sceneOverride={pack.scene} contained />
 
         <div className={cn("relative z-10 flex items-center gap-2.5 border px-2.5 py-2 backdrop-blur-sm", frameCls)}>
@@ -793,7 +789,7 @@ export function ThemeStoreContent({ embedded = false }: { embedded?: boolean }) 
                       toast(`Playhead: ${item.label}`);
                     }}
                     className={cn(
-                      "flex flex-col gap-1.5 rounded-[12px] bg-surface-3/65 p-2.5 text-left ring-1 transition-all",
+                      "flex flex-col gap-1.5 rounded-lg bg-surface-3/65 p-2.5 text-left ring-1 transition-colors duration-150",
                       selected ? "ring-2 ring-accent bg-surface-3" : "ring-line hover:bg-surface-3",
                     )}
                   >
@@ -836,7 +832,7 @@ export function ThemeStoreContent({ embedded = false }: { embedded?: boolean }) 
                       toast(`Play button: ${item.label}`);
                     }}
                     className={cn(
-                      "flex flex-col items-center gap-1.5 rounded-[12px] bg-surface-3/65 p-2.5 text-center ring-1 transition-all",
+                      "flex flex-col items-center gap-1.5 rounded-lg bg-surface-3/65 p-2.5 text-center ring-1 transition-colors duration-150",
                       selected ? "ring-2 ring-accent bg-surface-3" : "ring-line hover:bg-surface-3",
                     )}
                   >
@@ -912,7 +908,7 @@ export function ThemeStoreContent({ embedded = false }: { embedded?: boolean }) 
                       toast(`World scene: ${item.label}`);
                     }}
                     className={cn(
-                      "group relative flex h-20 flex-col justify-end overflow-hidden rounded-[10px] bg-surface-3 p-2 text-left ring-1 transition-all",
+                      "group relative flex h-20 flex-col justify-end overflow-hidden rounded-lg bg-surface-3 p-2 text-left ring-1 transition-colors duration-150",
                       selected ? "ring-2 ring-accent" : "ring-line hover:ring-line-strong",
                     )}
                   >

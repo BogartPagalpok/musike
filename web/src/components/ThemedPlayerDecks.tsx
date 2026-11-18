@@ -70,7 +70,7 @@ function TapeReel({ spinning, fillRatio }: { spinning: boolean; fillRatio: numbe
     <div className="relative grid size-14 place-items-center">
       {/* Dark magnetic tape pack behind reel hub */}
       <div
-        className="rounded-full bg-[#24211e] transition-all duration-500"
+        className="rounded-full bg-[#24211e] transition-[width,height] duration-300"
         style={{ width: `${tapeRadius * 2}px`, height: `${tapeRadius * 2}px` }}
       />
       {/* White/silver 6-tooth cassette hub */}
@@ -132,7 +132,7 @@ function CassetteDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQ
       {/* Top Slate Bezel Notch + Corner Phillips Screws */}
       <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center">
         <div className="flex h-4 w-36 items-center justify-center rounded-b-2xl bg-[#555b62] shadow-inner">
-          <span className="h-[2px] w-7 rounded-full bg-white/55" />
+          <span className="h-[2px] w-7 rounded-full bg-[#b8bcc2]" />
         </div>
       </div>
       <PhillipsScrew className="absolute top-2.5 left-2.5" />
@@ -341,7 +341,7 @@ function CassetteDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQ
               type="button"
               onClick={btn.onClick}
               className={cn(
-                "flex h-16 flex-col items-center justify-between rounded-[6px] border border-[#2b2e34] py-3 transition-all active:translate-y-1",
+                "flex h-16 flex-col items-center justify-between rounded-[6px] border border-[#2b2e34] py-3 transition-transform duration-150 active:translate-y-1",
                 btn.active
                   ? "translate-y-1 bg-gradient-to-b from-[#555960] to-[#3f434a] shadow-[inset_0_3px_6px_rgba(0,0,0,0.55)]"
                   : "bg-gradient-to-b from-[#787c84] via-[#676b73] to-[#4f535a] shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_4px_4px_rgba(0,0,0,0.6)]",
@@ -519,7 +519,7 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
               type="button"
               onClick={() => selectMode(id)}
               className={cn(
-                "h-7 rounded-full text-[10.5px] font-extrabold tracking-wider transition-all",
+                "h-7 rounded-full text-[10.5px] font-extrabold tracking-wider transition-colors duration-150",
                 active
                   ? "bg-gradient-to-b from-[#ff9824] to-[#ff5e00] text-[#1a0d00] shadow-[0_0_14px_rgba(255,122,0,0.65)]"
                   : "border border-white/8 bg-[#25282f] text-white/75 hover:text-white",
@@ -531,20 +531,12 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
         })}
       </div>
 
-      {/* Glowing Orange-to-Chartreuse Title + Artist */}
+      {/* High-Contrast Studio Title + Artist */}
       <div className="px-2 text-center">
-        <h2
-          className={cn("truncate font-black tracking-tight", compact ? "text-xl" : "text-2xl")}
-          style={{
-            background: "linear-gradient(90deg, #ff5e00 0%, #ffb700 50%, #c4ff33 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            filter: "drop-shadow(0 2px 10px rgba(255, 136, 0, 0.28))",
-          }}
-        >
+        <h2 className={cn("truncate font-bold tracking-tight text-[#fff7ed]", compact ? "text-xl" : "text-2xl")}>
           {track.title}
         </h2>
-        <p className="mt-0.5 truncate text-xs font-semibold text-white/70">{track.artist}</p>
+        <p className="mt-0.5 truncate text-xs font-medium text-[#ff9f43]">{track.artist}</p>
       </div>
 
       {/* Rotary Neon Volume Dial + Dual 20dB / 10dB Glowing Vertical Faders */}
@@ -656,7 +648,7 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
                     {/* Tick marks */}
                     <div className="pointer-events-none absolute inset-y-1 right-0 flex flex-col justify-between">
                       {Array.from({ length: 8 }).map((_, idx) => (
-                        <span key={idx} className="h-px w-1.5 bg-white/25" />
+                        <span key={idx} className="h-px w-1.5 bg-zinc-600" />
                       ))}
                     </div>
                     {/* Slot */}
@@ -675,7 +667,7 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
                       className="pointer-events-none absolute left-1/2 flex h-4 w-6 -translate-x-1/2 flex-col items-center justify-center gap-[2px] rounded-[4px] border border-white/20 bg-gradient-to-b from-[#555963] to-[#2a2d34] shadow-[0_3px_8px_rgba(0,0,0,0.8)]"
                       style={{ bottom: `calc(${fPct}% - 8px)` }}
                     >
-                      <span className="h-px w-3.5 bg-white/45" />
+                      <span className="h-px w-3.5 bg-zinc-400" />
                       <span className="h-px w-3.5 bg-black/60" />
                     </div>
                   </div>
@@ -886,7 +878,7 @@ function SandTopoDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQ
         ) : (
           <div
             className={cn(
-              "my-1 p-2.5 transition-transform duration-500",
+              "my-1 p-2.5 transition-transform duration-200",
               compact ? "size-40" : "size-48",
             )}
             style={{

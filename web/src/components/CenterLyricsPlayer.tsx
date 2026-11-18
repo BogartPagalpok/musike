@@ -79,7 +79,7 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
             type="button"
             onClick={() => (micOn ? stopMic() : void startMic())}
             className={cn(
-              "mt-5 flex h-10 items-center gap-2 rounded-full px-5 text-xs font-bold transition-transform hover:scale-105 active:scale-95",
+              "mt-5 flex h-10 items-center gap-2 rounded-lg px-5 text-xs font-bold transition-[filter,transform] duration-150 hover:brightness-105 active:scale-95",
               micOn
                 ? "bg-emerald-500/20 text-emerald-300 ring-1 ring-emerald-400/40"
                 : "bg-accent text-accent-ink",
@@ -103,7 +103,7 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
           <button
             type="button"
             onClick={() => playList(starter, 0)}
-            className="mt-4 flex h-10 items-center gap-2 rounded-full bg-accent px-5 text-xs font-semibold text-accent-ink transition-transform hover:scale-105 active:scale-95"
+            className="mt-4 flex h-10 items-center gap-2 rounded-lg bg-accent px-5 text-xs font-semibold text-accent-ink transition-[filter,transform] duration-150 hover:brightness-105 active:scale-95"
           >
             <PlayIcon size={15} weight="fill" />
             <span>Play Music</span>
@@ -152,7 +152,7 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
         >
           {/* Arcade TV Top Marquee in Videoke Mode */}
           {isVideoke && (
-            <div className="flex shrink-0 items-center justify-between gap-3 rounded-full border border-white/12 bg-black/55 px-3.5 py-1.5 text-xs backdrop-blur-md">
+            <div className="flex shrink-0 items-center justify-between gap-3 rounded-lg border border-white/12 bg-black/80 px-3.5 py-1.5 text-xs">
               <div className="flex min-w-0 items-center gap-2">
                 <span className={cn("size-2 shrink-0 rounded-full", status === "playing" ? "animate-pulse bg-emerald-400" : "bg-fg-3")} />
                 <span className="font-mono text-[11px] font-extrabold tracking-wider text-accent-text">
@@ -164,7 +164,7 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
                 <button
                   type="button"
                   onClick={() => jumpTo(reservedNext.queueIndex)}
-                  className="flex min-w-0 max-w-[52%] items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-white/90 transition-colors hover:bg-white/20"
+                  className="flex min-w-0 max-w-[52%] items-center gap-1.5 rounded-md bg-zinc-800 px-2.5 py-0.5 text-[11px] font-semibold text-white transition-colors duration-150 hover:bg-zinc-700"
                   title="Skip to next reserved song"
                 >
                   <span className="shrink-0 text-accent-text">NEXT ({reservedNext.count}):</span>
@@ -194,13 +194,13 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
                     <div className="relative flex aspect-video max-h-[46dvh] w-full flex-col items-center justify-center overflow-hidden bg-black/85 text-center">
                       <Artwork src={track.art} fallback={track.thumb} className="absolute inset-0 size-full object-cover opacity-35 blur-sm" />
                       <div className="relative z-10 flex flex-col items-center gap-2.5 px-4">
-                        <span className="rounded-full bg-black/70 px-3.5 py-1 text-xs font-medium text-white backdrop-blur-md">
+                        <span className="rounded-full bg-black/85 px-3.5 py-1 text-xs font-medium text-white">
                           {statusText ?? "Videoke video paused or in audio mode"}
                         </span>
                         <button
                           type="button"
                           onClick={() => setPreferVideo(true)}
-                          className="rounded-full bg-accent px-4 py-1.5 text-xs font-bold text-accent-ink transition-transform hover:scale-105"
+                          className="rounded-lg bg-accent px-4 py-1.5 text-xs font-bold text-accent-ink transition-[filter,transform] duration-150 hover:brightness-105 active:scale-95"
                         >
                           Switch to Karaoke Video Screen
                         </button>
@@ -259,7 +259,7 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
                     <button
                       type="button"
                       onClick={() => setTheater(true)}
-                      className="flex h-8 items-center gap-1.5 rounded-full bg-surface-3/80 px-3.5 text-xs font-medium text-fg-2 backdrop-blur-md transition-colors hover:bg-surface-4 hover:text-fg"
+                      className="flex h-8 items-center gap-1.5 rounded-lg bg-surface-3 px-3.5 text-xs font-medium text-fg-2 transition-colors duration-150 hover:bg-surface-4 hover:text-fg"
                     >
                       <ArrowsOutIcon size={14} />
                       <span>{t.videoke.fullscreen}</span>
@@ -268,7 +268,7 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
                   <button
                     type="button"
                     onClick={() => showScore(track)}
-                    className="flex h-8 items-center gap-1.5 rounded-full bg-accent px-4 text-xs font-bold text-accent-ink transition-transform hover:brightness-110 active:scale-95"
+                    className="flex h-8 items-center gap-1.5 rounded-lg bg-accent px-4 text-xs font-bold text-accent-ink transition-[filter,transform] duration-150 hover:brightness-105 active:scale-95"
                   >
                     <MicrophoneStageIcon size={14} weight="fill" />
                     <span>{t.videoke.finishAndScore}</span>
@@ -278,7 +278,7 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
                 <button
                   type="button"
                   onClick={() => void startRadio(track)}
-                  className="flex h-8 items-center gap-1.5 rounded-full bg-surface-3/80 px-3.5 text-xs font-medium text-fg-2 backdrop-blur-md transition-colors hover:bg-surface-4 hover:text-fg"
+                  className="flex h-8 items-center gap-1.5 rounded-lg bg-surface-3 px-3.5 text-xs font-medium text-fg-2 transition-colors duration-150 hover:bg-surface-4 hover:text-fg"
                 >
                   <RadioIcon size={14} />
                   <span>{t.trackMenu.startRadio}</span>
@@ -288,10 +288,10 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
                 type="button"
                 onClick={() => setEqualizerOpen(true)}
                 className={cn(
-                  "flex h-8 items-center gap-1.5 rounded-full px-3.5 text-xs font-medium ring-1 backdrop-blur-md transition-colors",
+                  "flex h-8 items-center gap-1.5 rounded-lg px-3.5 text-xs font-medium ring-1 transition-colors duration-150",
                   eqEnabled
                     ? "bg-accent-soft text-accent-text ring-accent/35"
-                    : "bg-surface-3/80 text-fg-2 ring-line hover:bg-surface-4 hover:text-fg",
+                    : "bg-surface-3 text-fg-2 ring-line hover:bg-surface-4 hover:text-fg",
                 )}
               >
                 <EqualizerIcon size={14} weight={eqEnabled ? "fill" : "regular"} />

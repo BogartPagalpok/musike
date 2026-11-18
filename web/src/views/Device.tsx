@@ -240,6 +240,7 @@ export default function Device() {
                 <MagnifyingGlassIcon size={17} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-fg-2" />
                 <input
                   type="search"
+                  aria-label={t.device.filterPlaceholder}
                   value={filter}
                   onChange={(e) => setFilter(e.target.value)}
                   placeholder={t.device.filterPlaceholder}

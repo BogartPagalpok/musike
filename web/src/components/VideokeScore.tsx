@@ -98,16 +98,16 @@ export function VideokeScore() {
           role="dialog"
           aria-modal="true"
           aria-label="Videoke score"
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/78 p-3 backdrop-blur-md md:p-6"
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/82 p-3 md:p-6"
           onClick={minimize}
         >
           <motion.div
-            initial={{ scale: 0.9, y: 20 }}
+            initial={{ scale: 0.94, y: 16 }}
             animate={{ scale: 1, y: 0 }}
-            exit={{ scale: 0.86, y: 110, opacity: 0 }}
-            transition={{ type: "spring", stiffness: 320, damping: 28 }}
+            exit={{ scale: 0.9, y: 80, opacity: 0 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             onClick={(e) => e.stopPropagation()}
-            className="scroll-area relative max-h-[92dvh] w-full max-w-[95vw] overflow-y-auto rounded-[26px] border border-white/20 bg-surface-1/95 p-5 text-center shadow-[0_36px_100px_rgba(0,0,0,0.85)] backdrop-blur-2xl sm:max-w-lg sm:p-6 md:max-w-2xl md:rounded-[32px] md:p-8"
+            className="scroll-area relative max-h-[92dvh] w-full max-w-[95vw] overflow-y-auto rounded-[20px] border border-line-strong bg-surface-1 p-5 text-center shadow-[0_32px_90px_rgba(0,0,0,0.85)] sm:max-w-lg sm:p-6 md:max-w-2xl md:rounded-[24px] md:p-8"
           >
             <button
               type="button"
@@ -197,7 +197,7 @@ export function VideokeScore() {
                       <span className="w-20 shrink-0 font-bold text-fg-2">{ax.label}</span>
                       <span className="h-2 flex-1 overflow-hidden rounded-full bg-surface-3">
                         <span
-                          className={cn("block h-full rounded-full transition-all duration-500", axisBarColor(ax.value))}
+                          className={cn("block h-full rounded-full transition-[width] duration-300", axisBarColor(ax.value))}
                           style={{ width: `${ax.value}%` }}
                         />
                       </span>
@@ -286,7 +286,7 @@ export function VideokeScore() {
           exit={{ opacity: 0, y: 30 }}
           className="fixed right-3 bottom-[calc(142px+env(safe-area-inset-bottom))] z-[45] md:right-5 md:bottom-[108px]"
         >
-          <div className="flex items-center gap-2.5 rounded-full border border-white/20 bg-surface-1/95 py-1.5 pr-2 pl-2 shadow-[0_16px_40px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+          <div className="flex items-center gap-2.5 rounded-full border border-line-strong bg-surface-1 py-1.5 pr-2 pl-2 shadow-[0_16px_40px_rgba(0,0,0,0.6)]">
             <button type="button" onClick={expand} className="flex min-w-0 items-center gap-2.5 text-left" title="Show full score">
               <span
                 className={cn(

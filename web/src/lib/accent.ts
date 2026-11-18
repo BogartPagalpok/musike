@@ -60,10 +60,10 @@ export const THEMES: readonly ThemeMeta[] = [
     scheme: "light",
     bg: "#fff0f6",
     surface1: "#ffffff",
-    surface2: "#f3e8ff",
-    fg: "#2e1065",
-    surfaceRgb: [0xf3, 0xe8, 0xff],
-    palette: ["#fff0f6", "#f3e8ff", "#e0f2fe", "#fef08a", "#ff3e9d", "#7c3aed"],
+    surface2: "#fce7f3",
+    fg: "#3b0724",
+    surfaceRgb: [0xfc, 0xe7, 0xf3],
+    palette: ["#fff0f6", "#fce7f3", "#e0f2fe", "#fef08a", "#ff3e9d", "#0284c7"],
   },
   {
     id: "arcade",
@@ -93,7 +93,7 @@ export const THEMES: readonly ThemeMeta[] = [
     surface2: "#162c4a",
     fg: "#ecfeff",
     surfaceRgb: [0x16, 0x2c, 0x4a],
-    palette: ["#06101e", "#243b61", "#2dd4bf", "#f472b6", "#6ee7b7", "#c4b5fd"],
+    palette: ["#06101e", "#243b61", "#2dd4bf", "#f472b6", "#6ee7b7", "#38bdf8"],
   },
   {
     id: "holi",
@@ -112,21 +112,21 @@ export const PLAYFUL_THEMES = THEMES.filter((t) => !!t.palette);
 
 /** 6 curated playful accent colors specifically matched per theme */
 export const THEME_PALETTES: Record<ThemeId, string[]> = {
-  dark: ["#c3ec52", "#38bdf8", "#f43f5e", "#a855f7", "#fbbf24", "#2dd4bf"],
-  light: ["#2563eb", "#059669", "#d97706", "#7c3aed", "#e11d48", "#0891b2"],
-  oled: ["#00ffcc", "#ff007f", "#39ff14", "#ffe600", "#7928ca", "#00b4d8"],
-  midnight: ["#38bdf8", "#818cf8", "#f472b6", "#34d399", "#fb923c", "#facc15"],
-  rose: ["#f472b6", "#fb7185", "#c084fc", "#fbb034", "#38bdf8", "#4ade80"],
+  dark: ["#c3ec52", "#38bdf8", "#f43f5e", "#0d9488", "#fbbf24", "#2dd4bf"],
+  light: ["#2563eb", "#059669", "#d97706", "#0e7490", "#e11d48", "#0891b2"],
+  oled: ["#00ffcc", "#ff007f", "#39ff14", "#ffe600", "#0284c7", "#00b4d8"],
+  midnight: ["#38bdf8", "#2563eb", "#f472b6", "#34d399", "#fb923c", "#facc15"],
+  rose: ["#f472b6", "#fb7185", "#db2777", "#fbb034", "#38bdf8", "#4ade80"],
   forest: ["#4ade80", "#a3e635", "#2dd4bf", "#facc15", "#f87171", "#38bdf8"],
-  sunset: ["#fb923c", "#f87171", "#fbbf24", "#e879f9", "#38bdf8", "#4ade80"],
+  sunset: ["#fb923c", "#f87171", "#fbbf24", "#f43f5e", "#38bdf8", "#4ade80"],
   nord: ["#88c0d0", "#81a1c1", "#a3be8c", "#ebcb8b", "#b48ead", "#bf616a"],
-  cream: ["#d97706", "#059669", "#dc2626", "#4f46e5", "#b45309", "#0d9488"],
-  synthwave: ["#ff2a85", "#00f5d4", "#fee440", "#c77dff", "#38bdf8", "#ff6b6b"],
-  candy: ["#ff3e9d", "#7c3aed", "#0284c7", "#eab308", "#10b981", "#f43f5e"],
-  arcade: ["#39ff14", "#fde047", "#38bdf8", "#f472b6", "#a855f7", "#fb923c"],
+  cream: ["#d97706", "#059669", "#dc2626", "#0f766e", "#b45309", "#0d9488"],
+  synthwave: ["#ff2a85", "#00f5d4", "#fee440", "#db2777", "#38bdf8", "#ff6b6b"],
+  candy: ["#ff3e9d", "#db2777", "#0284c7", "#eab308", "#10b981", "#f43f5e"],
+  arcade: ["#39ff14", "#fde047", "#38bdf8", "#f472b6", "#06b6d4", "#fb923c"],
   tropical: ["#ff6b6b", "#fde047", "#2dd4bf", "#fb923c", "#a3e635", "#f472b6"],
-  aurora: ["#2dd4bf", "#f472b6", "#a78bfa", "#34d399", "#38bdf8", "#facc15"],
-  holi: ["#f97316", "#4ade80", "#fde047", "#06b6d4", "#ec4899", "#a855f7"],
+  aurora: ["#2dd4bf", "#f472b6", "#0ea5e9", "#34d399", "#38bdf8", "#facc15"],
+  holi: ["#f97316", "#4ade80", "#fde047", "#06b6d4", "#ec4899", "#f43f5e"],
 };
 
 export const isTheme = (v: unknown): v is ThemeId =>

@@ -352,8 +352,8 @@ export function PitchGuide({
       className={cn(
         "relative overflow-hidden select-none",
         overlay
-          ? "border-b border-white/15 bg-gradient-to-b from-black/85 via-black/68 to-black/30 backdrop-blur-md"
-          : "rounded-[14px] border border-white/14 bg-black/75 shadow-inner backdrop-blur-md",
+          ? "border-b border-white/15 bg-gradient-to-b from-black/90 via-black/78 to-black/45"
+          : "rounded-[14px] border border-white/14 bg-black/85 shadow-inner",
         className,
       )}
     >
@@ -371,7 +371,7 @@ export function PitchGuide({
               "rounded-full px-2.5 py-0.5 font-mono text-[10.5px] font-extrabold tabular-nums",
               hudTarget.countdownSec !== null
                 ? "bg-sky-500/25 text-sky-200 ring-1 ring-sky-400/35"
-                : "bg-white/14 text-white ring-1 ring-white/25",
+                : "bg-zinc-800 text-white ring-1 ring-white/25",
             )}
           >
             {hudTarget.countdownSec !== null
@@ -407,7 +407,7 @@ export function PitchGuide({
 
         {micOn ? (
           <>
-            <span className="hidden h-1.5 w-10 overflow-hidden rounded-full bg-white/15 md:flex" aria-hidden="true">
+            <span className="hidden h-1.5 w-10 overflow-hidden rounded-full bg-zinc-800 md:flex" aria-hidden="true">
               <span
                 className="h-full bg-emerald-400 transition-[width] duration-75"
                 style={{ width: `${Math.round(level * 100)}%` }}

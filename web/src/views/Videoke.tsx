@@ -297,7 +297,7 @@ export default function Videoke() {
   const currentCode = currentTrack ? songbookCode(currentTrack.id) : "00000";
 
   const reservedQueueCard = (
-    <div className="flex min-h-0 flex-col rounded-[16px] border border-line bg-surface-2/75 p-3 backdrop-blur-md">
+    <div className="flex min-h-0 flex-col rounded-xl border border-line bg-surface-2 p-3">
       <div className="mb-2 flex items-center justify-between gap-2">
         <span className="flex items-center gap-1.5 text-[11px] font-extrabold tracking-wider text-fg-2 uppercase">
           <QueueIcon size={14} className="text-accent-text" />
@@ -376,7 +376,7 @@ export default function Videoke() {
               <button
                 type="button"
                 onClick={() => showScore(currentTrack)}
-                className="flex h-9 items-center gap-1.5 rounded-full bg-accent px-3.5 text-xs font-bold text-accent-ink transition-transform hover:scale-105 active:scale-95"
+                className="flex h-9 items-center gap-1.5 rounded-md bg-accent px-3.5 text-xs font-bold text-accent-ink transition-[filter,transform] duration-150 hover:brightness-105 active:scale-95"
               >
                 <MicrophoneStageIcon size={15} weight="fill" />
                 <span>{t.videoke.scoreMe}</span>
@@ -428,11 +428,11 @@ export default function Videoke() {
               !currentTrack && "hidden @[980px]/videoke:flex",
             )}
           >
-            <div className="overflow-hidden rounded-[22px] border border-line-strong bg-surface-2/85 p-3 shadow-xl backdrop-blur-xl md:p-4">
+            <div className="overflow-hidden rounded-xl border border-line-strong bg-surface-2 p-3 shadow-xl md:p-4">
               {currentTrack ? (
                 <div className="flex flex-col gap-3">
                   {/* Top Arcade TV Marquee */}
-                  <div className="flex items-center justify-between gap-2 rounded-full border border-white/10 bg-black/55 px-3 py-1.5 text-[11px] text-white/85">
+                  <div className="flex items-center justify-between gap-2 rounded-lg border border-white/10 bg-black/80 px-3 py-1.5 text-[11px] text-white/85">
                     <div className="flex min-w-0 items-center gap-1.5">
                       <span className={cn("size-2 shrink-0 rounded-full", status === "playing" ? "animate-pulse bg-emerald-400" : "bg-fg-3")} />
                       <span className="font-mono font-extrabold text-accent-text">SONG #{currentCode}</span>
@@ -442,7 +442,7 @@ export default function Videoke() {
                       <button
                         type="button"
                         onClick={() => jumpTo(upNext[0].queueIndex)}
-                        className="flex max-w-[46%] shrink-0 items-center gap-1 rounded-full bg-white/12 px-2.5 py-0.5 font-semibold text-white hover:bg-white/20"
+                        className="flex max-w-[46%] shrink-0 items-center gap-1 rounded-md bg-zinc-800 px-2.5 py-0.5 font-semibold text-white transition-colors duration-150 hover:bg-zinc-700"
                       >
                         <span className="text-accent-text">NEXT:</span>
                         <span className="truncate">{upNext[0].track.title}</span>
@@ -471,7 +471,7 @@ export default function Videoke() {
                           className="absolute inset-0 size-full object-cover opacity-35 blur-sm"
                         />
                         <div className="relative z-10 flex flex-col items-center gap-2 px-4">
-                          <span className="rounded-full bg-black/70 px-3 py-1 text-xs font-medium text-white backdrop-blur-md">
+                          <span className="rounded-full bg-black/85 px-3 py-1 text-xs font-medium text-white">
                             {statusText ?? "Loading Videoke screen…"}
                           </span>
                           <button
@@ -583,7 +583,7 @@ export default function Videoke() {
                     type="button"
                     onClick={() => setActiveChannel(ch.id)}
                     className={cn(
-                      "flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-left transition-all active:scale-95",
+                      "flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-left transition-colors duration-150 active:scale-95",
                       active
                         ? "border-accent bg-accent-soft text-accent-text"
                         : "border-line bg-surface-2 text-fg-2 hover:bg-surface-3 hover:text-fg",
@@ -711,7 +711,7 @@ export default function Videoke() {
                       <Artwork
                         src={track.thumb}
                         fallback={track.art}
-                        className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        className="size-full object-cover transition-opacity duration-150 group-hover:opacity-90"
                       />
                       <span className="absolute inset-0 grid place-items-center bg-black/30 opacity-0 transition-opacity group-hover:opacity-100">
                         <span className="grid size-8 place-items-center rounded-full bg-accent text-accent-ink shadow-md">

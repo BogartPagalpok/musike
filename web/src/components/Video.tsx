@@ -117,7 +117,7 @@ export function PipVideoSlot() {
           onClick={() => setPreferVideo(false)}
           aria-label="Listen in background (Minimize video)"
           title="Listen in background (Minimize video to audio)"
-          className="flex items-center gap-1.5 rounded-full border border-white/25 bg-black/85 px-3 py-1.5 text-xs font-semibold text-accent shadow-2xl backdrop-blur-md transition-transform hover:bg-black active:scale-95"
+          className="flex items-center gap-1.5 rounded-lg border border-white/25 bg-black/90 px-3 py-1.5 text-xs font-semibold text-accent shadow-2xl transition-colors duration-150 hover:bg-black active:scale-95"
         >
           <HeadphonesIcon size={15} weight="fill" />
           <span>Listen</span>
@@ -259,10 +259,10 @@ export function Theater() {
                       type="button"
                       onClick={() => setShowGuide((g) => !g)}
                       className={cn(
-                        "flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-semibold backdrop-blur-md transition-colors active:scale-95",
+                        "flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors duration-150 active:scale-95",
                         showGuide
                           ? "border-sky-400/40 bg-sky-500/20 text-sky-200"
-                          : "border-white/25 bg-white/10 text-white hover:bg-white/20",
+                          : "border-white/25 bg-zinc-900/90 text-white hover:bg-zinc-800",
                       )}
                     >
                       <WaveformIcon size={15} />
@@ -274,7 +274,7 @@ export function Theater() {
                         void close();
                         showScore(track);
                       }}
-                      className="flex h-9 items-center gap-1.5 rounded-full bg-accent px-3.5 text-xs font-bold text-accent-ink transition-transform hover:brightness-110 active:scale-95"
+                      className="flex h-9 items-center gap-1.5 rounded-lg bg-accent px-3.5 text-xs font-bold text-accent-ink transition-[filter,transform] duration-150 hover:brightness-105 active:scale-95"
                     >
                       <MicrophoneStageIcon size={15} weight="fill" />
                       <span>{t.videoke.scoreMe}</span>
@@ -289,7 +289,7 @@ export function Theater() {
                     }}
                     aria-label="Listen in background (Minimize video)"
                     title="Listen in background (Switch to continuous audio)"
-                    className="flex h-9 items-center gap-1.5 rounded-full border border-white/25 bg-white/10 px-3 text-xs font-semibold text-white backdrop-blur-md transition-colors hover:bg-white/20 active:scale-95"
+                    className="flex h-9 items-center gap-1.5 rounded-lg border border-white/25 bg-zinc-900/90 px-3 text-xs font-semibold text-white transition-colors duration-150 hover:bg-zinc-800 active:scale-95"
                   >
                     <HeadphonesIcon size={15} weight="fill" />
                     <span>Listen</span>
@@ -298,11 +298,11 @@ export function Theater() {
                 <IconButton
                   label={fullscreen ? t.video.exitFullscreen : t.video.fullscreen}
                   onClick={toggleFullscreen}
-                  className="text-white/85 hover:bg-white/15 hover:text-white"
+                  className="text-white/85 hover:bg-zinc-800 hover:text-white"
                 >
                   {fullscreen ? <CornersInIcon size={22} /> : <CornersOutIcon size={22} />}
                 </IconButton>
-                <IconButton label={t.video.close} onClick={close} className="text-white/85 hover:bg-white/15 hover:text-white">
+                <IconButton label={t.video.close} onClick={close} className="text-white/85 hover:bg-zinc-800 hover:text-white">
                   {fullscreen ? <ArrowsInIcon size={22} /> : <XIcon size={22} />}
                 </IconButton>
               </div>

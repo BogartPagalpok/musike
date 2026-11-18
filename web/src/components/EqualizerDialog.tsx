@@ -231,7 +231,7 @@ function VerticalBandSlider({
         {/* Thumb */}
         <div
           className={cn(
-            "pointer-events-none absolute left-1/2 size-4 -translate-x-1/2 translate-y-1/2 rounded-full shadow-md ring-2 transition-transform group-hover:scale-110",
+            "pointer-events-none absolute left-1/2 size-4 -translate-x-1/2 translate-y-1/2 rounded-full shadow-md ring-2 transition-colors duration-150",
             disabled ? "bg-surface-4 ring-fg-3/40" : "bg-fg ring-accent",
           )}
           style={{ bottom: `${pct}%` }}
@@ -271,6 +271,7 @@ function HorizontalControl({
         </div>
         <input
           type="range"
+          aria-label={label}
           min={min}
           max={max}
           step={step}
@@ -332,7 +333,7 @@ export function EqualizerDialog() {
               aria-checked={enabled}
               onClick={toggleEnabled}
               className={cn(
-                "flex h-8 items-center rounded-full px-3.5 text-xs font-semibold transition-all",
+                "flex h-8 items-center rounded-full px-3.5 text-xs font-semibold transition-colors duration-150",
                 enabled
                   ? "bg-accent text-accent-ink shadow-sm"
                   : "bg-surface-3 text-fg-2 ring-1 ring-line hover:text-fg",
@@ -367,7 +368,7 @@ export function EqualizerDialog() {
                   type="button"
                   onClick={() => setPreset(id)}
                   className={cn(
-                    "flex h-8 items-center rounded-full px-3 text-xs font-medium transition-all",
+                    "flex h-8 items-center rounded-full px-3 text-xs font-medium transition-colors duration-150",
                     active
                       ? "bg-accent text-accent-ink font-semibold shadow-xs"
                       : "bg-surface-1 text-fg-2 ring-1 ring-line hover:bg-surface-3 hover:text-fg",

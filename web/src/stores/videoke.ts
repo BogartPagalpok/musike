@@ -257,7 +257,7 @@ function finalizeNoteSegment(seg: NoteSegment): { hadVibrato: boolean; inTune: b
     }
   }
 
-  // Detect real vocal vibrato on held notes (>= 350ms, >= 10 frames):
+  // Detect real vocal vibrato on held notes (>= 0.35s, >= 10 frames):
   // Detrend with a 5-point moving average and check 4.2 - 8.2 Hz oscillation with 14 - 75 cents swing.
   let hadVibrato = false;
   const residualsCents: number[] = [];

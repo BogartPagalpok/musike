@@ -9,11 +9,11 @@ export function AlbumTile({ album, className }: { album: AlbumCard; className?: 
   const sub = [album.artist, album.year].filter(Boolean).join(" · ");
   return (
     <Link to={paths.album(album.id)} state={{ name: album.title }} className={cn("group flex flex-col gap-2", className)}>
-      <span className="block overflow-hidden rounded-[14px]">
+      <span className="block overflow-hidden rounded-[12px] ring-1 ring-line/60 transition-colors duration-150 group-hover:ring-line-strong">
         <Artwork
           src={album.art}
           fallback={album.thumb}
-          className="aspect-square w-full transition-transform duration-300 ease-out-expo group-hover:scale-[1.04]"
+          className="aspect-square w-full transition-opacity duration-150 group-hover:opacity-90"
         />
       </span>
       <span className="min-w-0">

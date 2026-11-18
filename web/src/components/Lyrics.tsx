@@ -405,7 +405,7 @@ export function LyricsView({ className, compact = false }: { className?: string;
           )}
         >
           {waitingForVocals && (
-            <div className="mb-1 flex shrink-0 items-center gap-1.5 rounded-full bg-surface-3/80 px-3 py-1 text-xs font-medium text-fg-2 backdrop-blur-md">
+            <div className="mb-1 flex shrink-0 items-center gap-1.5 rounded-full bg-surface-3 px-3 py-1 text-xs font-medium text-fg-2">
               <span className="size-1.5 animate-pulse rounded-full bg-accent" />
               <span>{t.lyrics.waitingForVocals}</span>
             </div>
@@ -422,7 +422,7 @@ export function LyricsView({ className, compact = false }: { className?: string;
                 type="button"
                 onClick={() => seek(videoTimeFor(line.time))}
                 className={cn(
-                  "w-full shrink-0 origin-center rounded-[10px] px-3 py-1.5 text-center leading-snug transition-all duration-300 hover:bg-white/[0.04] hover:opacity-100",
+                  "w-full shrink-0 origin-center rounded-[10px] px-3 py-1.5 text-center leading-snug transition-[transform,color,background-color,opacity] duration-200 hover:bg-fg/[0.05] hover:opacity-100",
                   isCurrent
                     ? compact
                       ? "scale-[1.03] text-[18px] font-bold tracking-tight text-fg"
@@ -447,7 +447,7 @@ export function LyricsView({ className, compact = false }: { className?: string;
         </div>
         {!compact && (
           <div className="pointer-events-none absolute right-3 bottom-2.5 flex items-center justify-end opacity-0 transition-opacity duration-200 group-hover/lyrics:opacity-100 focus-within:opacity-100">
-            <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-fg/[0.05] px-2.5 py-1 text-[11px] backdrop-blur-md">
+            <div className="pointer-events-auto flex items-center gap-1 rounded-full bg-surface-3 px-2.5 py-1 text-[11px] ring-1 ring-line">
               <button
                 type="button"
                 onClick={() => setUserOffset((o) => Math.round((o - 0.5) * 10) / 10)}

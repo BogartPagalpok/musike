@@ -176,7 +176,7 @@ export const PlayDisc = forwardRef<HTMLButtonElement, PlayDiscProps>(function Pl
       {alwaysShowIcon ? (
         <span className="relative z-10 grid place-items-center">{children}</span>
       ) : (
-        <span className="relative z-10 grid place-items-center rounded-full bg-black/50 p-1.5 text-white opacity-0 backdrop-blur-[2px] transition-opacity duration-200 group-hover/disc:opacity-95 group-focus-visible/disc:opacity-95">
+        <span className="relative z-10 grid place-items-center rounded-full bg-black/65 p-1.5 text-white opacity-0 transition-opacity duration-150 group-hover/disc:opacity-95 group-focus-visible/disc:opacity-95">
           {children}
         </span>
       )}

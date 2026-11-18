@@ -120,32 +120,27 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
           const busy = loadingKey === key;
           const tone = ACCENT_VARS[idx % ACCENT_VARS.length]!;
           const targetUrl = genreId ? `${paths.genre(genreId)}?view=songs` : `${paths.search}?q=${encodeURIComponent(query)}`;
-          const openCard = (e: React.MouseEvent | React.KeyboardEvent) => {
+          const openCard = (e: React.MouseEvent) => {
             if (key === "activity") {
-              void handlePlayMix(key, genreId, query, e as unknown as React.MouseEvent).then(() =>
-                navigate({ hash: NOW_PLAYING_HASH }),
-              );
+              void handlePlayMix(key, genreId, query, e).then(() => navigate({ hash: NOW_PLAYING_HASH }));
               return;
             }
             navigate(targetUrl, { state: { name: title } });
           };
           return (
-            <div
+            <article
               key={key}
-              role="button"
-              tabIndex={0}
-              onClick={openCard}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  openCard(e);
-                }
-              }}
               style={{
                 backgroundImage: `radial-gradient(circle at 100% 0%, color-mix(in srgb, ${tone} 18%, transparent), transparent 65%)`,
               }}
-              className="group relative flex flex-col justify-between gap-2 overflow-hidden rounded-[12px] bg-surface-2 p-3.5 text-left ring-1 ring-line transition-colors duration-150 hover:bg-surface-3"
+              className="group relative flex flex-col justify-between gap-2 overflow-hidden rounded-[12px] bg-surface-2 p-3.5 text-left ring-1 ring-line transition-colors duration-150 hover:bg-surface-3 hover:ring-line-strong"
             >
+              <button
+                type="button"
+                onClick={openCard}
+                aria-label={title}
+                className="absolute inset-0 rounded-[12px] focus-visible:outline-offset-[-2px]"
+              />
               <div className="flex items-start justify-end">
                 <button
                   type="button"
@@ -153,18 +148,18 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
                   aria-label={t.home.playMix(title)}
                   title={t.home.playMix(title)}
                   className={cn(
-                    "relative z-10 grid size-7 shrink-0 place-items-center rounded-full bg-accent text-accent-ink shadow-xs transition-all duration-150 hover:scale-105 active:scale-95",
+                    "relative z-10 grid size-7 shrink-0 place-items-center rounded-full bg-accent text-accent-ink shadow-xs transition-[opacity,filter,transform] duration-150 hover:brightness-105 active:scale-95",
                     busy ? "animate-pulse opacity-100" : "opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100",
                   )}
                 >
                   <PlayIcon size={13} weight="fill" />
                 </button>
               </div>
-              <div className="min-w-0">
+              <div className="pointer-events-none relative z-10 min-w-0">
                 <p className="truncate text-[13.5px] font-semibold tracking-tight text-fg">{title}</p>
                 <p className="mt-0.5 line-clamp-1 text-[11.5px] text-fg-2">{sub}</p>
               </div>
-            </div>
+            </article>
           );
         })}
       </div>
@@ -256,7 +251,7 @@ function CategoryTile({ genre }: { genre: Genre }) {
       }}
       className="group relative flex h-13 items-center gap-2.5 overflow-hidden rounded-[11px] bg-surface-2 px-3.5 text-fg ring-1 ring-line transition-colors duration-150 hover:bg-surface-3"
     >
-      <span style={{ backgroundColor: tone }} className="h-5 w-1 shrink-0 rounded-full opacity-85 transition-transform duration-150 group-hover:scale-y-125" />
+      <span style={{ backgroundColor: tone }} className="h-5 w-1 shrink-0 rounded-full opacity-85 transition-opacity duration-150 group-hover:opacity-100" />
       <span className="truncate text-[13px] font-semibold tracking-tight">{genre.name}</span>
     </Link>
   );

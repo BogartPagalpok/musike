@@ -79,7 +79,7 @@ function Stage({ track, slot, className }: { track: Track; slot: number; classNa
         />
       </WorldStageFrame>
       {note && (
-        <span className="absolute inset-x-3 bottom-3 z-20 flex items-center justify-center gap-2 rounded-full bg-black/65 px-3 py-2 text-center text-[13px] font-medium text-white backdrop-blur-md">
+        <span className="absolute inset-x-3 bottom-3 z-20 flex items-center justify-center gap-2 rounded-full bg-black/80 px-3 py-2 text-center text-[13px] font-medium text-white">
           {note === "findingClip" ? (
             <MagnifyingGlassIcon size={16} className="shrink-0" />
           ) : (
@@ -583,7 +583,7 @@ export function NowPlayingSheet({ open, onClose }: { open: boolean; onClose: () 
                           scene={sceneStyle}
                           playing={status === "playing"}
                           className={cn(
-                            "size-[min(86cqw,86cqh)] transition-transform duration-500 ease-out-expo",
+                            "size-[min(86cqw,86cqh)] transition-transform duration-200 ease-out-expo",
                             status === "playing" ? "scale-100" : "scale-[0.88]",
                           )}
                         >

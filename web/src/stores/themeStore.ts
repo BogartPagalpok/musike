@@ -246,7 +246,7 @@ export const SKIN_PACKS: readonly SkinPack[] = [
     scene: "grandline",
     baseTheme: "midnight",
     accent: "#c084fc",
-    secondaryAccent: "#a855f7",
+    secondaryAccent: "#db2777",
     previewGradient: "linear-gradient(145deg, #090612 0%, #1c1138 58%, #2f1a4d 100%)",
     unlockCode: "ILLUSIVE-GRANDLINE-5G1P",
   },

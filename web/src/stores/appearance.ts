@@ -33,9 +33,9 @@ export const DEFAULT_APPEARANCE: Appearance = {
   rightPanelCollapsed: false,
   albumColumn: true,
   texture: true,
-  homeShortcuts: false,
-  homeRecent: false,
-  homeFavorites: false,
+  homeShortcuts: true,
+  homeRecent: true,
+  homeFavorites: true,
   layoutTemplate: "center-lyrics",
 };
 
@@ -45,7 +45,7 @@ export const ACCENTS = [
   { id: "mint", color: "#34d399" },
   { id: "aqua", color: "#22d3ee" },
   { id: "sky", color: "#60a5fa" },
-  { id: "violet", color: "#a78bfa" },
+  { id: "violet", color: "#0d9488" },
   { id: "pink", color: "#f472b6" },
   { id: "coral", color: "#fb7c5c" },
   { id: "amber", color: "#fbbf24" },

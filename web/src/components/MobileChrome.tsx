@@ -31,7 +31,7 @@ export function TabBar() {
   return (
     <nav
       aria-label={t.nav.main}
-      className="app-tabbar safe-bottom fixed inset-x-0 bottom-0 z-20 border-t border-line-strong bg-surface-1/96 backdrop-blur-2xl"
+      className="app-tabbar safe-bottom fixed inset-x-0 bottom-0 z-20 border-t border-line-strong bg-surface-1"
     >
       <ul className="mx-auto grid h-[56px] max-w-md grid-cols-6">
         {tabs.map(({ to, key, Icon, end }) => (
@@ -41,7 +41,7 @@ export function TabBar() {
               end={end}
               className={({ isActive }) =>
                 cn(
-                  "relative flex h-full min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[10px] font-medium transition-all active:scale-90 sm:text-[10.5px]",
+                  "relative flex h-full min-w-0 flex-col items-center justify-center gap-0.5 px-0.5 text-[10px] font-medium transition-colors duration-150 active:scale-95 sm:text-[10.5px]",
                   isActive ? "font-semibold text-accent-text" : "text-fg-2",
                 )
               }
@@ -104,7 +104,7 @@ export function MiniPlayer() {
       <div
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}
-        className="app-miniplayer relative flex h-14 items-center gap-2.5 overflow-hidden rounded-[14px] bg-surface-2/98 pr-1.5 pl-2 shadow-[0_8px_28px_rgb(0_0_0/0.45)] ring-1 ring-line-strong backdrop-blur-2xl"
+        className="app-miniplayer relative flex h-14 items-center gap-2.5 overflow-hidden rounded-[14px] bg-surface-2 pr-1.5 pl-2 shadow-[0_8px_28px_rgb(0_0_0/0.45)] ring-1 ring-line-strong"
       >
         <button
           type="button"

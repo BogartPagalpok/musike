@@ -186,7 +186,7 @@ function ThemePage({ go }: { go: (p: Page) => void }) {
                 type="button"
                 onClick={() => applyPack(p.id)}
                 className={cn(
-                  "flex flex-col items-start gap-1 rounded-[12px] p-3 text-left ring-1 transition-all active:scale-[0.98]",
+                  "flex flex-col items-start gap-1 rounded-[12px] p-3 text-left ring-1 transition-colors duration-150 active:scale-[0.98]",
                   active ? "ring-2 ring-accent bg-surface-3" : "ring-line bg-surface-2 hover:ring-line-strong",
                 )}
               >
@@ -601,7 +601,7 @@ export function SettingsDialog() {
             )}
           >
             {/* Nav bar */}
-            <header className="relative flex h-14 shrink-0 items-center justify-between border-b border-line/70 bg-bg/90 px-2 backdrop-blur-xl">
+            <header className="relative flex h-14 shrink-0 items-center justify-between border-b border-line/70 bg-bg px-2">
               {!isMd && <span className="absolute top-1.5 left-1/2 h-1 w-9 -translate-x-1/2 rounded-full bg-fg-3/40" />}
               <div className="flex w-28 items-center">
                 {stack.length > 1 && (

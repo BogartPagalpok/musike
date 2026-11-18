@@ -208,7 +208,7 @@ export default function Search() {
 
   return (
     <div className="@container/search pb-8">
-      <header className="app-header safe-top sticky top-0 z-10 border-b border-line/60 bg-bg/85 backdrop-blur-2xl @[680px]/search:bg-surface-1/95">
+      <header className="app-header safe-top sticky top-0 z-10 border-b border-line/60 bg-bg @[680px]/search:bg-surface-1">
         <div className="flex flex-col gap-2.5 px-4 pt-2 pb-3 @[680px]/search:gap-3 @[680px]/search:px-6 @[680px]/search:pt-4">
           <div className="flex h-12 items-center gap-3 md:hidden">
             <LogoMark className="size-7 shrink-0 text-accent-text" />

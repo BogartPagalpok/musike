@@ -37,7 +37,7 @@ function Shortcut({ to, label, tracks, cover }: { to: string; label: string; tra
   const hasCurrent = !!currentId && tracks.some((tr) => tr.id === currentId);
   const t = useT();
   return (
-    <div className="group relative flex h-14 items-center gap-2.5 overflow-hidden rounded-[12px] bg-surface-2 pr-2 ring-1 ring-line transition-all hover:bg-surface-3 active:scale-[0.98] sm:gap-3 sm:pr-2.5">
+    <div className="group relative flex h-14 items-center gap-2.5 overflow-hidden rounded-lg bg-surface-2 pr-2 ring-1 ring-line transition-colors duration-150 hover:bg-surface-3 active:scale-[0.98] sm:gap-3 sm:pr-2.5">
       <Link to={to} className="absolute inset-0" aria-label={label} />
       <span className="pointer-events-none size-14 shrink-0 overflow-hidden">{cover}</span>
       <span className="pointer-events-none min-w-0 flex-1">
@@ -55,7 +55,7 @@ function Shortcut({ to, label, tracks, cover }: { to: string; label: string; tra
           type="button"
           onClick={() => playList(tracks, 0)}
           aria-label={t.common.playX(label)}
-          className="relative z-10 grid size-8 shrink-0 place-items-center rounded-full bg-accent text-accent-ink opacity-0 shadow-sm transition-all duration-150 group-hover:opacity-100 hover:scale-105 active:scale-95"
+          className="relative z-10 grid size-8 shrink-0 place-items-center rounded-full bg-accent text-accent-ink opacity-0 shadow-sm transition-[opacity,filter,transform] duration-150 group-hover:opacity-100 hover:brightness-105 active:scale-95"
         >
           <PlayIcon size={14} weight="fill" />
         </button>
@@ -71,18 +71,18 @@ function RecentCard({ track, onPlay }: { track: Track; onPlay: () => void }) {
     <button type="button" onClick={onPlay} className="group flex w-34 shrink-0 snap-start flex-col gap-2 text-left md:w-38">
       <span
         className={cn(
-          "relative block overflow-hidden rounded-[12px] shadow-sm ring-1 transition-all",
-          isCurrent ? "ring-2 ring-accent" : "ring-line/50",
+          "relative block overflow-hidden rounded-lg shadow-sm ring-1 transition-colors duration-150",
+          isCurrent ? "ring-2 ring-accent" : "ring-line/50 group-hover:ring-line-strong",
         )}
       >
-        <Artwork src={track.art} fallback={track.thumb} className="aspect-square w-full transition-transform duration-300 group-hover:scale-[1.03]" />
+        <Artwork src={track.art} fallback={track.thumb} className="aspect-square w-full transition-opacity duration-150 group-hover:opacity-90" />
         {isCurrent ? (
-          <span className="absolute inset-x-1.5 bottom-1.5 flex items-center justify-between rounded-full bg-black/75 px-2.5 py-1 text-[10px] font-bold text-accent-text backdrop-blur-md">
+          <span className="absolute inset-x-1.5 bottom-1.5 flex items-center justify-between rounded-full bg-black/82 px-2.5 py-1 text-[10px] font-bold text-accent-text">
             <span>Playing</span>
             <Equalizer live={isPlaying} />
           </span>
         ) : (
-          <span className="absolute right-2 bottom-2 grid size-9 translate-y-1 place-items-center rounded-full bg-black/65 text-white opacity-0 backdrop-blur-md transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:opacity-100">
+          <span className="absolute right-2 bottom-2 grid size-9 translate-y-1 place-items-center rounded-full bg-black/80 text-white opacity-0 transition-[transform,opacity] duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:opacity-100">
             <PlayIcon size={16} weight="fill" />
           </span>
         )}
@@ -130,7 +130,7 @@ function ChartTrackCell({
     <li
       onContextMenu={menuAt}
       className={cn(
-        "group relative flex items-center gap-2.5 rounded-[10px] px-2 py-1.5 transition-all duration-150 hover:bg-fg/[0.05] active:scale-[0.99] active:bg-fg/[0.08]",
+        "group relative flex items-center gap-2.5 rounded-lg px-2 py-1.5 transition-colors duration-150 hover:bg-fg/[0.05] active:scale-[0.99] active:bg-fg/[0.08]",
         isCurrent && "bg-surface-2/80",
       )}
     >
@@ -294,7 +294,7 @@ function Top50Section() {
               onClick={() => playList(activeTracks, 0)}
               aria-label={t.home.playTop50}
               title={t.home.playTop50}
-              className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-accent px-3.5 text-xs font-semibold whitespace-nowrap text-accent-ink shadow-sm transition-transform hover:scale-105 active:scale-95"
+              className="flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-accent px-3.5 text-xs font-semibold whitespace-nowrap text-accent-ink shadow-sm transition-[filter,transform] duration-150 hover:brightness-105 active:scale-95"
             >
               <PlayIcon size={13} weight="fill" />
               <span>{t.home.playTop50}</span>

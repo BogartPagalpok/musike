@@ -115,11 +115,11 @@ function GenreBody({ id, lang }: { id: string; lang: Lang }) {
               {artists.map((a) => (
                 <li key={a.id}>
                   <Link to={paths.artist(a.id)} state={{ name: a.name }} className="group flex flex-col gap-2">
-                    <span className="block overflow-hidden rounded-[14px]">
+                    <span className="block overflow-hidden rounded-[12px] ring-1 ring-line/60 transition-colors duration-150 group-hover:ring-line-strong">
                       <Artwork
                         src={a.art}
                         fallback={a.thumb}
-                        className="aspect-square w-full transition-transform duration-300 ease-out-expo group-hover:scale-[1.04]"
+                        className="aspect-square w-full transition-opacity duration-150 group-hover:opacity-90"
                       />
                     </span>
                     <span className="min-w-0">

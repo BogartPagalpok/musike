@@ -86,7 +86,7 @@ export function OpeningSplash() {
       role="status"
       aria-label="Loading Illusive Sounds"
       className={cn(
-        "fixed inset-0 z-[200] flex flex-col items-center justify-center bg-bg transition-opacity duration-400 select-none",
+        "fixed inset-0 z-[200] flex flex-col items-center justify-center bg-bg transition-opacity duration-300 select-none",
         phase === "fading" ? "pointer-events-none opacity-0" : "opacity-100",
       )}
     >

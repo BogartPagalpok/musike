@@ -252,7 +252,7 @@
   --scrim: rgb(30 27 75 / 0.48);
   --danger: #e11d48;
   --c1: #ec4899;
-  --c2: #7c3aed;
+  --c2: #db2777;
   --c3: #0284c7;
   --c4: #eab308;
   --c5: #10b981;
@@ -282,7 +282,7 @@
   --c2: #fde047;
   --c3: #39ff14;
   --c4: #f472b6;
-  --c5: #a855f7;
+  --c5: #06b6d4;
   --c6: #fb923c;
 }
 
@@ -334,7 +334,7 @@
   --danger: #fb7185;
   --c1: #2dd4bf;
   --c2: #f472b6;
-  --c3: #a78bfa;
+  --c3: #0ea5e9;
   --c4: #34d399;
   --c5: #38bdf8;
   --c6: #facc15;
@@ -364,7 +364,7 @@
   --c3: #fde047;
   --c4: #06b6d4;
   --c5: #ec4899;
-  --c6: #a855f7;
+  --c6: #f43f5e;
 }
 
 /* Subtle Apple Music ambient mesh lighting for Playful 6-Color Themes */
@@ -398,7 +398,8 @@ html:is([data-theme="synthwave"], [data-theme="candy"], [data-theme="arcade"], [
     --color-accent-soft: var(--accent-soft);
     --color-scrim: var(--scrim);
     --color-danger: var(--danger);
-    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+    --font-display: "Bricolage Grotesque", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Variable", system-ui, sans-serif;
+    --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
     --font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
     --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
     --radius-tile: 14px;
@@ -423,6 +424,10 @@ html:is([data-theme="synthwave"], [data-theme="candy"], [data-theme="arcade"], [
       -webkit-user-select: none;
       -webkit-touch-callout: none;
       touch-action: manipulation;
+    }
+    h1,
+    h2 {
+      font-family: var(--font-display);
     }
     input,
     textarea {
@@ -567,36 +572,20 @@ html:is([data-theme="synthwave"], [data-theme="candy"], [data-theme="arcade"], [
   animation: shimmer 1.6s linear infinite;
 }
 
-/* Animated scene floaters & custom background scene translucency */
-@keyframes sceneFloat {
-  0%,
-  100% {
-    transform: translateY(0px) translateX(0px);
-  }
-  50% {
-    transform: translateY(-10px) translateX(6px);
-  }
-}
-.animate-scene-float {
-  animation: sceneFloat 7s ease-in-out infinite;
-}
-.animate-scene-float-slow {
-  animation: sceneFloat 11s ease-in-out infinite reverse;
-}
-
-/* Full-world scene chrome & translucent low-blur panels so background artwork shines through */
+/* Full-world scene chrome: crisp high-contrast semi-opaque surfaces (no heavy frosted-glass blur) */
 html[data-scene]:not([data-scene="none"]) .app-shell {
   background: transparent;
 }
 html[data-scene]:not([data-scene="none"]) .island {
-  background: color-mix(in srgb, var(--surface-1) 58%, transparent);
-  backdrop-filter: blur(12px) saturate(1.25);
-  -webkit-backdrop-filter: blur(12px) saturate(1.25);
+  background: color-mix(in srgb, var(--surface-1) 82%, transparent);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   box-shadow: inset 0 0 0 1px var(--line);
 }
 html[data-scene]:not([data-scene="none"]) .app-main {
-  background: color-mix(in srgb, var(--surface-1) 46%, transparent);
-  backdrop-filter: blur(4px) saturate(1.15);
+  background: color-mix(in srgb, var(--surface-1) 74%, transparent);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 @media (width < 48rem) {
   html[data-scene]:not([data-scene="none"]) .app-main {
@@ -605,19 +594,13 @@ html[data-scene]:not([data-scene="none"]) .app-main {
     -webkit-backdrop-filter: none;
   }
   html[data-scene]:not([data-scene="none"]) .app-header {
-    background: color-mix(in srgb, var(--surface-1) 42%, transparent);
-    backdrop-filter: blur(18px) saturate(1.4);
-    -webkit-backdrop-filter: blur(18px) saturate(1.4);
+    background: color-mix(in srgb, var(--surface-1) 88%, transparent);
   }
   html[data-scene]:not([data-scene="none"]) .app-miniplayer {
-    background: color-mix(in srgb, var(--surface-2) 48%, transparent);
-    backdrop-filter: blur(18px) saturate(1.45);
-    -webkit-backdrop-filter: blur(18px) saturate(1.45);
+    background: color-mix(in srgb, var(--surface-2) 92%, transparent);
   }
   html[data-scene]:not([data-scene="none"]) .app-tabbar {
-    background: color-mix(in srgb, var(--surface-1) 52%, transparent);
-    backdrop-filter: blur(20px) saturate(1.45);
-    -webkit-backdrop-filter: blur(20px) saturate(1.45);
+    background: color-mix(in srgb, var(--surface-1) 92%, transparent);
   }
   html[data-scene]:not([data-scene="none"]) .app-main :is(
     [class~="bg-surface-1"],
@@ -632,12 +615,10 @@ html[data-scene]:not([data-scene="none"]) .app-main {
     [class~="bg-surface-3/70"],
     [class~="bg-surface-3/80"]
   ) {
-    background-color: color-mix(in srgb, var(--surface-2) 32%, transparent);
-    backdrop-filter: blur(12px) saturate(1.35);
-    -webkit-backdrop-filter: blur(12px) saturate(1.35);
+    background-color: color-mix(in srgb, var(--surface-2) 78%, transparent);
   }
   html[data-scene]:not([data-scene="none"]) .app-main .rounded-2xl[class~="bg-surface-1/90"] {
-    background-color: color-mix(in srgb, var(--surface-1) 26%, transparent);
+    background-color: color-mix(in srgb, var(--surface-1) 76%, transparent);
   }
   html[data-scene]:not([data-scene="none"]) [role="dialog"] :is(
     [class~="bg-surface-1"],
@@ -647,9 +628,7 @@ html[data-scene]:not([data-scene="none"]) .app-main {
     [class~="bg-surface-3/65"],
     [class~="bg-surface-3/80"]
   ) {
-    background-color: color-mix(in srgb, var(--surface-2) 56%, transparent);
-    backdrop-filter: blur(14px) saturate(1.35);
-    -webkit-backdrop-filter: blur(14px) saturate(1.35);
+    background-color: color-mix(in srgb, var(--surface-2) 90%, transparent);
   }
 }
 @media (width >= 48rem) {
@@ -658,23 +637,16 @@ html[data-scene]:not([data-scene="none"]) .app-main {
   }
 }
 html[data-scene]:not([data-scene="none"]) .app-playerbar {
-  background: color-mix(in srgb, var(--bg) 68%, transparent);
-  backdrop-filter: blur(8px) saturate(1.25);
+  background: color-mix(in srgb, var(--bg) 90%, transparent);
 }
 html[data-scene]:not([data-scene="none"]) .app-tabbar {
-  background: color-mix(in srgb, var(--surface-1) 52%, transparent);
-  backdrop-filter: blur(16px) saturate(1.35);
-  -webkit-backdrop-filter: blur(16px) saturate(1.35);
+  background: color-mix(in srgb, var(--surface-1) 92%, transparent);
 }
 html[data-scene]:not([data-scene="none"]) .app-miniplayer {
-  background: color-mix(in srgb, var(--surface-2) 48%, transparent);
-  backdrop-filter: blur(16px) saturate(1.35);
-  -webkit-backdrop-filter: blur(16px) saturate(1.35);
+  background: color-mix(in srgb, var(--surface-2) 92%, transparent);
 }
 html[data-scene]:not([data-scene="none"]) .app-header {
-  background: color-mix(in srgb, var(--surface-1) 46%, transparent);
-  backdrop-filter: blur(16px) saturate(1.3);
-  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  background: color-mix(in srgb, var(--surface-1) 90%, transparent);
 }
 
 /* Itachi / Akatsuki Tsukuyomi Blood Moon Palette (matches itachi mobile.mp4) */

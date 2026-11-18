@@ -100,7 +100,7 @@ export function SelectionBar({
   return (
     <div
       className={cn(
-        "sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-[5] border-b border-line bg-bg/80 px-4 py-2.5 backdrop-blur-xl md:top-16 md:bg-surface-1/80 md:px-6",
+        "sticky top-[calc(3.5rem+env(safe-area-inset-top))] z-[5] border-b border-line bg-bg px-4 py-2.5 md:top-16 md:bg-surface-1 md:px-6",
         className,
       )}
     >

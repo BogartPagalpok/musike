@@ -153,11 +153,11 @@ function ShowArtworkTile({
       {episodeThumb && (
         <Artwork
           src={episodeThumb}
-          className="absolute inset-0 size-full object-cover opacity-55 mix-blend-luminosity transition-transform duration-300 group-hover:scale-105"
+          className="absolute inset-0 size-full object-cover opacity-55 mix-blend-luminosity transition-opacity duration-150 group-hover:opacity-70"
         />
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
-      <span className="absolute top-2.5 left-2.5 rounded-md bg-white/15 px-1.5 py-0.5 font-mono text-[9.5px] font-black tracking-wider text-white backdrop-blur-sm">
+      <span className="absolute top-2.5 left-2.5 rounded-sm bg-black/70 px-1.5 py-0.5 font-mono text-[9.5px] font-bold tracking-wider text-white">
         PODCAST
       </span>
       <div className="absolute inset-x-2.5 bottom-2.5">
@@ -204,23 +204,20 @@ function EpisodeCard({
 
   return (
     <article
-      onClick={onPlayEpisode}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          onPlayEpisode();
-        }
-      }}
       className={cn(
-        "group flex flex-col gap-3 rounded-[14px] border p-3.5 transition-colors sm:p-4",
+        "group relative flex flex-col gap-3 rounded-lg border p-3.5 transition-colors duration-150 sm:p-4",
         isCurrent
-          ? "border-accent/45 bg-surface-2/95"
-          : "border-line/70 bg-surface-2/45 hover:border-line hover:bg-surface-2/90",
+          ? "border-accent/45 bg-surface-2"
+          : "border-line/70 bg-surface-2/55 hover:border-line-strong hover:bg-surface-2",
       )}
     >
-      <div className="flex items-start gap-3.5 sm:gap-4">
+      <button
+        type="button"
+        onClick={onPlayEpisode}
+        aria-label={t.common.playX(episode.title)}
+        className="absolute inset-0 rounded-lg focus-visible:outline-offset-[-2px]"
+      />
+      <div className="pointer-events-none relative z-10 flex items-start gap-3.5 sm:gap-4">
         {/* Square Spotify Episode Cover */}
         <div className="relative size-20 shrink-0 overflow-hidden rounded-[10px] shadow-sm sm:size-24">
           <Artwork src={episode.art} fallback={episode.thumb} className="size-full object-cover" />
@@ -251,7 +248,7 @@ function EpisodeCard({
       </div>
 
       {/* Bottom Spotify Action Row: Duration + Progress + Save / Queue / Circular Play Button */}
-      <div className="flex items-center justify-between gap-3 pl-0 sm:pl-28">
+      <div className="relative z-10 flex items-center justify-between gap-3 pl-0 sm:pl-28">
         <div className="flex min-w-0 items-center gap-2.5 text-xs font-medium text-fg-2">
           <span className="rounded-full bg-surface-3 px-2.5 py-0.5 text-[11px] font-semibold text-fg-2 tabular-nums">
             {formatPodcastLength(episode.duration)}
@@ -310,7 +307,7 @@ function EpisodeCard({
             type="button"
             onClick={handlePrimaryPlay}
             aria-label={isPlaying ? "Pause" : t.common.playX(episode.title)}
-            className="ml-1 grid size-9 place-items-center rounded-full bg-fg text-bg shadow-md transition-transform hover:scale-105 hover:bg-accent hover:text-accent-ink active:scale-95"
+            className="ml-1 grid size-9 place-items-center rounded-full bg-fg text-bg shadow-md transition-[background-color,color,transform] duration-150 hover:bg-accent hover:text-accent-ink active:scale-95"
           >
             {isPlaying ? <PauseIcon size={15} weight="fill" /> : <PlayIcon size={15} weight="fill" />}
           </button>
@@ -400,7 +397,7 @@ export default function Podcasts() {
             <button
               type="button"
               onClick={() => playList(episodes, 0)}
-              className="flex h-9 items-center gap-2 rounded-full bg-accent px-4 text-xs font-bold text-accent-ink shadow-sm transition-transform hover:scale-105 active:scale-95"
+              className="flex h-9 items-center gap-2 rounded-md bg-accent px-4 text-xs font-bold text-accent-ink shadow-sm transition-[filter,transform] duration-150 hover:brightness-105 active:scale-95"
             >
               <PlayIcon size={14} weight="fill" />
               <span>{t.common.playAll}</span>
@@ -421,13 +418,14 @@ export default function Podcasts() {
         >
           <input
             type="search"
+            aria-label={t.podcasts.searchPlaceholder}
             value={searchInput}
             onChange={(e) => {
               if (selectedShow) setSelectedShow(null);
               setSearchInput(e.target.value);
             }}
             placeholder={t.podcasts.searchPlaceholder}
-            className="h-11 w-full rounded-full bg-surface-2 pr-10 pl-11 text-[15px] text-fg ring-1 ring-line placeholder:text-fg-3 transition-all focus:bg-surface-3 focus:ring-2 focus:ring-accent focus:outline-none md:text-sm"
+            className="h-11 w-full rounded-md bg-surface-2 pr-10 pl-11 text-[15px] text-fg ring-1 ring-line placeholder:text-fg-3 transition-colors duration-150 focus:bg-surface-3 focus:ring-2 focus:ring-accent focus:outline-none md:text-sm"
           />
           <MagnifyingGlassIcon
             size={17}
@@ -482,7 +480,7 @@ export default function Podcasts() {
             <button
               type="button"
               onClick={() => setSelectedShow(null)}
-              className="mb-4 inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/25"
+              className="mb-4 inline-flex items-center gap-1.5 rounded-md bg-black/55 px-3 py-1 text-xs font-semibold text-white transition-colors duration-150 hover:bg-black/75"
             >
               <ArrowLeftIcon size={13} />
               <span>All Podcasts</span>
@@ -497,7 +495,7 @@ export default function Podcasts() {
                 <p className="text-[11px] font-extrabold tracking-widest text-white/75 uppercase">
                   Podcast · {selectedShow.category}
                 </p>
-                <h2 className="mt-1 text-2xl leading-tight font-black tracking-tight sm:text-3xl">
+                <h2 className="mt-1 text-2xl leading-tight font-bold tracking-tight sm:text-3xl">
                   {selectedShow.name}
                 </h2>
                 <p className="mt-0.5 text-sm font-bold text-white/90">{selectedShow.host}</p>
@@ -509,7 +507,7 @@ export default function Podcasts() {
                     <button
                       type="button"
                       onClick={() => playList(episodes, 0)}
-                      className="inline-flex h-10 items-center gap-2 rounded-full bg-accent px-5 text-xs font-bold text-accent-ink shadow-md transition-transform hover:scale-105 active:scale-95"
+                      className="inline-flex h-10 items-center gap-2 rounded-md bg-accent px-5 text-xs font-bold text-accent-ink shadow-md transition-[filter,transform] duration-150 hover:brightness-105 active:scale-95"
                     >
                       <PlayIcon size={15} weight="fill" />
                       <span>Play Latest Episode</span>
