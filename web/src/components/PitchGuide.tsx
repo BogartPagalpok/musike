@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "../lib/format";
-import { getCachedVocalGuide, loadVocalGuide, type VocalGuideTrack } from "../lib/vocalGuide";
+import { getCachedVocalGuide, loadVocalGuide, subscribeVocalGuide, type VocalGuideTrack } from "../lib/vocalGuide";
 import { getExactPlaybackTime, selectCurrent, usePlayer } from "../player/player";
 import { noteName, pitchTrail, useVideoke } from "../stores/videoke";
 import { MicrophoneStageIcon, WaveformIcon } from "./icons";
@@ -44,24 +44,21 @@ export function PitchGuide({
   const guideRef = useRef<VocalGuideTrack | null>(guide);
   guideRef.current = guide;
 
-  const centerRef = useRef(62);
-  const octaveShiftRef = useRef(0);
+  const centerRef = useRef(64);
 
-  // Load vocal-only synced phrase guide (never draws fake bars over instrumentals)
+  // Load real studio-extracted vocal melody guide (subscribes to progressive hi-fi vocal contour upgrade)
   useEffect(() => {
     if (!track) {
       setGuide(null);
       return;
     }
-    let cancelled = false;
     setGuide(getCachedVocalGuide(track.id));
-    octaveShiftRef.current = 0;
-
-    void loadVocalGuide(track).then((loaded) => {
-      if (!cancelled) setGuide(loaded);
+    const unsub = subscribeVocalGuide(track.id, (updated) => {
+      setGuide(updated);
     });
+    void loadVocalGuide(track);
     return () => {
-      cancelled = true;
+      unsub();
     };
   }, [track?.id]);
 
@@ -92,34 +89,31 @@ export function PitchGuide({
       const songSec = getExactPlaybackTime();
       const activeGuide = guideRef.current;
 
-      // Auto-adapt guide octave (±12 or ±24 semitones) to match the singer's natural voice octave
       const recentVoice = pitchTrail
         .filter((p) => p.midi !== null && now - p.t < 4000)
         .map((p) => p.midi as number);
 
-      let guideMedian = 62;
+      let guideMedian = 64;
       if (activeGuide && activeGuide.bars.length > 0) {
         const windowBars = activeGuide.bars.filter(
           (b) => b.end >= songSec - 4 && b.start <= songSec + 8,
         );
         const sample = windowBars.length ? windowBars : activeGuide.bars.slice(0, 16);
         const mids = sample.map((b) => b.midi).sort((a, b) => a - b);
-        guideMedian = mids[Math.floor(mids.length / 2)] ?? 62;
+        guideMedian = Math.max(58, Math.min(72, mids[Math.floor(mids.length / 2)] ?? 64));
       }
 
-      if (recentVoice.length >= 6) {
-        const sortedVoice = [...recentVoice].sort((a, b) => a - b);
-        const voiceMed = sortedVoice[Math.floor(sortedVoice.length / 2)];
-        const bestShift = Math.round((voiceMed - guideMedian) / 12) * 12;
-        octaveShiftRef.current = Math.max(-24, Math.min(24, bestShift));
-      }
-
-      const targetCenter = guideMedian + octaveShiftRef.current;
-      centerRef.current += (targetCenter - centerRef.current) * 0.08;
+      centerRef.current += (guideMedian - centerRef.current) * 0.08;
 
       const low = Math.round(centerRef.current) - Math.floor(SPAN / 2);
       const laneH = h / SPAN;
       const yOf = (midi: number) => h - (midi - low + 0.5) * laneH;
+      const foldVoiceToStaff = (midi: number) => {
+        let v = midi;
+        while (v - centerRef.current > 7.5) v -= 12;
+        while (centerRef.current - v > 7.5) v += 12;
+        return v;
+      };
       const nowX = w * NOW_X;
 
       const xOfSongSec = (sec: number) => {
@@ -162,7 +156,6 @@ export function PitchGuide({
       let nextUpcomingBar: { note: string; inSec: number } | null = null;
 
       if (activeGuide) {
-        const shift = octaveShiftRef.current;
         const barH = Math.max(6, Math.min(13, laneH * 0.82));
 
         // Check whether live voice is currently hitting the target pitch class
@@ -177,7 +170,7 @@ export function PitchGuide({
           if (b.start > songSec + AHEAD_SEC) {
             if (!nextUpcomingBar) {
               nextUpcomingBar = {
-                note: noteName(b.midi + shift),
+                note: noteName(b.midi),
                 inSec: b.start - songSec,
               };
             }
@@ -186,12 +179,12 @@ export function PitchGuide({
 
           if (!nextUpcomingBar && b.start > songSec) {
             nextUpcomingBar = {
-              note: noteName(b.midi + shift),
+              note: noteName(b.midi),
               inSec: b.start - songSec,
             };
           }
 
-          const midi = b.midi + shift;
+          const midi = b.midi;
           const x0 = xOfSongSec(b.start);
           const x1 = Math.max(x0 + 8, xOfSongSec(b.end));
           const y = yOf(midi);
@@ -287,10 +280,10 @@ export function PitchGuide({
           continue;
         }
         const x = xOfPerfMs(p.t);
-        const y = yOf(p.midi);
+        const y = yOf(foldVoiceToStaff(p.midi));
         const err = Math.abs(p.midi - Math.round(p.midi)) * 100;
         const col = err <= 15 ? "#34d399" : err <= 26 ? accent : "#fbbf24";
-        if (prevPt) {
+        if (prevPt && Math.abs(prevPt.y - y) < laneH * 5.5) {
           g.strokeStyle = col;
           g.shadowColor = col;
           g.shadowBlur = 8;
@@ -307,7 +300,7 @@ export function PitchGuide({
       // 5. Live glowing singer pitch orb on the playhead
       const last = pitchTrail[pitchTrail.length - 1];
       if (last && last.midi !== null && now - last.t < 240) {
-        const y = yOf(last.midi);
+        const y = yOf(foldVoiceToStaff(last.midi));
         const err = Math.abs(last.midi - Math.round(last.midi)) * 100;
         const orbColor = err <= 15 ? "#34d399" : err <= 26 ? accent : "#fbbf24";
         g.fillStyle = "#ffffff";

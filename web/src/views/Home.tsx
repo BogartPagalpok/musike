@@ -54,7 +54,7 @@ function Shortcut({ to, label, tracks, cover }: { to: string; label: string; tra
           aria-label={t.common.playX(label)}
           className="relative z-10 grid size-8 shrink-0 cursor-pointer place-items-center rounded-full bg-accent text-accent-ink opacity-0 shadow-sm transition-opacity duration-150 group-hover:opacity-100 focus-visible:opacity-100 active:scale-95"
         >
-          <PlayIcon size={14} weight="fill" />
+          <PlayIcon size={14} weight="fill" className="translate-x-[1px]" />
         </button>
       ) : null}
     </div>
@@ -78,7 +78,7 @@ function RecentCard({ track, onPlay }: { track: Track; onPlay: () => void }) {
           </span>
         ) : (
           <span className="absolute right-2 bottom-2 grid size-9 translate-y-1 place-items-center rounded-full bg-accent text-accent-ink opacity-0 shadow-md transition-[transform,opacity] duration-150 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:opacity-100">
-            <PlayIcon size={16} weight="fill" />
+            <PlayIcon size={16} weight="fill" className="translate-x-[1px]" />
           </span>
         )}
       </span>

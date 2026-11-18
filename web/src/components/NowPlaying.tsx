@@ -13,7 +13,7 @@ import {
   XIcon,
 } from "./icons";
 import { AnimatePresence, motion, useDragControls, useReducedMotion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useT } from "../i18n";
 import { capabilities } from "../lib/api";
@@ -123,7 +123,12 @@ export function PanelBody({ tab, slot }: { tab: PanelTab; slot: number }) {
   const bespokeDeck = isBespokeDeckScene(sceneStyle) && !isVideokeTrackFlag();
   const isVideoke = useIsVideokeTrack();
   const showScore = useVideoke((v) => v.showScore);
+  const queueRef = useRef<HTMLDivElement>(null);
   const t = useT();
+
+  const scrollToQueue = () => {
+    queueRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
 
   function isVideokeTrackFlag() {
     return track ? useVideoke.getState().ids.has(track.id) : false;
@@ -152,8 +157,46 @@ export function PanelBody({ tab, slot }: { tab: PanelTab; slot: number }) {
                 slot={slot}
                 compact
                 onOpenLyrics={() => openPanel("lyrics")}
+                onOpenQueue={scrollToQueue}
               />
-              <ModeSwitch />
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5">
+                <ModeSwitch />
+                <div className="flex items-center gap-1">
+                  <OfflineButton track={track} size="sm" />
+                  <FavoriteButton track={track} size="sm" />
+                  <IconButton
+                    label={t.trackList.moreFor(track.title)}
+                    size="sm"
+                    onClick={(e) => {
+                      const r = e.currentTarget.getBoundingClientRect();
+                      useUi.getState().openMenu({ track, x: Math.max(12, r.right - 200), y: r.bottom + 6 });
+                    }}
+                  >
+                    <DotsThreeIcon size={18} weight="bold" />
+                  </IconButton>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => void startRadio(track)}
+                  className="flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-md bg-surface-3 px-3 text-xs font-medium text-fg transition-colors duration-150 hover:bg-surface-4 active:scale-[0.98]"
+                >
+                  <RadioIcon size={15} className="shrink-0" />
+                  <span className="truncate">{t.trackMenu.startRadio}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setEqualizerOpen(true)}
+                  className={cn(
+                    "flex h-9 cursor-pointer items-center justify-center gap-1.5 rounded-md px-3 text-xs font-medium transition-colors duration-150 active:scale-[0.98]",
+                    eqEnabled ? "bg-accent-soft text-accent-text font-semibold" : "bg-surface-3 text-fg-2 hover:bg-surface-4 hover:text-fg",
+                  )}
+                >
+                  <EqualizerIcon size={15} weight={eqEnabled ? "fill" : "regular"} className="shrink-0" />
+                  <span className="truncate">{eqEnabled ? t.equalizer.presetNames[eqPreset] : t.dialogs.shortcuts.equalizer}</span>
+                </button>
+              </div>
             </>
           ) : (
             <>
@@ -213,7 +256,7 @@ export function PanelBody({ tab, slot }: { tab: PanelTab; slot: number }) {
           )}
         </>
       )}
-      <div className="-mx-1">
+      <div ref={queueRef} className="-mx-1 scroll-mt-2">
         <QueueList />
       </div>
     </div>

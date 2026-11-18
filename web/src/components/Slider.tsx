@@ -307,7 +307,7 @@ export function Slider({
       case "akatsuki":
         return "#ef4444";
       case "grandline":
-        return "#c084fc";
+        return "#f59e0b";
       case "cassette":
         return "#3b3f46";
       case "mirrorflame":

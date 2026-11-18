@@ -238,48 +238,76 @@ export default function Videoke() {
 
   const currentCode = currentTrack ? songbookCode(currentTrack.id) : "";
 
-  const reservedQueueSection = upNext.length > 0 && (
-    <div className="flex min-h-0 flex-col rounded-lg bg-surface-2 p-3.5">
+  const reservedQueueSection = (
+    <div className="flex min-h-0 flex-col rounded-lg border border-line bg-surface-2 p-3.5">
       <div className="mb-2 flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold text-fg">
-          {t.videoke.reservedQueue} ({upNext.length})
-        </span>
-        <button
-          type="button"
-          onClick={clearUpcoming}
-          className="cursor-pointer text-xs font-medium text-fg-3 transition-colors duration-150 hover:text-danger"
-        >
-          {t.videoke.clearQueue}
-        </button>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-fg">
+            {t.videoke.reservedQueue}
+          </span>
+          <span className="rounded-sm bg-surface-3 px-1.5 py-0.5 text-[11px] font-semibold text-fg-2 tabular-nums">
+            {upNext.length}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          {upNext[0] && (
+            <button
+              type="button"
+              onClick={() => jumpTo(upNext[0].queueIndex)}
+              className="inline-flex cursor-pointer items-center gap-1 rounded-sm bg-fg px-2 py-0.5 text-[11px] font-semibold text-bg transition-opacity duration-150 hover:opacity-90"
+            >
+              <SkipForwardIcon size={10} weight="fill" />
+              <span>Play Next</span>
+            </button>
+          )}
+          {upNext.length > 0 && (
+            <button
+              type="button"
+              onClick={clearUpcoming}
+              className="cursor-pointer text-xs font-medium text-fg-3 transition-colors duration-150 hover:text-danger"
+            >
+              {t.videoke.clearQueue}
+            </button>
+          )}
+        </div>
       </div>
-      <ul className="scroll-area flex max-h-40 flex-col divide-y divide-line overflow-y-auto">
-        {upNext.map(({ track: item, queueIndex }, idx) => (
-          <li
-            key={`${item.id}-${queueIndex}`}
-            className="flex items-center gap-2.5 py-2"
-          >
-            <span className="w-5 shrink-0 text-xs font-medium text-fg-3 tabular-nums">
-              {idx + 1}
-            </span>
-            <button
-              type="button"
-              onClick={() => jumpTo(queueIndex)}
-              className="min-w-0 flex-1 cursor-pointer text-left transition-colors duration-150 hover:text-accent-text"
+
+      {upNext.length === 0 ? (
+        <p className="py-2 text-xs leading-relaxed text-fg-2">
+          No songs reserved yet — click <strong>+ {t.videoke.reserve}</strong> on any song in the Songbook to line up your next turn.
+        </p>
+      ) : (
+        <ul className="scroll-area flex max-h-44 flex-col divide-y divide-line overflow-y-auto">
+          {upNext.map(({ track: item, queueIndex }, idx) => (
+            <li
+              key={`${item.id}-${queueIndex}`}
+              className="flex items-center gap-2.5 py-2"
             >
-              <p className="truncate text-[13px] font-medium text-fg">{item.title}</p>
-              <p className="truncate text-[11.5px] text-fg-3">{item.artist}</p>
-            </button>
-            <button
-              type="button"
-              onClick={() => removeAt(queueIndex)}
-              aria-label={t.queue.removeX(item.title)}
-              className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-md text-fg-3 transition-colors duration-150 hover:bg-surface-3 hover:text-danger"
-            >
-              <TrashIcon size={13} />
-            </button>
-          </li>
-        ))}
-      </ul>
+              <span className="w-6 shrink-0 font-mono text-[11px] font-semibold text-accent-text tabular-nums">
+                #{String(idx + 1).padStart(2, "0")}
+              </span>
+              <button
+                type="button"
+                onClick={() => jumpTo(queueIndex)}
+                className="min-w-0 flex-1 cursor-pointer text-left transition-colors duration-150 hover:text-accent-text"
+              >
+                <p className="truncate text-[13px] font-medium text-fg">{item.title}</p>
+                <p className="truncate text-[11.5px] text-fg-3">
+                  {item.artist} · #{songbookCode(item.id)}
+                </p>
+              </button>
+              <button
+                type="button"
+                onClick={() => removeAt(queueIndex)}
+                aria-label={t.queue.removeX(item.title)}
+                className="grid size-7 shrink-0 cursor-pointer place-items-center rounded-md text-fg-3 transition-colors duration-150 hover:bg-surface-3 hover:text-danger"
+              >
+                <TrashIcon size={13} />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 
@@ -323,37 +351,30 @@ export default function Videoke() {
         )}
       >
         {centerHasStage ? (
-          (currentTrack || upNext.length > 0) && (
-            <div className="flex flex-col gap-3">
-              {currentTrack && (
-                <div className="flex items-center justify-between gap-2 rounded-lg bg-surface-2 px-3.5 py-2.5">
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-[13px] font-semibold text-fg">{currentTrack.title}</p>
-                    <p className="truncate text-xs text-fg-2">#{currentCode} · {currentTrack.artist}</p>
-                  </div>
-                  {upNext[0] && (
-                    <button
-                      type="button"
-                      onClick={() => jumpTo(upNext[0].queueIndex)}
-                      className="flex h-7 shrink-0 cursor-pointer items-center gap-1 rounded-md bg-surface-3 px-2.5 text-xs font-medium text-fg-2 hover:bg-surface-4 hover:text-fg"
-                    >
-                      <SkipForwardIcon size={12} weight="fill" />
-                      <span>Next</span>
-                    </button>
-                  )}
+          <div className="flex flex-col gap-3">
+            {currentTrack && (
+              <div className="flex items-center justify-between gap-2 rounded-lg bg-surface-2 px-3.5 py-2.5">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[13px] font-semibold text-fg">{currentTrack.title}</p>
+                  <p className="truncate text-xs text-fg-2">#{currentCode} · {currentTrack.artist}</p>
                 </div>
-              )}
-              {reservedQueueSection}
-            </div>
-          )
-        ) : (
-          <div
-            className={cn(
-              "flex flex-col gap-3 @[980px]/videoke:sticky @[980px]/videoke:top-3",
-              !currentTrack && "hidden @[980px]/videoke:flex",
+                {upNext[0] && (
+                  <button
+                    type="button"
+                    onClick={() => jumpTo(upNext[0].queueIndex)}
+                    className="flex h-7 shrink-0 cursor-pointer items-center gap-1 rounded-md bg-surface-3 px-2.5 text-xs font-medium text-fg-2 hover:bg-surface-4 hover:text-fg"
+                  >
+                    <SkipForwardIcon size={12} weight="fill" />
+                    <span>Next</span>
+                  </button>
+                )}
+              </div>
             )}
-          >
-            <div className="overflow-hidden rounded-lg bg-surface-2 p-3">
+            {reservedQueueSection}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3 @[980px]/videoke:sticky @[980px]/videoke:top-3">
+            <div className={cn("overflow-hidden rounded-lg bg-surface-2 p-3", !currentTrack && "hidden @[980px]/videoke:block")}>
               {currentTrack ? (
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-col overflow-hidden rounded-md bg-black">

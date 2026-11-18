@@ -26,12 +26,20 @@ import { useThemeStore } from "../stores/themeStore";
 import { IconButton, PlayDisc } from "./IconButton";
 import { Slider } from "./Slider";
 
-export function PlayPauseIcon({ size = 22 }: { size?: number }) {
+export function PlayPauseIcon({ size = 22, optical = true }: { size?: number; optical?: boolean }) {
   const status = usePlayer((s) => s.status);
   if (status === "loading") {
     return <span className="block size-[18px] animate-spin rounded-full border-2 border-current border-t-transparent" />;
   }
-  return status === "playing" ? <PauseIcon size={size} weight="fill" /> : <PlayIcon size={size} weight="fill" />;
+  return status === "playing" ? (
+    <PauseIcon size={size} weight="fill" />
+  ) : (
+    <PlayIcon
+      size={size}
+      weight="fill"
+      className={optical ? (size >= 24 ? "translate-x-[2px]" : "translate-x-[1.5px]") : undefined}
+    />
+  );
 }
 
 export function Transport({ big = false }: { big?: boolean }) {
@@ -52,43 +60,45 @@ export function Transport({ big = false }: { big?: boolean }) {
   const hasTrack = p.hasQueue;
   const RepeatGlyph = p.repeat === "one" ? RepeatOnceIcon : RepeatIcon;
   const repeatLabel = { off: t.player.repeatOff, all: t.player.repeatAll, one: t.player.repeatOne }[p.repeat];
-  const iconSize = big ? 26 : 19;
+  const iconSize = big ? 26 : 18;
 
   return (
-    <div className={cn("flex items-center", big ? "justify-between" : "gap-2")}>
+    <div className={cn("flex items-center justify-center", big ? "w-full justify-between" : "gap-2")}>
       <IconButton
         label={p.shuffle ? t.player.shuffleOn : t.player.shuffleOff}
         active={p.shuffle}
-        size={big ? "lg" : "sm"}
+        size={big ? "lg" : "md"}
         onClick={p.toggleShuffle}
         disabled={!hasTrack}
+        className={!big ? "size-9" : undefined}
       >
         <ShuffleIcon size={big ? 22 : 17} />
-        {p.shuffle && <span className="absolute bottom-0.5 size-1 rounded-full bg-accent-text" />}
+        {p.shuffle && <span className="absolute bottom-1 left-1/2 size-1 -translate-x-1/2 rounded-full bg-accent-text" />}
       </IconButton>
-      <IconButton label={t.player.previous} size={big ? "lg" : "md"} onClick={p.prev} disabled={!hasTrack} className="text-fg">
+      <IconButton label={t.player.previous} size={big ? "lg" : "md"} onClick={p.prev} disabled={!hasTrack} className={cn("text-fg", !big && "size-9")}>
         <SkipBackIcon size={iconSize} weight="fill" />
       </IconButton>
       <PlayDisc
         label={p.status === "playing" ? t.common.pause : t.common.play}
-        px={big ? 72 : 42}
+        px={big ? 72 : 40}
         onClick={p.toggle}
         disabled={!hasTrack}
       >
-        <PlayPauseIcon size={big ? 30 : 20} />
+        <PlayPauseIcon size={big ? 30 : 19} />
       </PlayDisc>
-      <IconButton label={t.player.next} size={big ? "lg" : "md"} onClick={p.next} disabled={!hasTrack} className="text-fg">
+      <IconButton label={t.player.next} size={big ? "lg" : "md"} onClick={p.next} disabled={!hasTrack} className={cn("text-fg", !big && "size-9")}>
         <SkipForwardIcon size={iconSize} weight="fill" />
       </IconButton>
       <IconButton
         label={repeatLabel}
         active={p.repeat !== "off"}
-        size={big ? "lg" : "sm"}
+        size={big ? "lg" : "md"}
         onClick={p.cycleRepeat}
         disabled={!hasTrack}
+        className={!big ? "size-9" : undefined}
       >
         <RepeatGlyph size={big ? 22 : 17} />
-        {p.repeat !== "off" && <span className="absolute bottom-0.5 size-1 rounded-full bg-accent-text" />}
+        {p.repeat !== "off" && <span className="absolute bottom-1 left-1/2 size-1 -translate-x-1/2 rounded-full bg-accent-text" />}
       </IconButton>
     </div>
   );

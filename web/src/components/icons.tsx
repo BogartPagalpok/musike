@@ -910,5 +910,15 @@ export function ListPlusIcon({ weight, ...props }: IconProps) {
   );
 }
 
+export function ShareNetworkIcon({ weight, ...props }: IconProps) {
+  const sw = strokeW(weight);
+  return (
+    <SvgIcon weight={weight} {...props}>
+      <path d="M7 1.5v7.25M4.25 4.25 7 1.5l2.75 2.75" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3.25 6.75H2.5A1.25 1.25 0 0 0 1.25 8v3.5A1.25 1.25 0 0 0 2.5 12.75h9a1.25 1.25 0 0 0 1.25 -1.25V8A1.25 1.25 0 0 0 11.5 6.75h-0.75" stroke="currentColor" strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round" />
+    </SvgIcon>
+  );
+}
+
 export const CornersOutIcon = ArrowsOutIcon;
 export const ListIcon = ListBulletsIcon;

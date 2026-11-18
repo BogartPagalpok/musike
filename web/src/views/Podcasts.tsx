@@ -237,7 +237,7 @@ function EpisodeRow({
               aria-label={isPlaying ? t.common.pause : t.common.playX(episode.title)}
               className="pointer-events-auto grid size-8 shrink-0 cursor-pointer place-items-center rounded-full bg-fg text-bg transition-opacity duration-150 hover:opacity-90 active:scale-95"
             >
-              {isPlaying ? <PauseIcon size={14} weight="fill" /> : <PlayIcon size={14} weight="fill" />}
+              {isPlaying ? <PauseIcon size={14} weight="fill" /> : <PlayIcon size={14} weight="fill" className="translate-x-[1px]" />}
             </button>
             {durationLabel && <span>{durationLabel}</span>}
             {isCurrent && duration > 0 && (

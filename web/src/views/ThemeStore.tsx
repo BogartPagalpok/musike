@@ -252,7 +252,7 @@ function PackCard({
         <div className={cn("relative z-10 flex items-center gap-2.5 border px-2.5 py-2", frameCls)}>
           <div onClick={(e) => e.stopPropagation()}>
             <PlayDisc px={34} styleVariant={pack.playButton} playing label={`${pack.name} play button`}>
-              <PlayIcon size={14} weight="fill" />
+              <PlayIcon size={14} weight="fill" className="translate-x-[1px]" />
             </PlayDisc>
           </div>
           <div className="min-w-0 flex-1" onClick={(e) => e.stopPropagation()}>

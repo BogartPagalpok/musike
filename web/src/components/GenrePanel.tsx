@@ -148,7 +148,7 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
                     busy ? "animate-pulse opacity-100" : "opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100",
                   )}
                 >
-                  <PlayIcon size={14} weight="fill" />
+                  <PlayIcon size={14} weight="fill" className="translate-x-[1px]" />
                 </button>
               </div>
             </article>

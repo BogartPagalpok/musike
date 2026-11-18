@@ -1,9 +1,12 @@
 import {
   ArrowsClockwiseIcon,
+  ArrowSquareOutIcon,
   CaretLeftIcon,
   CaretRightIcon,
   CheckIcon,
+  CopyIcon,
   DownloadSimpleIcon,
+  ShareNetworkIcon,
 } from "./icons";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -16,7 +19,7 @@ import { cn } from "../lib/format";
 import { ACCENTS, useAppearance } from "../stores/appearance";
 import { SKIN_PACKS, useThemeStore } from "../stores/themeStore";
 import { useSystem } from "../stores/system";
-import { useUi } from "../stores/ui";
+import { toast, useUi } from "../stores/ui";
 import { ThemeStoreContent } from "../views/ThemeStore";
 import { LogoMark } from "./Brand";
 import { CustomColorPicker } from "./CustomizeSection";
@@ -428,6 +431,42 @@ function EnginePage() {
   );
 }
 
+const RELEASE_URL = "https://github.com/BogartPagalpok/musike/releases/latest";
+
+async function copyReleaseLink() {
+  try {
+    await navigator.clipboard.writeText(RELEASE_URL);
+    toast("Release download link copied!");
+  } catch {
+    const input = document.createElement("input");
+    input.value = RELEASE_URL;
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand("copy");
+    input.remove();
+    toast("Release download link copied!");
+  }
+}
+
+async function shareAppRelease() {
+  const title = `Illusive Sounds v${__APP_VERSION__}`;
+  const text = `Download Illusive Sounds v${__APP_VERSION__} (Music, Podcasts & Videoke for macOS, Windows, Linux, Android & iOS):`;
+  try {
+    const cap = (globalThis as { Capacitor?: { isNativePlatform?: () => boolean; Plugins?: { Share?: { share: (opts: unknown) => Promise<void> } } } }).Capacitor;
+    if (cap?.isNativePlatform?.() && cap.Plugins?.Share) {
+      await cap.Plugins.Share.share({ title, text, url: RELEASE_URL, dialogTitle: "Share Illusive Sounds" });
+      return;
+    }
+    if (typeof navigator.share === "function") {
+      await navigator.share({ title, text, url: RELEASE_URL });
+      return;
+    }
+  } catch (err) {
+    if ((err as Error)?.name === "AbortError") return;
+  }
+  await copyReleaseLink();
+}
+
 function RootPage({ go }: { go: (p: Page) => void }) {
   const t = useT();
   const isMd = useMediaQuery(MD);
@@ -459,7 +498,36 @@ function RootPage({ go }: { go: (p: Page) => void }) {
             v{__APP_VERSION__} · {t.settings.developer} Ian Lester Eclevia
           </p>
         </div>
+        <button
+          type="button"
+          onClick={() => void shareAppRelease()}
+          className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-md bg-fg px-3 text-xs font-semibold text-bg transition-opacity duration-150 hover:opacity-90 active:scale-95"
+        >
+          <ShareNetworkIcon size={14} weight="bold" />
+          <span>Share</span>
+        </button>
       </div>
+
+      <Group title="Share & Downloads">
+        <Row
+          label="Share App Release"
+          sub="Send the official Illusive Sounds download page for macOS, Windows, Linux, Android & iOS"
+          right={<ShareNetworkIcon size={17} className="shrink-0 text-fg-2" />}
+          onClick={() => void shareAppRelease()}
+        />
+        <Row
+          label="Copy Release Link"
+          sub={RELEASE_URL}
+          right={<CopyIcon size={17} className="shrink-0 text-fg-2" />}
+          onClick={() => void copyReleaseLink()}
+        />
+        <Row
+          label="Open GitHub Releases"
+          sub={`Latest release · v${__APP_VERSION__}`}
+          right={<ArrowSquareOutIcon size={17} className="shrink-0 text-fg-2" />}
+          onClick={() => window.open(RELEASE_URL, "_blank", "noopener,noreferrer")}
+        />
+      </Group>
 
       <Group title={t.settings.appearance}>
         <Row

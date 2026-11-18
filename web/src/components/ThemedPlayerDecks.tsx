@@ -1,15 +1,20 @@
-import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent, type PointerEvent } from "react";
+import { useNavigate } from "react-router";
 import { cn, formatTime as formatDuration } from "../lib/format";
+import { paths } from "../lib/routes";
 import type { Track } from "../lib/types";
 import { readEqSpectrum, useEqualizer } from "../player/equalizer";
 import { usePlayer } from "../player/player";
 import { type SceneStyle } from "../stores/themeStore";
-import { useUi } from "../stores/ui";
+import { toast, useUi } from "../stores/ui";
 import { Artwork } from "./Artwork";
 import { FavoriteButton } from "./Controls";
 import {
+  DotsThreeIcon,
   EqualizerIcon,
+  HouseIcon,
   ListBulletsIcon,
+  MagnifyingGlassIcon,
   MicrophoneStageIcon,
   MusicNotesIcon,
   PauseIcon,
@@ -17,9 +22,11 @@ import {
   PlusIcon,
   QueueIcon,
   RepeatIcon,
+  RepeatOnceIcon,
   ShuffleIcon,
   SkipBackIcon,
   SkipForwardIcon,
+  VideoCameraIcon,
 } from "./icons";
 import { fetchLyricsFor, type LyricsData } from "./Lyrics";
 import { SLOT, VideoSlot } from "./Video";
@@ -42,6 +49,62 @@ export function ThemedPlayerDeck(props: DeckProps) {
   if (props.scene === "mirrorflame") return <MirrorFlameDeck {...props} />;
   if (props.scene === "sandtopo") return <SandTopoDeck {...props} />;
   return null;
+}
+
+/** Smooth pointer-capture scrub helper for custom deck progress bars (supports both click & drag without sheet scroll). */
+function useDeckScrubber(duration: number, seek: (sec: number) => void) {
+  const [scrubSec, setScrubSec] = useState<number | null>(null);
+
+  const bind = {
+    onPointerDown: (e: PointerEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const el = e.currentTarget;
+      el.setPointerCapture(e.pointerId);
+      const calc = (clientX: number) => {
+        const rect = el.getBoundingClientRect();
+        const ratio = Math.min(1, Math.max(0, (clientX - rect.left) / Math.max(1, rect.width)));
+        return ratio * Math.max(1, duration);
+      };
+      setScrubSec(calc(e.clientX));
+
+      const onMove = (ev: globalThis.PointerEvent) => {
+        setScrubSec(calc(ev.clientX));
+      };
+      const onUp = (ev: globalThis.PointerEvent) => {
+        const target = calc(ev.clientX);
+        setScrubSec(null);
+        seek(target);
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
+      };
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
+    },
+  };
+
+  return { scrubSec, bind };
+}
+
+function openTrackMenuAt(e: MouseEvent<HTMLElement>, track: Track) {
+  e.stopPropagation();
+  const r = e.currentTarget.getBoundingClientRect();
+  useUi.getState().openMenu({
+    track,
+    x: Math.max(12, Math.min(window.innerWidth - 220, r.right - 180)),
+    y: Math.min(window.innerHeight - 260, r.bottom + 6),
+  });
+}
+
+function smartNext(track: Track) {
+  const s = usePlayer.getState();
+  if (s.index < s.queue.length - 1 || (s.repeat === "all" && s.queue.length > 1)) {
+    s.next();
+  } else {
+    void s.startRadio(track);
+  }
 }
 
 /* ================================================================================================
@@ -68,12 +131,10 @@ function TapeReel({ spinning, fillRatio }: { spinning: boolean; fillRatio: numbe
   const tapeRadius = 12 + Math.round(fillRatio * 10);
   return (
     <div className="relative grid size-14 place-items-center">
-      {/* Dark magnetic tape pack behind reel hub */}
       <div
         className="rounded-full bg-[#24211e] transition-[width,height] duration-300"
         style={{ width: `${tapeRadius * 2}px`, height: `${tapeRadius * 2}px` }}
       />
-      {/* White/silver 6-tooth cassette hub */}
       <svg
         viewBox="0 0 48 48"
         className={cn(
@@ -104,6 +165,8 @@ function TapeReel({ spinning, fillRatio }: { spinning: boolean; fillRatio: numbe
 function CassetteDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQueue }: DeckProps) {
   const status = usePlayer((s) => s.status);
   const showsVideo = usePlayer((s) => s.mediaKind === "video");
+  const preferVideo = usePlayer((s) => s.preferVideo);
+  const setPreferVideo = usePlayer((s) => s.setPreferVideo);
   const position = usePlayer((s) => s.position);
   const duration = usePlayer((s) => s.duration) || track.duration || 1;
   const shuffle = usePlayer((s) => s.shuffle);
@@ -112,7 +175,7 @@ function CassetteDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQ
   const pause = usePlayer((s) => s.pause);
   const seek = usePlayer((s) => s.seek);
   const prev = usePlayer((s) => s.prev);
-  const next = usePlayer((s) => s.next);
+  const openAddToPlaylist = useUi((s) => s.openAddToPlaylist);
 
   const isPlaying = status === "playing";
   const pct = Math.min(1, Math.max(0, position / Math.max(1, duration)));
@@ -129,7 +192,6 @@ function CassetteDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQ
         boxShadow: "inset 0 2px 1px rgba(255,255,255,0.65), 0 18px 42px rgba(28,26,20,0.32)",
       }}
     >
-      {/* Top Slate Bezel Notch + Corner Phillips Screws */}
       <div className="pointer-events-none absolute inset-x-0 top-0 flex justify-center">
         <div className="flex h-4 w-36 items-center justify-center rounded-b-2xl bg-[#555b62] shadow-inner">
           <span className="h-[2px] w-7 rounded-full bg-[#b8bcc2]" />
@@ -159,33 +221,42 @@ function CassetteDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQ
       </div>
 
       {/* RANDOM Mechanical Slide Switch + Quick Action Strip */}
-      <div className="flex items-center justify-between px-2">
+      <div className="flex items-center justify-between px-1">
         <button
           type="button"
           onClick={toggleShuffle}
           aria-pressed={shuffle}
-          className="group flex flex-col items-start gap-1"
+          className="group flex cursor-pointer flex-col items-start gap-1"
         >
           <span className="flex h-5 w-12 items-center rounded-[4px] border border-[#22252a] bg-[#141619] p-0.5 shadow-[inset_0_2px_3px_rgba(0,0,0,0.85)]">
             <span
               className={cn(
-                "h-3.5 w-5 rounded-[2px] bg-gradient-to-b from-[#8f949c] to-[#5e636b] shadow transition-transform duration-200",
+                "h-3.5 w-5 rounded-[2px] bg-gradient-to-b from-[#8f949c] to-[#5e636b] shadow transition-transform duration-150",
                 shuffle ? "translate-x-5 ring-1 ring-amber-300/70" : "translate-x-0",
               )}
             />
           </span>
           <span className="text-[10px] font-extrabold tracking-wider text-[#5b5e63]">
-            RANDOM {shuffle ? "ON" : ""}
+            RANDOM {shuffle ? "ON" : "OFF"}
           </span>
         </button>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1">
           <FavoriteButton track={track} size="sm" />
+          <button
+            type="button"
+            onClick={() => openAddToPlaylist([track])}
+            aria-label="Add to playlist"
+            title="Add to playlist"
+            className="grid size-7 cursor-pointer place-items-center rounded-md border border-[#4a4e55]/40 bg-[#cbc5b2] text-[#35383e] shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] active:translate-y-px"
+          >
+            <PlusIcon size={13} weight="bold" />
+          </button>
           {onOpenLyrics && (
             <button
               type="button"
               onClick={onOpenLyrics}
-              className="rounded-md border border-[#4a4e55]/40 bg-[#cbc5b2] px-2.5 py-1 text-[10px] font-extrabold tracking-wider text-[#35383e] shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] active:translate-y-px"
+              className="cursor-pointer rounded-md border border-[#4a4e55]/40 bg-[#cbc5b2] px-2 py-1 text-[10px] font-extrabold tracking-wider text-[#35383e] shadow-[inset_0_1px_0_rgba(255,255,255,0.55)] active:translate-y-px"
             >
               LYRICS
             </button>
@@ -194,16 +265,35 @@ function CassetteDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQ
             <button
               type="button"
               onClick={onOpenQueue}
-              className="rounded-md border border-[#4a4e55]/40 bg-[#484d54] px-2.5 py-1 text-[10px] font-extrabold tracking-wider text-white shadow active:translate-y-px"
+              className="cursor-pointer rounded-md border border-[#4a4e55]/40 bg-[#484d54] px-2 py-1 text-[10px] font-extrabold tracking-wider text-white shadow active:translate-y-px"
             >
               QUEUE
             </button>
           )}
+          <button
+            type="button"
+            onClick={(e) => openTrackMenuAt(e, track)}
+            aria-label="More track options"
+            title="More options"
+            className="grid size-7 cursor-pointer place-items-center rounded-md border border-[#4a4e55]/40 bg-[#cbc5b2] text-[#35383e] active:translate-y-px"
+          >
+            <DotsThreeIcon size={15} weight="bold" />
+          </button>
         </div>
       </div>
 
       {/* Recessed Cassette Door & Live Tape Window */}
       <div className="relative rounded-[14px] border-[2.5px] border-[#1f2125] bg-gradient-to-b from-[#dad5c5] to-[#cbc5b2] p-3 shadow-[inset_0_2px_4px_rgba(255,255,255,0.6),0_4px_12px_rgba(0,0,0,0.22)]">
+        {/* Right-edge MAIN / VIDEO hardware tab from Image 1 */}
+        <button
+          type="button"
+          onClick={() => setPreferVideo(!preferVideo)}
+          title={preferVideo ? "Switch to Cassette Tape View" : "Switch to Music Video"}
+          className="absolute top-1/2 -right-3 z-20 -translate-y-1/2 cursor-pointer rounded-l-md border border-[#32363d] bg-[#4c5158] px-1.5 py-2.5 text-[9px] font-extrabold tracking-widest text-white shadow [writing-mode:vertical-rl]"
+        >
+          {preferVideo ? "TAPE" : "VIDEO"}
+        </button>
+
         {showsVideo ? (
           <div className="overflow-hidden rounded-[10px] border-2 border-[#3b3f45] bg-black">
             <VideoSlot priority={slot} expandable className="aspect-video w-full" />
@@ -215,21 +305,18 @@ function CassetteDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQ
               clipPath: "polygon(6% 0%, 94% 0%, 100% 14%, 100% 100%, 0% 100%, 0% 14%)",
             }}
           >
-            {/* Subtle track artwork watermark + hand-drawn acoustic cassette feel */}
             <Artwork
               src={track.art}
               fallback={track.thumb}
               className="pointer-events-none absolute inset-0 size-full object-cover opacity-18 grayscale contrast-125"
             />
             <div className="relative z-10 flex flex-col items-center gap-2.5">
-              {/* Top Marquee Title Banner */}
-              <div className="w-full rounded-[5px] bg-[#1e2024]/85 px-2.5 py-1 text-center shadow">
+              <div className="w-full rounded-[5px] bg-[#1e2024]/88 px-2.5 py-1 text-center shadow">
                 <p className="truncate text-xs font-bold tracking-tight text-white">
                   {track.artist} — {track.title}
                 </p>
               </div>
 
-              {/* Dual Spinning Tape Reels + Center Scale Window */}
               <div className="flex w-full items-center justify-around rounded-full border border-[#8f9298] bg-gradient-to-b from-[#d4d3ce] to-[#b5b4ae] px-2 py-1 shadow-inner">
                 <TapeReel spinning={isPlaying} fillRatio={1 - pct * 0.75} />
 
@@ -250,25 +337,30 @@ function CassetteDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQ
                 <TapeReel spinning={isPlaying} fillRatio={0.25 + pct * 0.75} />
               </div>
 
-              {/* Mechanical 3-Digit Counter + Scrubbable Tape Progress */}
               <div className="flex w-full items-center gap-2.5 pt-0.5">
-                <div className="flex items-center gap-0.5 rounded-[4px] border-2 border-[#45494f] bg-[#16181c] px-1.5 py-0.5 font-mono text-[11px] font-bold tracking-widest text-white shadow-inner">
+                <button
+                  type="button"
+                  onClick={() => seek(0)}
+                  title="Reset tape counter to 000"
+                  className="flex cursor-pointer items-center gap-0.5 rounded-[4px] border-2 border-[#45494f] bg-[#16181c] px-1.5 py-0.5 font-mono text-[11px] font-bold tracking-widest text-white shadow-inner"
+                >
                   {counterDigits.split("").map((d, idx) => (
                     <span key={idx} className="inline-block w-3 bg-[#22262c] text-center">
                       {d}
                     </span>
                   ))}
-                </div>
+                </button>
                 <input
                   type="range"
                   min={0}
                   max={Math.max(1, Math.floor(duration))}
                   value={Math.min(Math.floor(duration), Math.floor(position))}
+                  onPointerDown={(e) => e.stopPropagation()}
                   onChange={(e) => seek(Number(e.target.value))}
                   aria-label="Tape position"
-                  className="h-1.5 min-w-0 flex-1 cursor-pointer accent-[#3b3f46]"
+                  className="h-2 min-w-0 flex-1 cursor-pointer touch-none accent-[#3b3f46]"
                 />
-                <span className="font-mono text-[10px] font-bold text-[#44484f]">
+                <span className="font-mono text-[10px] font-bold text-[#44484f] tabular-nums">
                   {formatDuration(position)}
                 </span>
               </div>
@@ -276,7 +368,6 @@ function CassetteDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQ
           </div>
         )}
 
-        {/* Bainil Minimalist Mark */}
         <div className="mt-2.5 flex items-center justify-center gap-1.5 text-[#66696e]">
           <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8">
             <path d="M4 6 C 8 11, 16 11, 20 6" strokeLinecap="round" />
@@ -299,7 +390,8 @@ function CassetteDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQ
           {[
             {
               id: "stop",
-              active: status === "idle",
+              label: "Stop",
+              active: !isPlaying && position === 0,
               onClick: () => {
                 pause();
                 seek(0);
@@ -308,40 +400,40 @@ function CassetteDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQ
             },
             {
               id: "play",
+              label: isPlaying ? "Pause" : "Play",
               active: isPlaying,
-              onClick: () => {
-                if (!isPlaying) toggle();
-              },
-              icon: <PlayIcon size={16} weight="fill" className="text-[#34373d]" />,
+              onClick: () => toggle(),
+              icon: <PlayIcon size={16} weight="fill" className="translate-x-[1px] text-[#34373d]" />,
             },
             {
               id: "pause",
+              label: isPlaying ? "Pause" : "Resume",
               active: !isPlaying && position > 0,
-              onClick: () => {
-                if (isPlaying) pause();
-                else toggle();
-              },
+              onClick: () => toggle(),
               icon: <PauseIcon size={15} weight="fill" className="text-[#34373d]" />,
             },
             {
               id: "rew",
+              label: "Previous or Rewind",
               active: false,
               onClick: prev,
               icon: <SkipBackIcon size={16} weight="fill" className="text-[#34373d]" />,
             },
             {
               id: "ff",
+              label: "Next Track",
               active: false,
-              onClick: next,
+              onClick: () => smartNext(track),
               icon: <SkipForwardIcon size={16} weight="fill" className="text-[#34373d]" />,
             },
           ].map((btn) => (
             <button
               key={btn.id}
               type="button"
+              aria-label={btn.label}
               onClick={btn.onClick}
               className={cn(
-                "flex h-16 flex-col items-center justify-between rounded-[6px] border border-[#2b2e34] py-3 transition-transform duration-150 active:translate-y-1",
+                "flex h-16 cursor-pointer flex-col items-center justify-between rounded-[6px] border border-[#2b2e34] py-3 transition-transform duration-150 active:translate-y-1",
                 btn.active
                   ? "translate-y-1 bg-gradient-to-b from-[#555960] to-[#3f434a] shadow-[inset_0_3px_6px_rgba(0,0,0,0.55)]"
                   : "bg-gradient-to-b from-[#787c84] via-[#676b73] to-[#4f535a] shadow-[inset_0_1px_0_rgba(255,255,255,0.35),0_4px_4px_rgba(0,0,0,0.6)]",
@@ -368,6 +460,7 @@ function CassetteDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQ
 type FlameMode = "vocal" | "lyric" | "bass" | "smooth";
 
 function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQueue }: DeckProps) {
+  const navigate = useNavigate();
   const status = usePlayer((s) => s.status);
   const showsVideo = usePlayer((s) => s.mediaKind === "video");
   const position = usePlayer((s) => s.position);
@@ -379,8 +472,9 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
   const toggle = usePlayer((s) => s.toggle);
   const pause = usePlayer((s) => s.pause);
   const seek = usePlayer((s) => s.seek);
-  const next = usePlayer((s) => s.next);
+  const prev = usePlayer((s) => s.prev);
 
+  const eqEnabled = useEqualizer((s) => s.enabled);
   const bassBoost = useEqualizer((s) => s.bassBoost);
   const clarity = useEqualizer((s) => s.clarity);
   const setBassBoost = useEqualizer((s) => s.setBassBoost);
@@ -394,9 +488,11 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
     Array.from({ length: 29 }, (_, i) => 0.22 + Math.sin(i * 0.45) * 0.14),
   );
   const knobRef = useRef<HTMLDivElement>(null);
+  const { scrubSec, bind: scrubBind } = useDeckScrubber(duration, seek);
 
   const isPlaying = status === "playing";
-  const pct = Math.min(100, Math.max(0, (position / Math.max(1, duration)) * 100));
+  const shownPos = scrubSec ?? position;
+  const pct = Math.min(100, Math.max(0, (shownPos / Math.max(1, duration)) * 100));
 
   useEffect(() => {
     let cancelled = false;
@@ -408,7 +504,6 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
     };
   }, [track.id]);
 
-  // Live 29-bar orange-to-lime waveform animation
   useEffect(() => {
     if (!isPlaying) return;
     const buf = new Uint8Array(64);
@@ -453,13 +548,23 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
 
   const selectMode = (m: FlameMode) => {
     setMode(m);
-    if (m === "vocal") setPreset("vocal");
-    else if (m === "bass") setPreset("bassBoost");
-    else if (m === "smooth") setPreset("acoustic");
-    else if (m === "lyric" && onOpenLyrics && compact) onOpenLyrics();
+    if (m === "vocal") {
+      setPreset("vocal");
+      toast("Vocal clarity EQ enabled");
+    } else if (m === "bass") {
+      setPreset("bassBoost");
+      toast("Bass Boost EQ enabled");
+    } else if (m === "smooth") {
+      setPreset("acoustic");
+      toast("Smooth Acoustic EQ enabled");
+    } else if (m === "lyric") {
+      onOpenLyrics?.();
+    }
   };
 
   const handleKnobPointer = (e: PointerEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
     const el = knobRef.current;
     if (!el) return;
     el.setPointerCapture(e.pointerId);
@@ -468,8 +573,7 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
       const cx = rect.left + rect.width / 2;
       const cy = rect.top + rect.height / 2;
       const deg = (Math.atan2(clientY - cy, clientX - cx) * 180) / Math.PI;
-      // Map -225deg..+45deg arc to 0..1
-      const shifted = ((deg + 225 + 360) % 360);
+      const shifted = (deg + 225 + 360) % 360;
       const clamped = Math.max(0, Math.min(270, shifted > 315 ? 0 : shifted));
       setVolume(clamped / 270);
     };
@@ -478,12 +582,13 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
     const onUp = () => {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
     };
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
   };
 
-  // Arc math for rotary ring (270 deg sweep starting bottom-left)
   const r = 64;
   const circ = 2 * Math.PI * r;
   const arcLen = circ * 0.75;
@@ -502,6 +607,42 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
         boxShadow: "inset 0 1px 0 rgba(255,255,255,0.12), 0 22px 48px rgba(0,0,0,0.75)",
       }}
     >
+      {/* Top Studio Header Bar (Search + Favorite + Queue/Menu matching Image 2) */}
+      <div className="flex items-center justify-between px-1">
+        <button
+          type="button"
+          onClick={() => navigate(paths.search)}
+          aria-label="Search music"
+          title="Search"
+          className="grid size-8 cursor-pointer place-items-center rounded-full text-white/75 transition-colors duration-150 hover:bg-[#252830] hover:text-white"
+        >
+          <MagnifyingGlassIcon size={17} />
+        </button>
+        <div className="flex items-center gap-1">
+          <FavoriteButton track={track} size="sm" />
+          {onOpenQueue && (
+            <button
+              type="button"
+              onClick={onOpenQueue}
+              aria-label="Open queue"
+              title="Queue"
+              className="grid size-8 cursor-pointer place-items-center rounded-full text-white/75 transition-colors duration-150 hover:bg-[#252830] hover:text-white"
+            >
+              <QueueIcon size={17} />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={(e) => openTrackMenuAt(e, track)}
+            aria-label="More options"
+            title="Track options"
+            className="grid size-8 cursor-pointer place-items-center rounded-full text-white/75 transition-colors duration-150 hover:bg-[#252830] hover:text-white"
+          >
+            <ListBulletsIcon size={18} />
+          </button>
+        </div>
+      </div>
+
       {/* Top 4-Pill Mode Selector Bar (VOCAL · LYRIC · BASS · SMOOTH) */}
       <div className="grid grid-cols-4 gap-1.5 rounded-full border border-white/12 bg-[#111317] p-1.5 shadow-[inset_0_2px_6px_rgba(0,0,0,0.85)]">
         {(
@@ -519,7 +660,7 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
               type="button"
               onClick={() => selectMode(id)}
               className={cn(
-                "h-7 rounded-full text-[10.5px] font-extrabold tracking-wider transition-colors duration-150",
+                "h-7 cursor-pointer rounded-full text-[10.5px] font-extrabold tracking-wider transition-colors duration-150",
                 active
                   ? "bg-gradient-to-b from-[#ff9824] to-[#ff5e00] text-[#1a0d00] shadow-[0_0_14px_rgba(255,122,0,0.65)]"
                   : "border border-white/8 bg-[#25282f] text-white/75 hover:text-white",
@@ -533,7 +674,7 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
 
       {/* High-Contrast Studio Title + Artist */}
       <div className="px-2 text-center">
-        <h2 className={cn("truncate font-bold tracking-tight text-[#fff7ed]", compact ? "text-xl" : "text-2xl")}>
+        <h2 className={cn("truncate font-bold tracking-tight text-[#fff7ed]", compact ? "text-lg" : "text-xl")}>
           {track.title}
         </h2>
         <p className="mt-0.5 truncate text-xs font-medium text-[#ff9f43]">{track.artist}</p>
@@ -546,7 +687,6 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
         </div>
       ) : (
         <div className="flex items-center justify-between gap-3 px-1 py-1">
-          {/* Giant Matte Rotary Knob with Orange-to-Lime Neon Ring */}
           <div
             ref={knobRef}
             onPointerDown={handleKnobPointer}
@@ -556,7 +696,7 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
             aria-valuemax={100}
             aria-valuenow={Math.round(volume * 100)}
             tabIndex={0}
-            className="relative grid size-[166px] shrink-0 cursor-grab place-items-center active:cursor-grabbing"
+            className="relative grid size-[162px] shrink-0 cursor-grab touch-none place-items-center active:cursor-grabbing"
           >
             <svg viewBox="0 0 160 160" className="pointer-events-none absolute inset-0 size-full">
               <defs>
@@ -566,7 +706,6 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
                   <stop offset="100%" stopColor="#b8ff2c" />
                 </linearGradient>
               </defs>
-              {/* Outer dark groove */}
               <circle
                 cx="80"
                 cy="80"
@@ -578,7 +717,6 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
                 strokeLinecap="round"
                 transform="rotate(135 80 80)"
               />
-              {/* Glowing neon progress arc */}
               <circle
                 cx="80"
                 cy="80"
@@ -593,23 +731,22 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
               />
             </svg>
 
-            {/* Inner Matte Charcoal Dial + Subtle Cover Art Center */}
             <div
-              className="relative grid size-[108px] place-items-center rounded-full border border-white/15 bg-gradient-to-b from-[#454952] to-[#23262c] shadow-[0_12px_24px_rgba(0,0,0,0.75),inset_0_1px_1px_rgba(255,255,255,0.25)]"
+              className="relative grid size-[104px] place-items-center rounded-full border border-white/15 bg-gradient-to-b from-[#454952] to-[#23262c] shadow-[0_12px_24px_rgba(0,0,0,0.75),inset_0_1px_1px_rgba(255,255,255,0.25)]"
               style={{ transform: `rotate(${knobDeg}deg)` }}
             >
               <span className="absolute top-3 size-3 rounded-full bg-[#1a1c20] shadow-[inset_0_1px_2px_rgba(0,0,0,0.9)]" />
             </div>
-            <span className="pointer-events-none absolute bottom-1 font-mono text-[10px] font-bold text-white/55">
+            <span className="pointer-events-none absolute bottom-0.5 font-mono text-[10px] font-bold text-white/60 tabular-nums">
               VOL {Math.round(volume * 100)}%
             </span>
           </div>
 
-          {/* Dual Vertical Neon Faders: Bass (Orange) + Clarity (Lime) */}
           <div className="flex flex-1 items-center justify-around gap-3 pr-1">
             {[
               {
                 label: "20 dB",
+                sub: "BASS",
                 val: bassBoost,
                 setVal: setBassBoost,
                 color: "#ff7a00",
@@ -617,6 +754,7 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
               },
               {
                 label: "10 dB",
+                sub: "AIR",
                 val: clarity,
                 setVal: setClarity,
                 color: "#a8ff2e",
@@ -625,14 +763,24 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
             ].map((fader) => {
               const fPct = Math.min(100, Math.max(0, (fader.val / 12) * 100));
               return (
-                <div key={fader.label} className="flex flex-col items-center gap-1.5">
+                <div key={fader.label} className="flex flex-col items-center gap-1">
                   <span className="font-mono text-[10px] font-bold text-white/75">{fader.label}</span>
                   <div
-                    className="relative flex h-36 w-8 cursor-pointer justify-center"
+                    role="slider"
+                    aria-label={`${fader.sub} fader`}
+                    aria-valuemin={0}
+                    aria-valuemax={12}
+                    aria-valuenow={fader.val}
+                    tabIndex={0}
+                    className="relative flex h-34 w-8 cursor-pointer touch-none justify-center"
                     onPointerDown={(e) => {
-                      const rect = e.currentTarget.getBoundingClientRect();
+                      e.preventDefault();
+                      e.stopPropagation();
+                      const el = e.currentTarget;
+                      el.setPointerCapture(e.pointerId);
                       const calc = (cy: number) => {
-                        const ratio = 1 - Math.min(1, Math.max(0, (cy - rect.top) / rect.height));
+                        const rect = el.getBoundingClientRect();
+                        const ratio = 1 - Math.min(1, Math.max(0, (cy - rect.top) / Math.max(1, rect.height)));
                         fader.setVal(Math.round(ratio * 24) / 2);
                       };
                       calc(e.clientY);
@@ -640,18 +788,18 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
                       const up = () => {
                         window.removeEventListener("pointermove", move);
                         window.removeEventListener("pointerup", up);
+                        window.removeEventListener("pointercancel", up);
                       };
                       window.addEventListener("pointermove", move);
                       window.addEventListener("pointerup", up);
+                      window.addEventListener("pointercancel", up);
                     }}
                   >
-                    {/* Tick marks */}
                     <div className="pointer-events-none absolute inset-y-1 right-0 flex flex-col justify-between">
                       {Array.from({ length: 8 }).map((_, idx) => (
                         <span key={idx} className="h-px w-1.5 bg-zinc-600" />
                       ))}
                     </div>
-                    {/* Slot */}
                     <div className="relative h-full w-1.5 overflow-hidden rounded-full bg-[#090a0d] shadow-inner">
                       <div
                         className="absolute inset-x-0 bottom-0 rounded-full"
@@ -662,7 +810,6 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
                         }}
                       />
                     </div>
-                    {/* Metallic Fader Cap */}
                     <div
                       className="pointer-events-none absolute left-1/2 flex h-4 w-6 -translate-x-1/2 flex-col items-center justify-center gap-[2px] rounded-[4px] border border-white/20 bg-gradient-to-b from-[#555963] to-[#2a2d34] shadow-[0_3px_8px_rgba(0,0,0,0.8)]"
                       style={{ bottom: `calc(${fPct}% - 8px)` }}
@@ -678,28 +825,20 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
         </div>
       )}
 
-      {/* Dark Glass Live Synced Lyric Capsule */}
+      {/* Synced Lyric Capsule */}
       <button
         type="button"
-        onClick={onOpenLyrics}
-        className="w-full rounded-[14px] border border-white/12 bg-[#111317]/90 px-3.5 py-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_6px_18px_rgba(0,0,0,0.45)] transition-colors hover:border-orange-400/40"
+        onClick={() => onOpenLyrics?.()}
+        className="w-full cursor-pointer rounded-[14px] border border-white/12 bg-[#111317]/92 px-3.5 py-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_6px_18px_rgba(0,0,0,0.45)] transition-colors duration-150 hover:border-orange-400/45"
       >
         <p className="truncate text-[13px] font-bold">
-          <span
-            style={{
-              background: "linear-gradient(90deg, #ff7a00, #d4ff33)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}
-          >
-            {litHalf}
-          </span>
-          {dimHalf ? <span className="text-white/45"> {dimHalf}</span> : null}
+          <span className="text-[#ffad29]">{litHalf}</span>
+          {dimHalf ? <span className="text-white/50"> {dimHalf}</span> : null}
         </p>
       </button>
 
       {/* Orange-to-Lime Vertical Bar Waveform Visualizer */}
-      <div className="flex h-8 items-center justify-center gap-[3.5px] px-3" aria-hidden="true">
+      <div className="flex h-7 items-center justify-center gap-[3.5px] px-3" aria-hidden="true">
         {bars.map((v, i) => {
           const ratio = i / (bars.length - 1);
           const color = ratio < 0.45 ? "#ff7a00" : ratio < 0.72 ? "#ffd000" : "#b8ff2c";
@@ -708,7 +847,7 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
               key={i}
               className="w-[3px] rounded-full transition-[height] duration-150"
               style={{
-                height: `${Math.max(4, Math.round(v * 28))}px`,
+                height: `${Math.max(4, Math.round(v * 26))}px`,
                 backgroundColor: color,
                 boxShadow: isPlaying ? `0 0 6px ${color}66` : undefined,
               }}
@@ -717,24 +856,53 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
         })}
       </div>
 
-      {/* 4 Recessed Dark Metallic Transport Buttons */}
-      <div className="flex items-center justify-center gap-4">
+      {/* Studio Transport Row: Equalizer · Prev · Play/Pause · Stop · Next · Shuffle */}
+      <div className="flex items-center justify-center gap-2.5">
         <button
           type="button"
           onClick={() => setEqualizerOpen(true)}
+          aria-label="Studio Equalizer"
           title="Studio Equalizer"
-          className="grid size-11 place-items-center rounded-full border border-white/12 bg-gradient-to-b from-[#252830] to-[#14161b] text-white/75 shadow-[0_6px_14px_rgba(0,0,0,0.65)] hover:text-white active:scale-95"
+          className={cn(
+            "grid size-10 cursor-pointer place-items-center rounded-full border bg-gradient-to-b from-[#252830] to-[#14161b] shadow-[0_6px_14px_rgba(0,0,0,0.65)] active:scale-95",
+            eqEnabled ? "border-[#ff8800]/70 text-[#ff8800]" : "border-white/12 text-white/75 hover:text-white",
+          )}
         >
-          <EqualizerIcon size={17} />
+          <EqualizerIcon size={16} weight={eqEnabled ? "fill" : "regular"} />
+        </button>
+
+        <button
+          type="button"
+          onClick={prev}
+          aria-label="Previous"
+          title="Previous"
+          className="grid size-10 cursor-pointer place-items-center rounded-full border border-white/12 bg-gradient-to-b from-[#252830] to-[#14161b] text-white/80 shadow-[0_6px_14px_rgba(0,0,0,0.65)] hover:text-white active:scale-95"
+        >
+          <SkipBackIcon size={15} weight="fill" />
         </button>
 
         <button
           type="button"
           onClick={toggle}
+          aria-label={isPlaying ? "Pause" : "Play"}
           title={isPlaying ? "Pause" : "Play"}
-          className="grid size-13 place-items-center rounded-full border-2 border-[#ff8800] bg-gradient-to-b from-[#2a2d36] to-[#15171c] text-[#ff8800] shadow-[0_0_18px_rgba(255,136,0,0.42)] active:scale-95"
+          className="grid size-13 cursor-pointer place-items-center rounded-full border-2 border-[#ff8800] bg-gradient-to-b from-[#2a2d36] to-[#15171c] text-[#ff8800] shadow-[0_0_18px_rgba(255,136,0,0.42)] active:scale-95"
         >
-          {isPlaying ? <PauseIcon size={20} weight="fill" /> : <PlayIcon size={20} weight="fill" />}
+          {isPlaying ? (
+            <PauseIcon size={20} weight="fill" />
+          ) : (
+            <PlayIcon size={20} weight="fill" className="translate-x-[1.5px]" />
+          )}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => smartNext(track)}
+          aria-label="Next"
+          title="Next"
+          className="grid size-10 cursor-pointer place-items-center rounded-full border border-white/12 bg-gradient-to-b from-[#252830] to-[#14161b] text-white/80 shadow-[0_6px_14px_rgba(0,0,0,0.65)] hover:text-white active:scale-95"
+        >
+          <SkipForwardIcon size={15} weight="fill" />
         </button>
 
         <button
@@ -743,36 +911,39 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
             pause();
             seek(0);
           }}
-          title="Stop / Restart"
-          className="grid size-11 place-items-center rounded-full border border-white/12 bg-gradient-to-b from-[#252830] to-[#14161b] text-white/75 shadow-[0_6px_14px_rgba(0,0,0,0.65)] hover:text-white active:scale-95"
+          aria-label="Stop and rewind"
+          title="Stop"
+          className="grid size-10 cursor-pointer place-items-center rounded-full border border-white/12 bg-gradient-to-b from-[#252830] to-[#14161b] text-white/75 shadow-[0_6px_14px_rgba(0,0,0,0.65)] hover:text-white active:scale-95"
         >
-          <span className="size-3.5 rounded-[2px] border border-current" />
+          <span className="size-3 rounded-[2px] border border-current" />
         </button>
 
         <button
           type="button"
-          onClick={() => (onOpenQueue ? onOpenQueue() : toggleShuffle())}
-          onDoubleClick={next}
-          title="Shuffle / Queue"
+          onClick={toggleShuffle}
+          aria-label={shuffle ? "Disable shuffle" : "Enable shuffle"}
+          title={shuffle ? "Shuffle On" : "Shuffle Off"}
           className={cn(
-            "grid size-11 place-items-center rounded-full border bg-gradient-to-b from-[#252830] to-[#14161b] shadow-[0_6px_14px_rgba(0,0,0,0.65)] active:scale-95",
-            shuffle ? "border-[#b8ff2c]/60 text-[#b8ff2c]" : "border-white/12 text-white/75 hover:text-white",
+            "grid size-10 cursor-pointer place-items-center rounded-full border bg-gradient-to-b from-[#252830] to-[#14161b] shadow-[0_6px_14px_rgba(0,0,0,0.65)] active:scale-95",
+            shuffle ? "border-[#b8ff2c]/70 text-[#b8ff2c]" : "border-white/12 text-white/75 hover:text-white",
           )}
         >
-          <ShuffleIcon size={17} />
+          <ShuffleIcon size={16} />
         </button>
       </div>
 
-      {/* Glowing Lime-Green Progress Scrubber */}
+      {/* Glowing Lime-Green Drag-Scrubbable Progress Bar */}
       <div className="flex items-center gap-2.5 px-1 pt-0.5">
-        <span className="font-mono text-[11px] font-semibold text-white/75">{formatDuration(position)}</span>
+        <span className="w-9 font-mono text-[11px] font-semibold text-white/75 tabular-nums">{formatDuration(shownPos)}</span>
         <div
-          className="relative flex h-5 flex-1 cursor-pointer items-center"
-          onClick={(e) => {
-            const rEl = e.currentTarget.getBoundingClientRect();
-            const ratio = Math.min(1, Math.max(0, (e.clientX - rEl.left) / rEl.width));
-            seek(ratio * duration);
-          }}
+          role="slider"
+          aria-label="Track progress"
+          aria-valuemin={0}
+          aria-valuemax={Math.round(duration)}
+          aria-valuenow={Math.round(shownPos)}
+          tabIndex={0}
+          className="relative flex h-6 flex-1 cursor-pointer touch-none items-center"
+          {...scrubBind}
         >
           <div className="h-1.5 w-full rounded-full bg-[#090a0d] shadow-inner">
             <div
@@ -790,8 +961,8 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
             <span className="size-1.5 rounded-full bg-[#c9ff3b]" />
           </span>
         </div>
-        <span className="font-mono text-[11px] font-semibold text-white/75">
-          {formatDuration(Math.max(0, duration - position))}
+        <span className="w-9 text-right font-mono text-[11px] font-semibold text-white/75 tabular-nums">
+          {formatDuration(Math.max(0, duration - shownPos))}
         </span>
       </div>
     </div>
@@ -803,20 +974,28 @@ function MirrorFlameDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOp
  * ============================================================================================== */
 
 function SandTopoDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQueue }: DeckProps) {
+  const navigate = useNavigate();
   const status = usePlayer((s) => s.status);
   const showsVideo = usePlayer((s) => s.mediaKind === "video");
+  const preferVideo = usePlayer((s) => s.preferVideo);
+  const setPreferVideo = usePlayer((s) => s.setPreferVideo);
   const position = usePlayer((s) => s.position);
   const duration = usePlayer((s) => s.duration) || track.duration || 1;
   const repeat = usePlayer((s) => s.repeat);
+  const shuffle = usePlayer((s) => s.shuffle);
+  const toggleShuffle = usePlayer((s) => s.toggleShuffle);
   const toggle = usePlayer((s) => s.toggle);
   const prev = usePlayer((s) => s.prev);
-  const next = usePlayer((s) => s.next);
   const seek = usePlayer((s) => s.seek);
   const cycleRepeat = usePlayer((s) => s.cycleRepeat);
   const setEqualizerOpen = useUi((s) => s.setEqualizerOpen);
+  const openAddToPlaylist = useUi((s) => s.openAddToPlaylist);
+  const { scrubSec, bind: scrubBind } = useDeckScrubber(duration, seek);
 
   const isPlaying = status === "playing";
-  const pct = Math.min(100, Math.max(0, (position / Math.max(1, duration)) * 100));
+  const shownPos = scrubSec ?? position;
+  const pct = Math.min(100, Math.max(0, (shownPos / Math.max(1, duration)) * 100));
+  const RepeatGlyph = repeat === "one" ? RepeatOnceIcon : RepeatIcon;
 
   return (
     <div className={cn("relative mx-auto flex w-full max-w-[400px] flex-col gap-3 select-none", !compact && "my-auto")}>
@@ -829,24 +1008,30 @@ function SandTopoDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQ
             "-10px -10px 28px rgba(255, 248, 229, 0.62), 14px 18px 34px rgba(96, 76, 42, 0.28), inset 0 1px 1px rgba(255, 250, 238, 0.7)",
         }}
       >
-        {/* Floating Octagonal Music & Equalizer Badges on Top-Right */}
+        {/* Interactive Octagonal Audio/Video & Equalizer Badges on Top-Right */}
         <div className="absolute -top-3 right-3 flex flex-col items-end gap-2">
-          <div
-            aria-hidden="true"
-            className="grid size-13 place-items-center text-[#5c4d33]"
+          <button
+            type="button"
+            onClick={() => setPreferVideo(!preferVideo)}
+            aria-label={preferVideo ? "Switch to Audio Artwork" : "Switch to Music Video"}
+            title={preferVideo ? "Switch to Audio Artwork" : "Switch to Music Video"}
+            className="grid size-13 cursor-pointer place-items-center text-[#5c4d33] transition-transform duration-150 active:scale-95"
             style={{
               clipPath: "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
-              background: "linear-gradient(145deg, #e8d9ba, #d2be96)",
+              background: preferVideo
+                ? "linear-gradient(145deg, #d7c39b, #c5ad80)"
+                : "linear-gradient(145deg, #e8d9ba, #d2be96)",
               boxShadow: "0 8px 18px rgba(90, 72, 40, 0.28)",
             }}
           >
-            <MusicNotesIcon size={22} weight="fill" />
-          </div>
+            {preferVideo ? <VideoCameraIcon size={21} weight="fill" /> : <MusicNotesIcon size={22} weight="fill" />}
+          </button>
           <button
             type="button"
             onClick={() => setEqualizerOpen(true)}
+            aria-label="Equalizer"
             title="Equalizer"
-            className="grid size-10 place-items-center text-[#5c4d33] transition-transform active:scale-95"
+            className="grid size-10 cursor-pointer place-items-center text-[#5c4d33] transition-transform duration-150 active:scale-95"
             style={{
               clipPath: "polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)",
               background: "linear-gradient(145deg, #e8d9ba, #d2be96)",
@@ -860,9 +1045,13 @@ function SandTopoDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQ
         <div className="mb-3 flex w-full items-center justify-between pr-12">
           <button
             type="button"
-            onClick={onOpenQueue}
+            onClick={(e) => {
+              if (onOpenQueue) onOpenQueue();
+              else openTrackMenuAt(e, track);
+            }}
             aria-label="Open queue"
-            className="grid size-9 place-items-center rounded-full text-[#6b5b3e] hover:bg-black/5 active:scale-95"
+            title="Scroll to Queue"
+            className="grid size-9 cursor-pointer place-items-center rounded-full text-[#6b5b3e] transition-colors duration-150 hover:bg-black/6 active:scale-95"
           >
             <ListBulletsIcon size={20} weight="bold" />
           </button>
@@ -870,7 +1059,7 @@ function SandTopoDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQ
           <span className="w-5" />
         </div>
 
-        {/* Teardrop / Leaf-Cutout Cover Art Frame (Circular with Crisp Top-Right Corner!) */}
+        {/* Teardrop / Leaf-Cutout Cover Art Frame */}
         {showsVideo ? (
           <div className="my-1 w-full overflow-hidden rounded-2xl border-4 border-[#cfb98e] bg-black shadow-lg">
             <VideoSlot priority={slot} expandable className="aspect-video w-full" />
@@ -904,31 +1093,42 @@ function SandTopoDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQ
           <p className="mt-0.5 truncate text-sm font-medium text-[#756344]">{track.artist}</p>
         </div>
 
-        {/* Heart + Add Row */}
+        {/* Heart + Add-to-Playlist / Track Menu Row */}
         <div className="mt-2 flex w-full items-center justify-between px-1 text-[#6b5b3e]">
           <FavoriteButton track={track} size="sm" />
-          <button
-            type="button"
-            onClick={(e) => {
-              const r = e.currentTarget.getBoundingClientRect();
-              useUi.getState().openMenu({ track, x: r.right, y: r.bottom + 6 });
-            }}
-            aria-label="Track options"
-            className="grid size-8 place-items-center rounded-full text-[#6b5b3e] hover:bg-black/5 active:scale-95"
-          >
-            <PlusIcon size={18} weight="bold" />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={() => openAddToPlaylist([track])}
+              aria-label="Add to playlist"
+              title="Add to playlist"
+              className="grid size-8 cursor-pointer place-items-center rounded-full text-[#6b5b3e] transition-colors duration-150 hover:bg-black/6 active:scale-95"
+            >
+              <PlusIcon size={18} weight="bold" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => openTrackMenuAt(e, track)}
+              aria-label="More track options"
+              title="More options"
+              className="grid size-8 cursor-pointer place-items-center rounded-full text-[#6b5b3e] transition-colors duration-150 hover:bg-black/6 active:scale-95"
+            >
+              <DotsThreeIcon size={18} weight="bold" />
+            </button>
+          </div>
         </div>
 
-        {/* Tactile Thick Sand-Neumorphic Progress Bar + Large Bordered Thumb */}
+        {/* Tactile Thick Sand-Neumorphic Drag-Scrubbable Progress Bar */}
         <div className="mt-1 w-full">
           <div
-            className="relative flex h-6 w-full cursor-pointer items-center"
-            onClick={(e) => {
-              const rEl = e.currentTarget.getBoundingClientRect();
-              const ratio = Math.min(1, Math.max(0, (e.clientX - rEl.left) / rEl.width));
-              seek(ratio * duration);
-            }}
+            role="slider"
+            aria-label="Track progress"
+            aria-valuemin={0}
+            aria-valuemax={Math.round(duration)}
+            aria-valuenow={Math.round(shownPos)}
+            tabIndex={0}
+            className="relative flex h-6 w-full cursor-pointer touch-none items-center"
+            {...scrubBind}
           >
             <div
               className="h-3 w-full overflow-hidden rounded-full"
@@ -947,19 +1147,19 @@ function SandTopoDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQ
               style={{ left: `${pct}%` }}
             />
           </div>
-          <div className="mt-1 flex justify-between font-mono text-[11px] font-semibold text-[#6b5b3e]">
-            <span>{formatDuration(position).replace(":", ".")}</span>
+          <div className="mt-1 flex justify-between font-mono text-[11px] font-semibold text-[#6b5b3e] tabular-nums">
+            <span>{formatDuration(shownPos).replace(":", ".")}</span>
             <span>{formatDuration(duration).replace(":", ".")}</span>
           </div>
         </div>
 
-        {/* 3 Embossed Soft-Neumorphic Circular Transport Buttons */}
+        {/* 3 Embossed Soft-Neumorphic Circular Transport Buttons (Optically Centered Play Triangle!) */}
         <div className="mt-3 flex items-center justify-center gap-6">
           <button
             type="button"
             onClick={prev}
             aria-label="Previous"
-            className="grid size-12 place-items-center rounded-full border border-[#6b5b3e]/45 text-[#6b5b3e] transition-transform active:scale-95"
+            className="grid size-12 cursor-pointer place-items-center rounded-full border border-[#6b5b3e]/45 text-[#6b5b3e] transition-transform duration-150 active:scale-95"
             style={{
               background: "linear-gradient(145deg, #e7d8b9, #d1be97)",
               boxShadow: "-4px -4px 10px rgba(255,248,230,0.65), 5px 6px 12px rgba(92,74,42,0.26)",
@@ -972,22 +1172,26 @@ function SandTopoDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQ
             type="button"
             onClick={toggle}
             aria-label={isPlaying ? "Pause" : "Play"}
-            className="grid size-16 place-items-center rounded-full p-2 text-[#5c4d33] transition-transform active:scale-95"
+            className="grid size-16 cursor-pointer place-items-center rounded-full p-2 text-[#5c4d33] transition-transform duration-150 active:scale-95"
             style={{
               background: "linear-gradient(145deg, #e7d8b9, #cfb98f)",
               boxShadow: "-6px -6px 14px rgba(255,248,230,0.7), 7px 9px 16px rgba(92,74,42,0.3)",
             }}
           >
             <span className="grid size-full place-items-center rounded-full border-2 border-[#6b5b3e]">
-              {isPlaying ? <PauseIcon size={22} weight="fill" /> : <PlayIcon size={22} weight="fill" />}
+              {isPlaying ? (
+                <PauseIcon size={22} weight="fill" />
+              ) : (
+                <PlayIcon size={22} weight="fill" className="translate-x-[1.5px]" />
+              )}
             </span>
           </button>
 
           <button
             type="button"
-            onClick={next}
+            onClick={() => smartNext(track)}
             aria-label="Next"
-            className="grid size-12 place-items-center rounded-full border border-[#6b5b3e]/45 text-[#6b5b3e] transition-transform active:scale-95"
+            className="grid size-12 cursor-pointer place-items-center rounded-full border border-[#6b5b3e]/45 text-[#6b5b3e] transition-transform duration-150 active:scale-95"
             style={{
               background: "linear-gradient(145deg, #e7d8b9, #d1be97)",
               boxShadow: "-4px -4px 10px rgba(255,248,230,0.65), 5px 6px 12px rgba(92,74,42,0.26)",
@@ -998,9 +1202,9 @@ function SandTopoDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQ
         </div>
       </div>
 
-      {/* Floating Bottom Neumorphic Pill Dock (Repeat · Lyrics · Queue) */}
+      {/* Floating Bottom Neumorphic Pill Dock (Repeat · Shuffle · Home · Lyrics · Queue — ALL Functional!) */}
       <div
-        className="flex h-12 items-center justify-around rounded-full px-6 text-[#6b5b3e]"
+        className="flex h-12 items-center justify-around rounded-full px-4 text-[#6b5b3e]"
         style={{
           background: "linear-gradient(160deg, #e4d4b4 0%, #d7c39d 100%)",
           boxShadow: "-6px -6px 16px rgba(255,248,230,0.55), 8px 10px 22px rgba(92,74,42,0.24)",
@@ -1009,34 +1213,63 @@ function SandTopoDeck({ track, slot = SLOT.sheet, compact, onOpenLyrics, onOpenQ
         <button
           type="button"
           onClick={cycleRepeat}
+          aria-label={`Repeat: ${repeat}`}
           title={`Repeat: ${repeat}`}
           className={cn(
-            "grid size-9 place-items-center rounded-full transition-colors active:scale-95",
-            repeat !== "off" && "bg-[#6b5b3e]/15 text-[#463820]",
+            "grid size-9 cursor-pointer place-items-center rounded-full transition-colors duration-150 active:scale-95",
+            repeat !== "off" ? "bg-[#6b5b3e]/18 text-[#463820]" : "hover:bg-black/5",
           )}
         >
-          <RepeatIcon size={19} weight={repeat !== "off" ? "bold" : "regular"} />
+          <RepeatGlyph size={18} weight={repeat !== "off" ? "bold" : "regular"} />
         </button>
+
+        <button
+          type="button"
+          onClick={toggleShuffle}
+          aria-label={shuffle ? "Shuffle On" : "Shuffle Off"}
+          title={shuffle ? "Shuffle On" : "Shuffle Off"}
+          className={cn(
+            "grid size-9 cursor-pointer place-items-center rounded-full transition-colors duration-150 active:scale-95",
+            shuffle ? "bg-[#6b5b3e]/18 text-[#463820]" : "hover:bg-black/5",
+          )}
+        >
+          <ShuffleIcon size={18} weight={shuffle ? "bold" : "regular"} />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => navigate(paths.home)}
+          aria-label="Go to Home"
+          title="Home"
+          className="grid size-9 cursor-pointer place-items-center rounded-full transition-colors duration-150 hover:bg-black/5 active:scale-95"
+        >
+          <HouseIcon size={18} weight="fill" />
+        </button>
+
         {onOpenLyrics && (
           <button
             type="button"
             onClick={onOpenLyrics}
+            aria-label="Show synced lyrics"
             title="Lyrics"
-            className="grid size-9 place-items-center rounded-full active:scale-95"
+            className="grid size-9 cursor-pointer place-items-center rounded-full transition-colors duration-150 hover:bg-black/5 active:scale-95"
           >
-            <MicrophoneStageIcon size={19} />
+            <MicrophoneStageIcon size={18} />
           </button>
         )}
-        {onOpenQueue && (
-          <button
-            type="button"
-            onClick={onOpenQueue}
-            title="Queue"
-            className="grid size-9 place-items-center rounded-full active:scale-95"
-          >
-            <QueueIcon size={19} />
-          </button>
-        )}
+
+        <button
+          type="button"
+          onClick={(e) => {
+            if (onOpenQueue) onOpenQueue();
+            else openTrackMenuAt(e, track);
+          }}
+          aria-label="Open queue"
+          title="Queue"
+          className="grid size-9 cursor-pointer place-items-center rounded-full transition-colors duration-150 hover:bg-black/5 active:scale-95"
+        >
+          <QueueIcon size={18} />
+        </button>
       </div>
     </div>
   );
