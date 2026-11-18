@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { Track } from "../lib/types";
-import { playerHooks, usePlayer } from "../player/player";
+import { getCachedVocalGuide } from "../lib/vocalGuide";
+import { getExactPlaybackTime, playerHooks, usePlayer } from "../player/player";
 import { toast } from "./ui";
 
 /* ------------------------------------------------------------------------------------------------
@@ -67,8 +68,16 @@ interface NoteSegment {
   anchorMidi: number;
   startMs: number;
   endMs: number;
+  songStartSec: number;
+  songEndSec: number;
+  targetMidi: number | null;
   midis: number[];
   rmsList: number[];
+}
+
+interface SectionBucket {
+  inTune: number;
+  total: number;
 }
 
 interface TakeTracker {
@@ -83,7 +92,16 @@ interface TakeTracker {
   noteJitterCount: number;
   cracks: number;
   vibratos: number;
+  vibratoTotalSec: number;
+  vibratoHzSum: number;
+  vibratoDepthSum: number;
+  vibratoWave: number[];
+  longToneMaxSec: number;
+  longToneSteadySum: number;
+  longToneCount: number;
   cleanAttacks: number;
+  kobushi: number;
+  falls: number;
   notesHit: number;
   streak: number;
   bestStreak: number;
@@ -94,6 +112,8 @@ interface TakeTracker {
   activeWindows: Set<number>;
   sungWindows: Set<number>;
   phraseOnsets: number;
+  timingOffsetsMs: number[];
+  sections: [SectionBucket, SectionBucket, SectionBucket, SectionBucket, SectionBucket];
   wasVoiced: boolean;
   centsOffsets: number[];
   currentNote: NoteSegment | null;
@@ -114,7 +134,16 @@ function createTake(): TakeTracker {
     noteJitterCount: 0,
     cracks: 0,
     vibratos: 0,
+    vibratoTotalSec: 0,
+    vibratoHzSum: 0,
+    vibratoDepthSum: 0,
+    vibratoWave: [],
+    longToneMaxSec: 0,
+    longToneSteadySum: 0,
+    longToneCount: 0,
     cleanAttacks: 0,
+    kobushi: 0,
+    falls: 0,
     notesHit: 0,
     streak: 0,
     bestStreak: 0,
@@ -125,6 +154,14 @@ function createTake(): TakeTracker {
     activeWindows: new Set<number>(),
     sungWindows: new Set<number>(),
     phraseOnsets: 0,
+    timingOffsetsMs: [],
+    sections: [
+      { inTune: 0, total: 0 },
+      { inTune: 0, total: 0 },
+      { inTune: 0, total: 0 },
+      { inTune: 0, total: 0 },
+      { inTune: 0, total: 0 },
+    ],
     wasVoiced: false,
     centsOffsets: [],
     currentNote: null,
@@ -230,45 +267,76 @@ function detectVocalPitch(
   };
 }
 
-/** Finalizes a held note segment to evaluate intonation, stability, vibrato, and clean scoop attacks. */
-function finalizeNoteSegment(seg: NoteSegment): { hadVibrato: boolean; inTune: boolean } {
+/** Octave-folded cent error against a target reference MIDI note (or nearest chromatic note when null). */
+function pitchErrorCents(sungMidi: number, targetMidi: number | null): number {
+  if (targetMidi === null) {
+    return Math.abs(sungMidi - Math.round(sungMidi)) * 100;
+  }
+  const diff = (((sungMidi - targetMidi) % 12) + 18) % 12 - 6;
+  return Math.abs(diff) * 100;
+}
+
+/** Finalizes a held note segment to evaluate reference-melody pitch, stability, vibrato, long tones, scoops, kobushi & falls. */
+function finalizeNoteSegment(seg: NoteSegment, trackDurSec = 220): { hadVibrato: boolean; inTune: boolean } {
   const durMs = seg.endMs - seg.startMs;
+  const durSec = durMs / 1000;
   const n = seg.midis.length;
   if (n < 4 || durMs < 130) return { hadVibrato: false, inTune: false };
 
-  // Skip the first 2 frames (~65ms) if the note glided in (scoop/onset transition)
   const core = n >= 6 ? seg.midis.slice(2) : seg.midis.slice(1);
   const meanMidi = core.reduce((a, b) => a + b, 0) / core.length;
-  const targetNote = Math.round(meanMidi);
-  const noteOffsetCents = (meanMidi - targetNote) * 100;
+  const sungNote = Math.round(meanMidi);
+  const noteOffsetCents = (meanMidi - sungNote) * 100;
 
   take.notesHit++;
-  take.uniqueNotes.add(targetNote);
-  if (targetNote < take.minMidi) take.minMidi = targetNote;
-  if (targetNote > take.maxMidi) take.maxMidi = targetNote;
+  take.uniqueNotes.add(sungNote);
+  if (sungNote < take.minMidi) take.minMidi = sungNote;
+  if (sungNote > take.maxMidi) take.maxMidi = sungNote;
   take.centsOffsets.push(noteOffsetCents);
 
-  // Detect intentional scoop / clean vocal onset (smooth upward glide locking onto target within 18¢)
+  // 1. Shakuri / Scoop detection (smooth upward glide into held pitch)
   if (n >= 6) {
-    const startDelta = (targetNote - seg.midis[0]) * 100;
-    const endErr = Math.abs((seg.midis[n - 1] - targetNote) * 100);
-    if (startDelta >= 35 && startDelta <= 180 && endErr <= 20) {
+    const startDelta = (meanMidi - seg.midis[0]!) * 100;
+    const endErr = Math.abs((seg.midis[Math.min(n - 1, core.length)]! - meanMidi) * 100);
+    if (startDelta >= 35 && startDelta <= 185 && endErr <= 24) {
       take.cleanAttacks++;
     }
   }
 
-  // Detect real vocal vibrato on held notes (>= 0.35s, >= 10 frames):
-  // Detrend with a 5-point moving average and check 4.2 - 8.2 Hz oscillation with 14 - 75 cents swing.
+  // 2. Vocal Fall detection (expressive downward release over final 2-4 frames of a sustained note)
+  if (n >= 8 && durMs >= 280) {
+    const preEnd = seg.midis[n - 3]!;
+    const lastVal = seg.midis[n - 1]!;
+    const dropCents = (preEnd - lastVal) * 100;
+    if (dropCents >= 45 && dropCents <= 240) {
+      take.falls++;
+    }
+  }
+
+  // 3. Kobushi / Vocal Turn detection (single quick 60-180¢ ornament crest within 120-260ms inside a note)
+  if (n >= 8) {
+    for (let i = 2; i < core.length - 2; i++) {
+      const base = (core[i - 2]! + core[i + 2]!) * 0.5;
+      const excursion = Math.abs(core[i]! - base) * 100;
+      const returnErr = Math.abs(core[i - 2]! - core[i + 2]!) * 100;
+      if (excursion >= 58 && excursion <= 190 && returnErr <= 32) {
+        take.kobushi++;
+        break;
+      }
+    }
+  }
+
+  // 4. Vibrato detection & waveform capture (4.2 - 8.2 Hz oscillation, 13 - 85¢ swing)
   let hadVibrato = false;
   const residualsCents: number[] = [];
   for (let i = 0; i < core.length; i++) {
     let sum = 0;
     let cnt = 0;
     for (let k = Math.max(0, i - 2); k <= Math.min(core.length - 1, i + 2); k++) {
-      sum += core[k];
+      sum += core[k]!;
       cnt++;
     }
-    residualsCents.push((core[i] - sum / cnt) * 100);
+    residualsCents.push((core[i]! - sum / cnt) * 100);
   }
 
   if (durMs >= 350 && core.length >= 10) {
@@ -276,44 +344,68 @@ function finalizeNoteSegment(seg: NoteSegment): { hadVibrato: boolean; inTune: b
     let peakSum = 0;
     for (let i = 1; i < residualsCents.length; i++) {
       if (
-        (residualsCents[i - 1] < 0 && residualsCents[i] >= 0) ||
-        (residualsCents[i - 1] > 0 && residualsCents[i] <= 0)
+        (residualsCents[i - 1]! < 0 && residualsCents[i]! >= 0) ||
+        (residualsCents[i - 1]! > 0 && residualsCents[i]! <= 0)
       ) {
         zeroCrossings++;
       }
-      peakSum += Math.abs(residualsCents[i]);
+      peakSum += Math.abs(residualsCents[i]!);
     }
-    const avgSwing = (peakSum / residualsCents.length) * 1.57; // approximate peak amplitude from mean abs
-    const freqHz = zeroCrossings / 2 / (durMs / 1000);
-    if (freqHz >= 4.2 && freqHz <= 8.2 && avgSwing >= 13 && avgSwing <= 80) {
+    const avgSwing = (peakSum / residualsCents.length) * 1.57;
+    const freqHz = zeroCrossings / 2 / Math.max(0.1, durSec);
+    if (freqHz >= 4.2 && freqHz <= 8.2 && avgSwing >= 13 && avgSwing <= 85) {
       hadVibrato = true;
       take.vibratos++;
+      take.vibratoTotalSec += durSec;
+      take.vibratoHzSum += freqHz;
+      take.vibratoDepthSum += avgSwing;
+      if (residualsCents.length >= take.vibratoWave.length) {
+        const maxAbs = Math.max(20, ...residualsCents.map((v) => Math.abs(v)));
+        take.vibratoWave = Array.from({ length: 28 }, (_, idx) => {
+          const srcIdx = Math.min(residualsCents.length - 1, Math.floor((idx / 27) * (residualsCents.length - 1)));
+          return clamp(residualsCents[srcIdx]! / maxAbs, -1, 1);
+        });
+      }
     }
   }
 
-  // Stability jitter: if the singer did clean vibrato, measure stability around the smooth trend;
-  // otherwise measure raw cent standard deviation around meanMidi.
+  // 5. Stability & Long Tone Steadiness (>= 0.85s held note)
   let varianceSum = 0;
   for (let i = 0; i < core.length; i++) {
-    const c = hadVibrato ? residualsCents[i] * 0.45 : (core[i] - meanMidi) * 100;
+    const c = hadVibrato ? residualsCents[i]! * 0.45 : (core[i]! - meanMidi) * 100;
     varianceSum += c * c;
   }
   const stdCents = Math.sqrt(varianceSum / core.length);
   take.noteJitterSum += stdCents;
   take.noteJitterCount++;
 
-  // Evaluate intonation per stable frame
+  if (durSec >= 0.85) {
+    if (durSec > take.longToneMaxSec) take.longToneMaxSec = durSec;
+    take.longToneSteadySum += clamp(102 - stdCents * 1.35, 25, 100);
+    take.longToneCount++;
+  }
+
+  // 6. Reference-Melody + Chromatic Intonation Evaluation + Section Bucket
+  const secIdx = clamp(Math.floor((seg.songStartSec / Math.max(30, trackDurSec)) * 5), 0, 4);
+  const bucket = take.sections[secIdx]!;
   let noteErrSum = 0;
   for (const m of core) {
-    const err = Math.abs(m - Math.round(m)) * 100;
+    // Blend reference guide melody accuracy (when a GuideBar is active) with chromatic precision
+    const chromErr = Math.abs(m - Math.round(m)) * 100;
+    const refErr = seg.targetMidi !== null ? pitchErrorCents(m, seg.targetMidi) : chromErr;
+    const err = seg.targetMidi !== null ? Math.min(refErr * 0.72 + chromErr * 0.28, chromErr + 28) : chromErr;
     noteErrSum += err;
     take.centsErrSum += err;
     take.evalFrames++;
-    if (err <= 24) take.inTuneFrames++;
-    if (err <= 12) take.perfectFrames++;
+    bucket.total++;
+    if (err <= 26) {
+      take.inTuneFrames++;
+      bucket.inTune++;
+    }
+    if (err <= 13) take.perfectFrames++;
   }
   const avgNoteErr = noteErrSum / core.length;
-  const inTune = avgNoteErr <= 25;
+  const inTune = avgNoteErr <= 26;
   if (inTune) {
     take.streak++;
     if (take.streak > take.bestStreak) take.bestStreak = take.streak;
@@ -569,6 +661,28 @@ function judge(score: number, reason: JudgeReason, axes: ScoreAxis[], statsSumma
   };
 }
 
+export interface KaraokeTelemetry {
+  scoreDecimal: number;
+  avgScoreDecimal: number;
+  pitchHitPct: number;
+  sectionPitch: [number, number, number, number, number];
+  rhythmOffsetMs: number;
+  vibratoCount: number;
+  vibratoTotalSec: number;
+  vibratoHz: number;
+  vibratoSkill: string;
+  vibratoWave: number[];
+  longToneSec: number;
+  longToneScore: number;
+  scoops: number;
+  kobushi: number;
+  falls: number;
+  singerMinMidi: number | null;
+  singerMaxMidi: number | null;
+  songMinMidi: number | null;
+  songMaxMidi: number | null;
+}
+
 export interface VideokeScore {
   id: number;
   track: Track;
@@ -580,48 +694,112 @@ export interface VideokeScore {
   badge: string;
   tone: ScoreTone;
   axes: ScoreAxis[];
+  telemetry: KaraokeTelemetry;
   /** true when the score came from real microphone vocal analysis */
   heard: boolean;
   phase: "open" | "mini";
-  /** When the 10 s countdown ends (ms epoch), or null once paused/completed. */
+  /** When the countdown ends (ms epoch), or null once paused/completed. */
   advanceAt: number | null;
   hasNext: boolean;
 }
 
-/** Computes a preview or final accurate score from the current `take`. */
+function vibratoGradeLabel(count: number, totalSec: number, avgHz: number, avgDepth: number): string {
+  if (count <= 0 || totalSec < 0.25) return "—";
+  const box = avgDepth >= 34 ? "A" : avgDepth >= 20 ? "B" : "C";
+  const speed = avgHz >= 6.4 ? "3" : avgHz >= 5.1 ? "2" : "1";
+  const desc = box === "A" ? "Rich" : box === "B" ? "Standard" : "Subtle";
+  return `${box}-${speed} ${desc}`;
+}
+
+function songRangeFor(track: Track | null): { songMinMidi: number | null; songMaxMidi: number | null } {
+  const g = track ? getCachedVocalGuide(track.id) : null;
+  if (!g || g.bars.length === 0) return { songMinMidi: 60, songMaxMidi: 74 };
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const b of g.bars) {
+    if (b.midi < lo) lo = b.midi;
+    if (b.midi > hi) hi = b.midi;
+  }
+  return {
+    songMinMidi: Number.isFinite(lo) ? Math.round(lo) : 60,
+    songMaxMidi: Number.isFinite(hi) ? Math.round(hi) : 74,
+  };
+}
+
+function deterministicAvgScore(trackId: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < trackId.length; i++) {
+    h ^= trackId.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  const frac = ((h >>> 0) % 6400) / 1000; // 0..6.399
+  return Number((79.8 + frac).toFixed(3)); // 79.800 .. 86.199 pts
+}
+
+/** Computes a preview or final My Music Karaoke Score (0.000 - 100.000 pts) from the current `take`. */
 function evaluateTake(track: Track | null, micOn: boolean): {
   score: number;
   axes: ScoreAxis[];
+  telemetry: KaraokeTelemetry;
   heard: boolean;
   reason: JudgeReason;
   summary: string;
 } {
-  // Flush any in-progress note segment copy without mutating if just peeking, or finalize before calling
+  const { songMinMidi, songMaxMidi } = songRangeFor(track);
+  const avgScoreDecimal = deterministicAvgScore(track?.id ?? "song");
+
   if (!micOn) {
-    // Mic was completely off: party dice roll (clearly marked as Mic Off)
-    const partyScore = clamp(Math.round(64 + Math.random() * 26), 62, 91);
+    const rawParty = 74 + Math.random() * 17.5;
+    const scoreDecimal = Number(clamp(rawParty, 65, 92.8).toFixed(3));
+    const partyScore = Math.round(scoreDecimal);
     const jitter = () => Math.round((Math.random() - 0.5) * 10);
+    const pPitch = clamp(partyScore + jitter(), 55, 95);
+    const pStab = clamp(partyScore + jitter(), 55, 95);
+    const pExp = clamp(partyScore + jitter(), 55, 95);
+    const pRhy = clamp(partyScore + jitter(), 55, 95);
+    const pVib = clamp(partyScore + jitter(), 50, 94);
     return {
       score: partyScore,
       heard: false,
       reason: "no-mic",
-      summary: "Microphone was off — turn on Live Mic so the judge can score your actual vocals!",
+      summary: "Microphone was off — turn on Live Mic to unlock real pitch, vibrato, rhythm & range scoring.",
       axes: [
-        { label: "Pitch", value: clamp(partyScore + jitter(), 45, 95) },
-        { label: "Stability", value: clamp(partyScore + jitter(), 45, 95) },
-        { label: "Expression", value: clamp(partyScore + jitter(), 45, 95) },
-        { label: "Technique", value: clamp(partyScore + jitter(), 45, 95) },
-        { label: "Rhythm", value: clamp(partyScore + jitter(), 45, 95) },
+        { label: "Pitch", value: pPitch },
+        { label: "Stability", value: pStab },
+        { label: "Expression", value: pExp },
+        { label: "Rhythm", value: pRhy },
+        { label: "Vibrato & Long", value: pVib },
       ],
+      telemetry: {
+        scoreDecimal,
+        avgScoreDecimal,
+        pitchHitPct: pPitch,
+        sectionPitch: [pPitch, clamp(pPitch + 2, 50, 96), clamp(pPitch - 3, 50, 96), pStab, pExp],
+        rhythmOffsetMs: 0,
+        vibratoCount: 0,
+        vibratoTotalSec: 0,
+        vibratoHz: 0,
+        vibratoSkill: "Mic Off",
+        vibratoWave: [],
+        longToneSec: 0,
+        longToneScore: pVib,
+        scoops: 0,
+        kobushi: 0,
+        falls: 0,
+        singerMinMidi: null,
+        singerMaxMidi: null,
+        songMinMidi,
+        songMaxMidi,
+      },
     };
   }
 
   const sungSeconds = take.voicedFrames / 30;
   const elapsedSeconds = Math.max(take.activeFrames / 30, sungSeconds);
 
-  // 1. Silent / Ghost check: Mic was ON, but virtually no singing detected
   if (take.voicedFrames < 18 || sungSeconds < 1.5 || take.evalFrames < 8) {
-    const tiny = clamp(Math.round(sungSeconds * 12), 0, 24);
+    const scoreDecimal = Number(clamp(sungSeconds * 11.4, 0, 24.5).toFixed(3));
+    const tiny = Math.round(scoreDecimal);
     return {
       score: tiny,
       heard: true,
@@ -634,17 +812,37 @@ function evaluateTake(track: Track | null, micOn: boolean): {
         { label: "Pitch", value: tiny },
         { label: "Stability", value: tiny },
         { label: "Expression", value: clamp(tiny + 4, 0, 30) },
-        { label: "Technique", value: Math.max(0, tiny - 4) },
         { label: "Rhythm", value: tiny },
+        { label: "Vibrato & Long", value: Math.max(0, tiny - 3) },
       ],
+      telemetry: {
+        scoreDecimal,
+        avgScoreDecimal,
+        pitchHitPct: tiny,
+        sectionPitch: [tiny, 0, 0, 0, 0],
+        rhythmOffsetMs: 0,
+        vibratoCount: 0,
+        vibratoTotalSec: 0,
+        vibratoHz: 0,
+        vibratoSkill: "—",
+        vibratoWave: [],
+        longToneSec: 0,
+        longToneScore: tiny,
+        scoops: 0,
+        kobushi: 0,
+        falls: 0,
+        singerMinMidi: null,
+        singerMaxMidi: null,
+        songMinMidi,
+        songMaxMidi,
+      },
     };
   }
 
-  // Global reference calibration (up to ±14 cents) in case backing track or room acoustics shift A440 slightly
   let calOffset = 0;
   if (take.centsOffsets.length >= 5) {
     const sortedOffsets = [...take.centsOffsets].sort((a, b) => a - b);
-    const medianOffset = sortedOffsets[Math.floor(sortedOffsets.length / 2)];
+    const medianOffset = sortedOffsets[Math.floor(sortedOffsets.length / 2)]!;
     calOffset = clamp(medianOffset, -14, 14);
   }
 
@@ -653,101 +851,98 @@ function evaluateTake(track: Track | null, micOn: boolean): {
   const calibratedErr = Math.max(0, rawMeanErr - Math.abs(calOffset) * 0.35);
   const inTuneRatio = take.inTuneFrames / Math.max(1, take.evalFrames);
   const perfectRatio = take.perfectFrames / Math.max(1, take.evalFrames);
-  // Smooth Utavie intonation curve: 8¢ -> 97, 16¢ -> 89, 24¢ -> 79, 32¢ -> 66, 42¢ -> 48
   const errScore = 100 - Math.pow(calibratedErr / 4.4, 1.65);
   const ratioScore = inTuneRatio * 78 + perfectRatio * 26;
-  let pitchScore = clamp(Math.round(errScore * 0.58 + ratioScore * 0.42), 18, 100);
+  let pitchFloat = clamp(errScore * 0.58 + ratioScore * 0.42, 18, 100);
 
   // --- AXIS 2: PITCH STABILITY (0..100) ---
-  const avgJitterCents =
-    take.noteJitterCount > 0 ? take.noteJitterSum / take.noteJitterCount : 24;
+  const avgJitterCents = take.noteJitterCount > 0 ? take.noteJitterSum / take.noteJitterCount : 24;
   const crackPenalty = Math.min(28, (take.cracks / Math.max(1, take.notesHit)) * 45);
-  // 6¢ jitter -> 98, 14¢ -> 89, 24¢ -> 75, 35¢ -> 58
-  let stabilityScore = clamp(
-    Math.round(103 - avgJitterCents * 1.25 - crackPenalty),
-    20,
-    100,
-  );
+  const stabilityFloat = clamp(103 - avgJitterCents * 1.25 - crackPenalty, 20, 100);
 
-  // --- AXIS 3: DYNAMIC EXPRESSION (0..100) ---
+  // --- AXIS 3: DYNAMIC EXPRESSION + INFLECTIONS (0..100) ---
   let dynamicRangeDb = 4;
   let meanDb = -28;
   if (take.dbSamples.length >= 8) {
     const sortedDb = [...take.dbSamples].sort((a, b) => a - b);
-    const p15 = sortedDb[Math.floor(sortedDb.length * 0.15)];
-    const p90 = sortedDb[Math.floor(sortedDb.length * 0.9)];
+    const p15 = sortedDb[Math.floor(sortedDb.length * 0.15)]!;
+    const p90 = sortedDb[Math.floor(sortedDb.length * 0.9)]!;
     dynamicRangeDb = Math.max(0, p90 - p15);
     meanDb = sortedDb.reduce((a, b) => a + b, 0) / sortedDb.length;
   }
-  // Healthy expressive singing spans ~6-15 dB between soft verses and strong choruses
-  const swellScore = clamp((dynamicRangeDb / 12.5) * 65, 18, 66);
-  const projectionScore = clamp(((meanDb + 38) / 22) * 34, 8, 34);
-  let expressionScore = clamp(Math.round(swellScore + projectionScore), 25, 100);
+  const swellScore = clamp((dynamicRangeDb / 12.5) * 58, 18, 60);
+  const projectionScore = clamp(((meanDb + 38) / 22) * 28, 8, 28);
+  const ornamentBonus = Math.min(14, take.cleanAttacks * 1.4 + take.kobushi * 2.4 + take.falls * 1.6);
+  let expressionFloat = clamp(swellScore + projectionScore + ornamentBonus, 25, 100);
 
-  // --- AXIS 4: VOCAL TECHNIQUE (0..100) ---
-  const rangeSemitones =
-    take.maxMidi >= take.minMidi ? take.maxMidi - take.minMidi : 0;
-  const rangeFactor = clamp(rangeSemitones / 10, 0.25, 1.0); // full credit at >= 10 semitones
-  const vibratoBonus = Math.min(13, take.vibratos * 3.5);
-  const attackBonus = Math.min(8, take.cleanAttacks * 1.8);
-  let techniqueScore = clamp(
-    Math.round(
-      (pitchScore * 0.45 + stabilityScore * 0.35) * (0.65 + 0.35 * rangeFactor) +
-        vibratoBonus +
-        attackBonus,
-    ),
-    18,
-    100,
-  );
-
-  // --- AXIS 5: RHYTHM & PHRASE PARTICIPATION (0..100) ---
-  // Expected vocal coverage in a typical karaoke song is ~52% of 2-second windows (accounting for intro/solo/outro)
+  // --- AXIS 4: RHYTHM & TIMING OFFSET (0..100) ---
+  let rhythmOffsetMs = 0;
+  let timingPrecision = 84;
+  if (take.timingOffsetsMs.length >= 2) {
+    const sortedT = [...take.timingOffsetsMs].sort((a, b) => a - b);
+    rhythmOffsetMs = Math.round(sortedT[Math.floor(sortedT.length / 2)]!);
+    const absMeanMs = take.timingOffsetsMs.reduce((a, b) => a + Math.abs(b), 0) / take.timingOffsetsMs.length;
+    timingPrecision = clamp(100 - Math.max(0, absMeanMs - 45) * 0.14, 48, 100);
+  }
   const totalWindows = Math.max(1, take.activeWindows.size);
   const windowCoverage = take.sungWindows.size / totalWindows;
-  const normalizedParticipation = clamp(windowCoverage / 0.5, 0, 1.06);
-  const phraseCadence = clamp(take.phraseOnsets / Math.max(2, elapsedSeconds / 7), 0.3, 1.05);
-  let rhythmScore = clamp(
-    Math.round(normalizedParticipation * 72 + phraseCadence * 28),
-    20,
-    100,
-  );
+  const normalizedParticipation = clamp(windowCoverage / 0.48, 0.2, 1.04);
+  let rhythmFloat = clamp(normalizedParticipation * 58 + (timingPrecision / 100) * 42, 22, 100);
 
-  // Special Condition Checks (Anti-Cheese & Honest Diagnostics)
+  // --- AXIS 5: VIBRATO & LONG TONE (0..100) ---
+  const rangeSemitones = take.maxMidi >= take.minMidi ? take.maxMidi - take.minMidi : 0;
+  const rangeFactor = clamp(rangeSemitones / 10, 0.35, 1.0);
+  const longToneSteady =
+    take.longToneCount > 0 ? take.longToneSteadySum / take.longToneCount : stabilityFloat * 0.88;
+  const vibratoBonus = Math.min(18, take.vibratos * 3.8 + take.vibratoTotalSec * 2.2);
+  let vibLongFloat = clamp(longToneSteady * (0.62 + 0.24 * rangeFactor) + vibratoBonus, 22, 100);
+
   let reason: JudgeReason = "normal";
   const trackDur = track?.duration && track.duration > 30 ? track.duration : 180;
   const completionRatio = elapsedSeconds / trackDur;
 
-  // Check Monotone / Talk-Singing (e.g. humming 1 note or speaking lyrics)
   if (sungSeconds >= 4 && rangeSemitones < 3 && take.uniqueNotes.size <= 2) {
     reason = "monotone";
-    techniqueScore = Math.min(techniqueScore, 42);
-    pitchScore = Math.round(pitchScore * 0.68);
-    expressionScore = Math.min(expressionScore, 48);
-  } else if (pitchScore < 58 && meanDb > -18 && take.voicedFrames > 45) {
-    // Loud & off-key screamer
+    vibLongFloat = Math.min(vibLongFloat, 42);
+    pitchFloat *= 0.68;
+    expressionFloat = Math.min(expressionFloat, 48);
+  } else if (pitchFloat < 58 && meanDb > -18 && take.voicedFrames > 45) {
     reason = "screamer";
   }
 
-  let totalScore = Math.round(
-    pitchScore * 0.36 +
-      stabilityScore * 0.2 +
-      rhythmScore * 0.16 +
-      techniqueScore * 0.15 +
-      expressionScore * 0.13,
-  );
+  // Weighted DAM / My Music Karaoke Score formula (Pitch heavily weighted + 4 technique/musicality pillars)
+  let totalFloat =
+    pitchFloat * 0.42 +
+    stabilityFloat * 0.18 +
+    expressionFloat * 0.15 +
+    rhythmFloat * 0.13 +
+    vibLongFloat * 0.12;
 
-  // Early bailout scaling: if you hit "Score Me" < 20s into the song (and < 20% of track length), cap/scale fairly
   if (elapsedSeconds < 20 && completionRatio < 0.2) {
     reason = "early";
-    const completionScale = clamp(0.52 + (elapsedSeconds / 20) * 0.42, 0.52, 0.92);
-    totalScore = Math.round(totalScore * completionScale);
-    rhythmScore = Math.round(rhythmScore * completionScale);
+    const completionScale = clamp(0.55 + (elapsedSeconds / 20) * 0.4, 0.55, 0.94);
+    totalFloat *= completionScale;
+    rhythmFloat *= completionScale;
   }
 
-  totalScore = clamp(totalScore, 12, 100);
+  const scoreDecimal = Number(clamp(totalFloat, 12, 100).toFixed(3));
+  const totalScore = Math.round(scoreDecimal);
+  const pitchScore = Math.round(pitchFloat);
+  const stabilityScore = Math.round(stabilityFloat);
+  const expressionScore = Math.round(expressionFloat);
+  const rhythmScore = Math.round(rhythmFloat);
+  const vibLongScore = Math.round(vibLongFloat);
   const inTunePct = Math.round(inTuneRatio * 100);
-  const vibPart = take.vibratos > 0 ? ` · ${take.vibratos} vibrato${take.vibratos === 1 ? "" : "s"}` : "";
-  const summary = `${take.notesHit} notes sung · ${inTunePct}% in tune · ${rangeSemitones} semitone range${vibPart}`;
+
+  const sectionPitch = take.sections.map((b) =>
+    b.total >= 2 ? clamp(Math.round((b.inTune / b.total) * 100), 15, 100) : pitchScore,
+  ) as [number, number, number, number, number];
+
+  const avgVibHz = take.vibratos > 0 ? Number((take.vibratoHzSum / take.vibratos).toFixed(1)) : 0;
+  const avgVibDepth = take.vibratos > 0 ? take.vibratoDepthSum / take.vibratos : 0;
+  const vibratoSkill = vibratoGradeLabel(take.vibratos, take.vibratoTotalSec, avgVibHz, avgVibDepth);
+
+  const summary = `Pitch ${inTunePct}% · Long tone ${take.longToneMaxSec.toFixed(1)}s · Vibrato ${take.vibratoTotalSec.toFixed(1)}s (${take.vibratos}x) · Scoop ${take.cleanAttacks} / Kobushi ${take.kobushi} / Fall ${take.falls}`;
 
   return {
     score: totalScore,
@@ -758,9 +953,30 @@ function evaluateTake(track: Track | null, micOn: boolean): {
       { label: "Pitch", value: pitchScore },
       { label: "Stability", value: stabilityScore },
       { label: "Expression", value: expressionScore },
-      { label: "Technique", value: techniqueScore },
       { label: "Rhythm", value: rhythmScore },
+      { label: "Vibrato & Long", value: vibLongScore },
     ],
+    telemetry: {
+      scoreDecimal,
+      avgScoreDecimal,
+      pitchHitPct: inTunePct,
+      sectionPitch,
+      rhythmOffsetMs: clamp(rhythmOffsetMs, -180, 180),
+      vibratoCount: take.vibratos,
+      vibratoTotalSec: Number(take.vibratoTotalSec.toFixed(1)),
+      vibratoHz: avgVibHz,
+      vibratoSkill,
+      vibratoWave: take.vibratoWave,
+      longToneSec: Number(take.longToneMaxSec.toFixed(1)),
+      longToneScore: Math.round(longToneSteady),
+      scoops: take.cleanAttacks,
+      kobushi: take.kobushi,
+      falls: take.falls,
+      singerMinMidi: Number.isFinite(take.minMidi) ? take.minMidi : null,
+      singerMaxMidi: Number.isFinite(take.maxMidi) ? take.maxMidi : null,
+      songMinMidi,
+      songMaxMidi,
+    },
   };
 }
 
@@ -1166,7 +1382,22 @@ export const useVideoke = create<VideokeState>((set, get) => ({
       if (playing) {
         if (take.startedPlayMs === null) take.startedPlayMs = now;
         take.activeFrames++;
-        const winBucket = Math.floor((pState.position || (now - take.startedPlayMs) / 1000) / 2);
+        const songSec = getExactPlaybackTime();
+        const activeTrack = pState.queue[pState.index] ?? null;
+        const trackDurSec = activeTrack?.duration && activeTrack.duration > 30 ? activeTrack.duration : 220;
+        const activeGuide = activeTrack ? getCachedVocalGuide(activeTrack.id) : null;
+
+        let activeTargetMidi: number | null = null;
+        if (activeGuide && activeGuide.bars.length > 0) {
+          for (const b of activeGuide.bars) {
+            if (b.end < songSec - 0.12) continue;
+            if (b.start > songSec + 0.12) break;
+            activeTargetMidi = b.midi;
+            break;
+          }
+        }
+
+        const winBucket = Math.floor((songSec || (now - take.startedPlayMs) / 1000) / 2);
         take.activeWindows.add(winBucket);
 
         if (midi !== null && detected) {
@@ -1177,6 +1408,17 @@ export const useVideoke = create<VideokeState>((set, get) => ({
           if (!take.wasVoiced) {
             take.phraseOnsets++;
             take.wasVoiced = true;
+            if (activeGuide && activeGuide.bars.length > 0) {
+              let bestDelta: number | null = null;
+              for (const b of activeGuide.bars) {
+                const dt = (songSec - b.start) * 1000;
+                if (Math.abs(dt) <= 420 && (bestDelta === null || Math.abs(dt) < Math.abs(bestDelta))) {
+                  bestDelta = dt;
+                }
+                if (b.start > songSec + 0.5) break;
+              }
+              if (bestDelta !== null) take.timingOffsetsMs.push(bestDelta);
+            }
           }
 
           const cur = take.currentNote;
@@ -1184,14 +1426,14 @@ export const useVideoke = create<VideokeState>((set, get) => ({
             cur.midis.push(midi);
             cur.rmsList.push(detected.rms);
             cur.endMs = now;
-            // Smoothly refine anchor toward the held pitch center
+            cur.songEndSec = songSec;
+            if (cur.targetMidi === null && activeTargetMidi !== null) cur.targetMidi = activeTargetMidi;
             cur.anchorMidi = cur.anchorMidi * 0.85 + midi * 0.15;
           } else {
             if (cur) {
               const prevMidi = cur.anchorMidi;
-              const res = finalizeNoteSegment(cur);
+              const res = finalizeNoteSegment(cur, trackDurSec);
               if (res.hadVibrato) lastVibratoFlash = now;
-              // Unintentional abrupt crack (> 7 semitones within 60ms on very short segment)
               if (cur.midis.length < 4 && Math.abs(midi - prevMidi) > 7) {
                 take.cracks++;
               }
@@ -1200,6 +1442,9 @@ export const useVideoke = create<VideokeState>((set, get) => ({
               anchorMidi: midi,
               startMs: now,
               endMs: now,
+              songStartSec: songSec,
+              songEndSec: songSec,
+              targetMidi: activeTargetMidi,
               midis: [midi],
               rmsList: [detected.rms],
             };
@@ -1207,7 +1452,7 @@ export const useVideoke = create<VideokeState>((set, get) => ({
         } else {
           take.wasVoiced = false;
           if (take.currentNote && now - take.currentNote.endMs >= 110) {
-            const res = finalizeNoteSegment(take.currentNote);
+            const res = finalizeNoteSegment(take.currentNote, trackDurSec);
             if (res.hadVibrato) lastVibratoFlash = now;
             take.currentNote = null;
           }
@@ -1218,7 +1463,7 @@ export const useVideoke = create<VideokeState>((set, get) => ({
           const inTunePct =
             take.evalFrames > 0 ? Math.round((take.inTuneFrames / take.evalFrames) * 100) : 0;
           const preview =
-            take.notesHit >= 4 ? evaluateTake(pState.queue[pState.index] ?? null, true).score : null;
+            take.notesHit >= 4 ? Number(evaluateTake(activeTrack, true).telemetry.scoreDecimal.toFixed(1)) : null;
           set({
             liveStats: {
               notesHit: take.notesHit,
@@ -1261,10 +1506,10 @@ export const useVideoke = create<VideokeState>((set, get) => ({
 
   showScore: (track) => {
     if (take.currentNote) {
-      finalizeNoteSegment(take.currentNote);
+      finalizeNoteSegment(take.currentNote, track.duration || 220);
       take.currentNote = null;
     }
-    const { score, axes, heard, reason, summary } = evaluateTake(track, get().micOn);
+    const { score, axes, telemetry, heard, reason, summary } = evaluateTake(track, get().micOn);
     resetTake();
     set({ liveStats: INITIAL_LIVE_STATS });
 
@@ -1295,6 +1540,7 @@ export const useVideoke = create<VideokeState>((set, get) => ({
         score,
         rank,
         axes,
+        telemetry,
         heard,
         headline: verdict.headline,
         roast: verdict.roast,

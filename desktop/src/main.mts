@@ -17,10 +17,16 @@ if (!app.requestSingleInstanceLock()) {
   process.exit(0);
 }
 
-// Prevent Chromium/OS WebRTC input AGC and system-wide echo-cancellation from ducking or muffling music playback.
+// Prevent Chromium/OS WebRTC input AGC and system-wide echo-cancellation from ducking or muffling music playback,
+// while explicitly keeping HardwareMediaKeyHandling & MediaSessionService active so macOS routes F7/F8/F9 media keys
+// to Illusive Sounds instead of launching the built-in Apple Music app.
 app.commandLine.appendSwitch(
   "disable-features",
-  "WebRtcAllowInputVolumeAdjustment,ChromeWideEchoCancellation,HardwareMediaKeyHandling",
+  "WebRtcAllowInputVolumeAdjustment,ChromeWideEchoCancellation",
+);
+app.commandLine.appendSwitch(
+  "enable-features",
+  "HardwareMediaKeyHandling,MediaSessionService",
 );
 
 // Everything the user owns lives in their profile, so updates and reinstalls keep it.
@@ -339,6 +345,8 @@ app.on("will-quit", () => {
 });
 
 function registerMediaShortcuts() {
+  // On macOS, HardwareMediaKeyHandling + MPNowPlayingInfoCenter natively owns F7/F8/F9 & AirPods controls.
+  if (isMac) return;
   const bindings: Array<[string, "toggle" | "next" | "previous" | "pause"]> = [
     ["MediaPlayPause", "toggle"],
     ["MediaNextTrack", "next"],

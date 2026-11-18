@@ -48,9 +48,17 @@ export function useShortcuts() {
       const handled = () => e.preventDefault();
 
       switch (e.key) {
-        case " ":
-          // Let focused buttons handle their own Space.
-          if (e.target instanceof HTMLButtonElement || (e.target as HTMLElement)?.getAttribute?.("role") === "slider") return;
+        case " ": {
+          // Inside an open modal dialog, let focused dialog buttons keep Space; everywhere else in the player window,
+          // Space reliably toggles Play/Pause even if a toolbar button, tab, or slider still holds focus!
+          const targetEl = e.target as HTMLElement | null;
+          if (targetEl instanceof HTMLButtonElement && targetEl.closest('[role="dialog"]')) return;
+          handled();
+          p.toggle();
+          break;
+        }
+        case "k":
+        case "K":
           handled();
           p.toggle();
           break;

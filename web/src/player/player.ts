@@ -897,9 +897,12 @@ export function handleExternalMediaAction(
   action: DesktopMediaAction | "seek" | "audio_mode",
   position?: number,
 ) {
-  if (action !== "seek") {
+  if (action !== "seek" && action !== "audio_mode") {
     const now = Date.now();
-    if (action === lastExternalAction && now - lastExternalActionAt < 180) return;
+    const isPlayPauseGroup =
+      (action === "play" || action === "pause" || action === "toggle") &&
+      (lastExternalAction === "play" || lastExternalAction === "pause" || lastExternalAction === "toggle");
+    if ((action === lastExternalAction || isPlayPauseGroup) && now - lastExternalActionAt < 240) return;
     lastExternalAction = action;
     lastExternalActionAt = now;
   }
@@ -911,6 +914,36 @@ export function handleExternalMediaAction(
   else if (action === "previous") p.prev();
   else if (action === "seek" && position != null) p.seek(position);
   else if (action === "audio_mode") p.setPreferVideo(false);
+}
+
+/**
+ * Plays an inaudible 20ms silent PCM WAV once so macOS Chromium immediately registers with
+ * MPNowPlayingInfoCenter / MPRemoteCommandCenter on app launch instead of letting F8 launch Apple Music.
+ */
+let mediaSessionClaimed = false;
+function claimOsMediaKeys() {
+  if (mediaSessionClaimed || systemMedia || typeof Audio === "undefined") return;
+  mediaSessionClaimed = true;
+  try {
+    // 44-byte WAV header + 16 zero samples (8kHz 8-bit mono silence)
+    const silentWav =
+      "data:audio/wav;base64,UklGRjQAAABXQVZFZm10IBAAAAABAAEARKwAAESsAAABAAgAZGF0YRAAAACAgICAgICAgICAgICAgIA=";
+    const primer = new Audio(silentWav);
+    primer.volume = 0.0001;
+    void primer
+      .play()
+      .then(() => {
+        primer.pause();
+        const cur = selectCurrent(usePlayer.getState());
+        if (cur) setMetadata(cur);
+        syncPlaybackState();
+      })
+      .catch(() => {
+        mediaSessionClaimed = false;
+      });
+  } catch {
+    /* ignore */
+  }
 }
 
 if (systemMedia) {
@@ -939,7 +972,13 @@ if ("mediaSession" in navigator && !systemMedia) {
     }
   }
   const restored = selectCurrent(usePlayer.getState());
-  if (restored) setMetadata(restored);
+  if (restored) {
+    setMetadata(restored);
+    syncPlaybackState();
+  }
+  claimOsMediaKeys();
+  window.addEventListener("pointerdown", claimOsMediaKeys, { once: true, passive: true });
+  window.addEventListener("keydown", claimOsMediaKeys, { once: true, passive: true });
 } else if (desktop?.setMediaState) {
   const restored = selectCurrent(usePlayer.getState());
   if (restored) syncDesktopMedia(restored);

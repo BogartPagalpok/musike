@@ -431,40 +431,60 @@ function EnginePage() {
   );
 }
 
-const RELEASE_URL = "https://github.com/BogartPagalpok/musike/releases/latest";
+const CUSTOM_SHARE_URL_KEY = "musike:share-url";
 
-async function copyReleaseLink() {
+function readCustomShareUrl(): string {
   try {
-    await navigator.clipboard.writeText(RELEASE_URL);
-    toast("Release download link copied!");
+    return (localStorage.getItem(CUSTOM_SHARE_URL_KEY) ?? "").trim();
+  } catch {
+    return "";
+  }
+}
+
+async function copyShareText(url: string) {
+  const payload = url || `Illusive Sounds v${__APP_VERSION__} — Music, Podcasts & Videoke`;
+  try {
+    await navigator.clipboard.writeText(payload);
+    toast(url ? "Share link copied!" : "App invite copied!");
   } catch {
     const input = document.createElement("input");
-    input.value = RELEASE_URL;
+    input.value = payload;
     document.body.appendChild(input);
     input.select();
     document.execCommand("copy");
     input.remove();
-    toast("Release download link copied!");
+    toast(url ? "Share link copied!" : "App invite copied!");
   }
 }
 
-async function shareAppRelease() {
+async function shareAppInvite(customUrl: string) {
   const title = `Illusive Sounds v${__APP_VERSION__}`;
-  const text = `Download Illusive Sounds v${__APP_VERSION__} (Music, Podcasts & Videoke for macOS, Windows, Linux, Android & iOS):`;
+  const text = customUrl
+    ? `Download Illusive Sounds v${__APP_VERSION__} (Music, Podcasts & Videoke):`
+    : `Illusive Sounds v${__APP_VERSION__} — Music, Podcasts & Videoke`;
   try {
     const cap = (globalThis as { Capacitor?: { isNativePlatform?: () => boolean; Plugins?: { Share?: { share: (opts: unknown) => Promise<void> } } } }).Capacitor;
     if (cap?.isNativePlatform?.() && cap.Plugins?.Share) {
-      await cap.Plugins.Share.share({ title, text, url: RELEASE_URL, dialogTitle: "Share Illusive Sounds" });
+      await cap.Plugins.Share.share({
+        title,
+        text,
+        ...(customUrl ? { url: customUrl } : {}),
+        dialogTitle: "Share Illusive Sounds",
+      });
       return;
     }
     if (typeof navigator.share === "function") {
-      await navigator.share({ title, text, url: RELEASE_URL });
+      await navigator.share({
+        title,
+        text,
+        ...(customUrl ? { url: customUrl } : {}),
+      });
       return;
     }
   } catch (err) {
     if ((err as Error)?.name === "AbortError") return;
   }
-  await copyReleaseLink();
+  await copyShareText(customUrl);
 }
 
 function RootPage({ go }: { go: (p: Page) => void }) {
@@ -476,11 +496,23 @@ function RootPage({ go }: { go: (p: Page) => void }) {
   const panelOpen = useUi((s) => s.panelOpen);
   const setPanelDocked = useUi((s) => s.setPanelDocked);
   const info = useSystem((s) => s.info);
+  const [shareUrl, setShareUrl] = useState(readCustomShareUrl);
   const y = info?.ytdlp;
   const engineValue = !info ? "…" : !y?.path ? t.settings.chipMissing : y.updateAvailable ? t.settings.chipUpdate : y.version ?? "";
   const badgeInk = inkFor(a.accent);
   const activePackName =
     SKIN_PACKS.find((p) => p.id === activePackId)?.name ?? (activePackId === "custom-mix" ? "Custom Mix" : undefined);
+
+  const saveShareUrl = (val: string) => {
+    setShareUrl(val);
+    try {
+      const clean = val.trim();
+      if (clean) localStorage.setItem(CUSTOM_SHARE_URL_KEY, clean);
+      else localStorage.removeItem(CUSTOM_SHARE_URL_KEY);
+    } catch {
+      /* ignore */
+    }
+  };
 
   return (
     <>
@@ -500,7 +532,7 @@ function RootPage({ go }: { go: (p: Page) => void }) {
         </div>
         <button
           type="button"
-          onClick={() => void shareAppRelease()}
+          onClick={() => void shareAppInvite(shareUrl.trim())}
           className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-md bg-fg px-3 text-xs font-semibold text-bg transition-opacity duration-150 hover:opacity-90 active:scale-95"
         >
           <ShareNetworkIcon size={14} weight="bold" />
@@ -508,24 +540,42 @@ function RootPage({ go }: { go: (p: Page) => void }) {
         </button>
       </div>
 
-      <Group title="Share & Downloads">
+      <Group title="Share App" footer="Add your dedicated download or website link anytime — no source repository is exposed.">
+        <div className="flex items-center gap-2 border-b border-line px-4 py-2.5">
+          <label htmlFor="custom-share-url" className="sr-only">
+            Dedicated download link
+          </label>
+          <input
+            id="custom-share-url"
+            type="url"
+            value={shareUrl}
+            onChange={(e) => saveShareUrl(e.target.value)}
+            placeholder="Paste your dedicated download link (optional)…"
+            className="h-9 min-w-0 flex-1 rounded-md bg-surface-3 px-3 text-xs text-fg placeholder:text-fg-3 focus:outline-none"
+          />
+          {shareUrl.trim() && (
+            <button
+              type="button"
+              onClick={() => window.open(shareUrl.trim(), "_blank", "noopener,noreferrer")}
+              aria-label="Open dedicated download link"
+              title="Open link"
+              className="grid size-9 shrink-0 cursor-pointer place-items-center rounded-md bg-surface-3 text-fg-2 transition-colors duration-150 hover:bg-surface-4 hover:text-fg"
+            >
+              <ArrowSquareOutIcon size={16} />
+            </button>
+          )}
+        </div>
         <Row
-          label="Share App Release"
-          sub="Send the official Illusive Sounds download page for macOS, Windows, Linux, Android & iOS"
+          label="Share Release"
+          sub={shareUrl.trim() ? `Shares ${shareUrl.trim()}` : "Share Illusive Sounds invite"}
           right={<ShareNetworkIcon size={17} className="shrink-0 text-fg-2" />}
-          onClick={() => void shareAppRelease()}
+          onClick={() => void shareAppInvite(shareUrl.trim())}
         />
         <Row
-          label="Copy Release Link"
-          sub={RELEASE_URL}
+          label="Copy Share Link"
+          sub={shareUrl.trim() || "Copies app invite text until a dedicated link is set"}
           right={<CopyIcon size={17} className="shrink-0 text-fg-2" />}
-          onClick={() => void copyReleaseLink()}
-        />
-        <Row
-          label="Open GitHub Releases"
-          sub={`Latest release · v${__APP_VERSION__}`}
-          right={<ArrowSquareOutIcon size={17} className="shrink-0 text-fg-2" />}
-          onClick={() => window.open(RELEASE_URL, "_blank", "noopener,noreferrer")}
+          onClick={() => void copyShareText(shareUrl.trim())}
         />
       </Group>
 
