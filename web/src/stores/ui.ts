@@ -21,6 +21,8 @@ export interface TrackMenuState {
   x: number;
   y: number;
   playlistId?: string;
+  context?: Track[];
+  ordered?: boolean;
 }
 
 export type Theme = ThemeId;

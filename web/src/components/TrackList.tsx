@@ -15,12 +15,13 @@ interface RowProps {
   track: Track;
   position: number;
   onPlay: () => void;
+  context?: Track[];
   playlistId?: string;
   showAlbum: boolean;
   showArtwork: boolean;
 }
 
-const TrackRow = memo(function TrackRow({ track, position, onPlay, playlistId, showAlbum, showArtwork }: RowProps) {
+const TrackRow = memo(function TrackRow({ track, position, onPlay, context, playlistId, showAlbum, showArtwork }: RowProps) {
   const isCurrent = usePlayer((s) => selectCurrent(s)?.id === track.id);
   const isPlaying = usePlayer((s) => s.status === "playing" || s.status === "loading");
   const isFavorite = useLibrary((s) => s.favorites.some((t) => t.id === track.id));
@@ -34,7 +35,7 @@ const TrackRow = memo(function TrackRow({ track, position, onPlay, playlistId, s
     e.stopPropagation();
     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
     const fromButton = e.type === "click";
-    openMenu({ track, playlistId, x: fromButton ? r.right - 256 : e.clientX, y: fromButton ? r.bottom + 6 : e.clientY });
+    openMenu({ track, context, playlistId, x: fromButton ? r.right - 256 : e.clientX, y: fromButton ? r.bottom + 6 : e.clientY });
   };
 
   return (
@@ -182,6 +183,7 @@ export function TrackList({
             key={`${tr.id}-${i}`}
             track={tr}
             position={i}
+            context={playMode === "related" ? undefined : (context ?? tracks)}
             playlistId={playlistId}
             showAlbum={showAlbum}
             showArtwork={showArtwork}

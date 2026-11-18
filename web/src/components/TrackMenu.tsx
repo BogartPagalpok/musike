@@ -80,7 +80,20 @@ export function TrackMenu() {
 
   const content = menu && (
     <div role="menu" aria-label={t.trackMenu.actionsFor(menu.track.title)} data-escape-closes className="flex flex-col">
-      <Item icon={<PlayIcon size={18} />} onClick={run(() => usePlayer.getState().playTrack(menu.track))}>
+      <Item
+        icon={<PlayIcon size={18} />}
+        onClick={run(() => {
+          if (menu.context && menu.context.length > 0) {
+            const idx = Math.max(
+              0,
+              menu.context.findIndex((x) => x.id === menu.track.id),
+            );
+            usePlayer.getState().playList(menu.context, idx, { ordered: menu.ordered });
+          } else {
+            usePlayer.getState().playTrack(menu.track);
+          }
+        })}
+      >
         {t.trackMenu.playNow}
       </Item>
       <Item icon={<QueueIcon size={18} />} onClick={run(() => usePlayer.getState().playNext(menu.track))}>

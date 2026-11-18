@@ -95,10 +95,12 @@ function RecentCard({ track, onPlay }: { track: Track; onPlay: () => void }) {
 function ChartTrackCell({
   track,
   rank,
+  context,
   onPlay,
 }: {
   track: Track;
   rank: number;
+  context: Track[];
   onPlay: () => void;
 }) {
   const isCurrent = usePlayer((s) => selectCurrent(s)?.id === track.id);
@@ -116,6 +118,8 @@ function ChartTrackCell({
     const fromButton = e.type === "click";
     openMenu({
       track,
+      context,
+      ordered: true,
       x: fromButton ? Math.max(12, r.right - 220) : e.clientX,
       y: fromButton ? r.bottom + 6 : e.clientY,
     });
@@ -125,7 +129,7 @@ function ChartTrackCell({
     <li
       onContextMenu={menuAt}
       className={cn(
-        "group relative flex items-center gap-2.5 rounded-md px-2 py-1.5 transition-colors duration-150 hover:bg-surface-2",
+        "group relative mb-0.5 flex break-inside-avoid items-center gap-2.5 rounded-md px-2 py-1.5 transition-colors duration-150 hover:bg-surface-2",
         isCurrent && "bg-surface-2",
       )}
     >
@@ -277,7 +281,7 @@ function Top50Section() {
           {activeTracks.length > 0 && (
             <button
               type="button"
-              onClick={() => playList(activeTracks, 0)}
+              onClick={() => playList(activeTracks, 0, { ordered: true })}
               aria-label={t.home.playTop50}
               className="flex h-8 shrink-0 cursor-pointer items-center gap-1.5 rounded-md bg-surface-2 px-3 text-xs font-medium text-fg transition-colors duration-150 hover:bg-surface-3"
             >
@@ -358,13 +362,14 @@ function Top50Section() {
           <TrackListSkeleton rows={8} />
         ) : activeTracks.length > 0 ? (
           <div className="px-2 md:px-4">
-            <ol className="grid grid-cols-1 gap-x-6 gap-y-0.5 @[640px]/home:grid-cols-2 @[1080px]/home:grid-cols-3 @[1440px]/home:grid-cols-4">
+            <ol className="columns-1 gap-x-6 @[640px]/home:columns-2 @[1080px]/home:columns-3 @[1440px]/home:columns-4">
               {visibleTracks.map((tr, i) => (
                 <ChartTrackCell
                   key={tr.id}
                   track={tr}
                   rank={i + 1}
-                  onPlay={() => playList(activeTracks, i)}
+                  context={activeTracks}
+                  onPlay={() => playList(activeTracks, i, { ordered: true })}
                 />
               ))}
             </ol>

@@ -576,50 +576,62 @@ interface Line {
 
 const SPECIAL_LINES: Record<Exclude<JudgeReason, "normal">, { badge: string; tone: ScoreTone; lines: Line[] }> = {
   silent: {
-    badge: "No Vocals Detected",
+    badge: "Ghost Singer",
     tone: "bad",
     lines: [
-      { headline: "0.0s Sung — Where Were You?", roast: "The backing track played its heart out while your microphone heard zero singing." },
-      { headline: "Mic Check… Hello?", roast: "No singing voice was detected on the microphone. Sing clearly into your mic to earn points!" },
+      { headline: "Nice Instrumental! Where Were You?", roast: "Sing King worked overtime while you stood there aura farming in complete silence." },
+      { headline: "Mic Check… Hello?", roast: "You held the mic like an ice cream cone and didn't sing a single bar." },
+      { headline: "Paid for the Mic, Used It as a Prop", roast: "0% vocals, 100% staring at the screen waiting for a miracle." },
+      { headline: "John Cage's 4'33\" Cover?", roast: "Bold artistic choice performing a silent tribute at videoke night." },
+      { headline: "Cat Got Your Tongue?", roast: "Even the backing vocalists looked around wondering when you were coming in." },
     ],
   },
   early: {
-    badge: "Incomplete Take",
+    badge: "Early Bailout",
     tone: "bad",
     lines: [
-      { headline: "Too Short for a Full Score", roast: "You only sang a few seconds! Sing through at least a full verse and chorus to earn a complete score." },
-      { headline: "Stopped Right After Warm-Up", roast: "Score scaled to how much you sang — keep singing longer to unlock higher ranks!" },
+      { headline: "Rage Quit Before the Chorus?", roast: "You saw that high note coming from a mile away and hit the eject button." },
+      { headline: "One Verse Wonder", roast: "Sang four words, panicked, and asked for a score. Finish the song next time!" },
+      { headline: "Speedrunning Videoke?", roast: "The intro barely finished and you're already asking the judge for a trophy." },
+      { headline: "Stage Fright Hit Fast", roast: "You dipped faster than an uncle when the bill arrives. Sing the whole track!" },
     ],
   },
   monotone: {
-    badge: "Flat Monotone",
+    badge: "Podcast Mode",
     tone: "bad",
     lines: [
-      { headline: "Stuck on One Note", roast: "Your voice stayed locked within 1–2 notes instead of following the song's vocal melody." },
-      { headline: "One-Note Delivery", roast: "Move your pitch up and down with the melody to raise Pitch and Range scores." },
+      { headline: "Sir, This Is Videoke Not a Podcast", roast: "You read the lyrics on one flat note like a hostage statement. Use some melody!" },
+      { headline: "One-Note Wonder", roast: "The songwriter wrote twelve different notes and you bravely refused eleven of them." },
+      { headline: "Siri Has More Inflection", roast: "Sounded like GPS navigation reading directions through a karaoke mic." },
+      { headline: "Spoken Word Night?", roast: "Great audiobook narration, questionable singing. Try moving your pitch up and down!" },
     ],
   },
   talking: {
-    badge: "Spoken / Unsteady",
+    badge: "News Anchor Mode",
     tone: "bad",
     lines: [
-      { headline: "Talking Instead of Singing", roast: "Detected short gliding speech syllables rather than sustained musical notes." },
-      { headline: "Hold Your Notes!", roast: "Spoken words slide across pitches — sustain steady vowel tones to score higher." },
+      { headline: "Are You Reporting Evening News?", roast: "You talked through the lyrics like a traffic report! Hold your vowel notes steady." },
+      { headline: "Chismis Session on the Mic?", roast: "Spoken words slide all over the scale — actually sing and sustain the melody!" },
+      { headline: "Zero Sustain Detected", roast: "This is videoke, not an auctioneer tryout. Hold those notes!" },
     ],
   },
   screamer: {
-    badge: "Loud & Off-Key",
+    badge: "RIP Speakers",
     tone: "bad",
     lines: [
-      { headline: "High Volume, Off Pitch", roast: "Strong mic projection, but your notes clashed with the backing track's key." },
-      { headline: "Power Without Pitch", roast: "Dial back the volume slightly and lock into the song's scale!" },
+      { headline: "Loud AND Wrong", roast: "Volume: 110%. Key: somewhere in another zip code. Our speakers need therapy." },
+      { headline: "Passionate Chaos", roast: "You attacked every note like it owed you money, and missed all of them." },
+      { headline: "You Suck at This (Loudly)", roast: "Screaming the chorus doesn't make it in tune—the barangay tanod is outside." },
+      { headline: "Pure Decibels, Zero Pitch", roast: "That wasn't a high note, that was a structural stress test on the windows." },
     ],
   },
   "no-mic": {
     badge: "Mic Off · 0 Pts",
     tone: "bad",
     lines: [
-      { headline: "Microphone Was Off", roast: "Real scoring requires live microphone input — turn Mic On and sing to get scored." },
+      { headline: "Bluetooth Telepathy?!", roast: "Your mic was OFF! Zero points for lip-syncing — turn Mic On if you want a real score." },
+      { headline: "Milli Vanilli Caught Live", roast: "Air-singing with a muted mic gets 0.000 pts here. Turn the mic on and prove it!" },
+      { headline: "Unplugged & Unscored", roast: "The judge can't grade imaginary vocals! Switch Mic On and run it back." },
     ],
   },
 };
@@ -627,56 +639,71 @@ const SPECIAL_LINES: Record<Exclude<JudgeReason, "normal">, { badge: string; ton
 const TIER_LINES: { max: number; badge: string; tone: ScoreTone; lines: Line[] }[] = [
   {
     max: 49,
-    badge: "Off Key",
+    badge: "Vocal Crime Scene",
     tone: "bad",
     lines: [
-      { headline: "Rough Intonation", roast: "Most notes landed outside the song's key or drifted mid-phrase." },
-      { headline: "Out of Sync & Pitch", roast: "Listen closely to the backing chords and hold your vowel pitches steady." },
+      { headline: "Drop the Mic (Literally)", roast: "Even the instrumental backing track tried to skip itself." },
+      { headline: "Mic Confiscated", roast: "The videoke machine just locked itself in self-defense." },
+      { headline: "Who Hurt You?", roast: "Because whatever happened, you just took it out on our eardrums." },
+      { headline: "Certified Audio Hazard", roast: "The dog left the room, and the dog usually howls along." },
+      { headline: "Call an Ambulance (For the Song)", roast: "That melody didn't survive the first verse." },
     ],
   },
   {
-    max: 65,
-    badge: "Needs Practice",
+    max: 64,
+    badge: "Emergency Exit",
     tone: "bad",
     lines: [
-      { headline: "Pitch Was Drifting", roast: "You caught parts of the melody, but intonation and note sustain need tightening." },
-      { headline: "Getting the Hang of It", roast: "Focus on matching the root notes of the chorus and sustaining phrase endings." },
+      { headline: "Was That the Same Song?", roast: "You and the backing track were in two completely different time zones." },
+      { headline: "Tita Is Concerned", roast: "She just muted her hearing aid and texted the family group chat." },
+      { headline: "Key? Never Met Her", roast: "You sang in cursive while the song was printed in block letters." },
+      { headline: "Brave. Very Brave.", roast: "Not good, mind you—just impressively fearless in front of witnesses." },
+      { headline: "Neighbors Closed the Windows", roast: "And it's 34°C outside. That tells you everything." },
     ],
   },
   {
-    max: 75,
-    badge: "Fair Take",
+    max: 74,
+    badge: "Roasted",
+    tone: "bad",
+    lines: [
+      { headline: "You Suck at This", roast: "The neighbors closed their windows and called the barangay. Please pass the mic." },
+      { headline: "Sintunado Supreme", roast: "Every note in the song was a polite suggestion, and you rejected all of them." },
+      { headline: "Bold of You", roast: "Confidence: 100. Intonation: still buffering since verse one." },
+      { headline: "Back to the Shower", roast: "The bathroom tiles give you way more reverb forgiveness than this judge." },
+      { headline: "Pitch Was Fighting for Its Life", roast: "You had a few moments, mostly between the parts where you sang." },
+    ],
+  },
+  {
+    max: 81,
+    badge: "Shower Certified",
     tone: "meh",
     lines: [
-      { headline: "Decent Effort!", roast: "Several phrases landed in key, with room to sharpen pitch accuracy and stability." },
-      { headline: "Warm-Up Complete", roast: "Tighten up sharp/flat notes on transitions to break into Rank B and A." },
+      { headline: "Keep Your Day Job (Almost There!)", roast: "A for effort, B- for pitch. Drink some warm salabat and run it back!" },
+      { headline: "Shower Singer Certified", roast: "Respectable! You stayed mostly on pitch and nobody reached for the skip button." },
+      { headline: "Warm-Up Round, Right?", roast: "Nobody booed, nobody cheered—everyone politely chewed their lumpia." },
+      { headline: "Mid, But With Heart", roast: "The verses survived; tighten up those chorus notes and you'll crack the 80s!" },
     ],
   },
   {
-    max: 82,
-    badge: "Solid Singer",
+    max: 88,
+    badge: "Fiesta Contender",
     tone: "good",
     lines: [
-      { headline: "Good Vocal Control!", roast: "Consistent in-key singing with steady rhythm and clear vocal projection." },
-      { headline: "Clean & Respectable", roast: "Solid melody tracking — add controlled vibrato and sustained long tones for Rank A!" },
+      { headline: "Fiesta Contender!", roast: "Real vocals! The titos stopped arguing about politics to listen." },
+      { headline: "Lola Approved", roast: "She put down her plate of pancit to clap. Do you know how rare that is?" },
+      { headline: "Lowkey Signed Artist?", roast: "Steady pitch, solid rhythm—you actually know what you're doing on a mic." },
+      { headline: "Encore Material", roast: "Go ahead and reserve two more, the living room approves!" },
     ],
   },
   {
-    max: 89,
-    badge: "Stage Ready",
-    tone: "good",
-    lines: [
-      { headline: "Strong Performance!", roast: "Accurate intonation locked into the song's key with confident phrasing." },
-      { headline: "Crowd Pleaser", roast: "Steady held notes, balanced dynamics, and tight rhythmic pocket." },
-    ],
-  },
-  {
-    max: 95,
-    badge: "Star Vocalist",
+    max: 94,
+    badge: "Crowd Favorite",
     tone: "great",
     lines: [
-      { headline: " Precision Vocals!", roast: "Crisp cent-level pitch accuracy, steady sustain, and expressive musicality." },
-      { headline: "Studio-Grade Take", roast: "Locked right into the harmony and beat from start to finish." },
+      { headline: "Videoke Superstar!", roast: "Main character vocals! Everybody in the house stopped talking." },
+      { headline: "Are You Secretly Touring?", roast: "Laser-sharp pitch and real stage control—that sounded like a studio cut." },
+      { headline: "Chills. Actual Chills.", roast: "Phone flashlights are waving in the air. This isn't karaoke anymore, it's a concert." },
+      { headline: "Barangay Idol Champion", roast: "The captain is already drafting your invite for the town fiesta finals." },
     ],
   },
   {
@@ -684,7 +711,10 @@ const TIER_LINES: { max: number; badge: string; tone: ScoreTone; lines: Line[] }
     badge: "Golden Mic Legend",
     tone: "great",
     lines: [
-      { headline: "Masterclass Performance!", roast: "Exceptional intonation, rock-solid stability, rich vibrato, and full vocal range." },
+      { headline: "Golden Mic Legend!", roast: "Did you swallow the original artist?! Flawless pitch, control, and soul!" },
+      { headline: "Wala Kang Kupas!", roast: "Perfection. The videoke machine is asking for YOUR autograph right now." },
+      { headline: "Call the Grammys Immediately", roast: "Nobody wants to touch the microphone after that masterclass." },
+      { headline: "100% Pure Vocal Gold", roast: "Screenshot this and frame it in the family group chat forever!" },
     ],
   },
 ];
@@ -693,7 +723,7 @@ let lastHeadline = "";
 
 function pickLine(pool: Line[]): Line {
   const fresh = pool.filter((l) => l.headline !== lastHeadline);
-  const chosen = fresh[0] ?? pool[0]!;
+  const chosen = fresh[Math.floor(Math.random() * fresh.length)] ?? pool[0]!;
   lastHeadline = chosen.headline;
   return chosen;
 }
@@ -702,9 +732,9 @@ export function rankForScore(score: number): ScoreRank {
   if (score >= 95) return "S+";
   if (score >= 89) return "S";
   if (score >= 82) return "A";
-  if (score >= 74) return "B";
-  if (score >= 64) return "C";
-  if (score >= 48) return "D";
+  if (score >= 75) return "B";
+  if (score >= 65) return "C";
+  if (score >= 50) return "D";
   return "F";
 }
 
@@ -717,7 +747,7 @@ function judge(score: number, reason: JudgeReason, axes: ScoreAxis[], statsSumma
       tone: bucket.tone,
       headline: line.headline.trim(),
       roast: line.roast,
-      judgeNote: `${line.roast} (${statsSummary})`,
+      judgeNote: statsSummary,
     };
   }
   const tier = TIER_LINES.find((t) => score <= t.max) ?? TIER_LINES[TIER_LINES.length - 1]!;
@@ -1295,7 +1325,7 @@ export function playScoreSounds(tone: ScoreTone, rollSeconds: number): () => voi
  * Store
  * ---------------------------------------------------------------------------------------------- */
 
-export const AUTO_ADVANCE_MS = 10_000;
+export const AUTO_ADVANCE_MS = 14_000;
 let advanceTimer: ReturnType<typeof setTimeout> | null = null;
 let miniTimer: ReturnType<typeof setTimeout> | null = null;
 let scoreSeq = 0;

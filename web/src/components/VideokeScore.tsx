@@ -644,16 +644,26 @@ export function VideokeScore() {
               </div>
             </div>
 
-            {/* Coach Summary Line */}
-            <p className="mt-2.5 text-xs leading-relaxed text-fg-2">
+            {/* Big Living-Room Readable Funny Judge Verdict Banner */}
+            <div className="mt-3 rounded-xl border-2 border-line-strong bg-surface-2 px-4 py-4 md:px-6 md:py-5">
               {revealed ? (
                 <>
-                  <strong className={cn("font-semibold", toneText)}>{score.headline}</strong> — {score.judgeNote}
+                  <h3 className={cn("text-2xl leading-tight font-black tracking-tight sm:text-3xl md:text-[32px]", toneText)}>
+                    {score.headline}
+                  </h3>
+                  <p className="mt-1.5 text-base leading-snug font-bold text-fg sm:text-lg md:text-[21px]">
+                    “{score.roast}”
+                  </p>
+                  <p className="mt-2.5 border-t border-line pt-2 font-mono text-xs leading-relaxed text-fg-2">
+                    {score.judgeNote}
+                  </p>
                 </>
               ) : (
-                "Calculating cent intonation, backing-key consonance, note stability, beat timing & vocal range…"
+                <p className="text-base font-semibold text-fg-2 sm:text-lg">
+                  The judge is tallying your pitch, harmony, stability, rhythm &amp; vibrato…
+                </p>
               )}
-            </p>
+            </div>
 
             {/* Detailed Item-by-Item Analytics */}
             {revealed && (
@@ -774,9 +784,12 @@ export function VideokeScore() {
               <span className={cn("font-mono text-base font-black tabular-nums", toneText)}>
                 {tel.scoreDecimal.toFixed(3)}
               </span>
-              <span className="min-w-0 max-w-[180px] md:max-w-[220px]">
+              <span className="min-w-0 max-w-[200px] md:max-w-[260px]">
                 <span className={cn("block truncate text-xs font-bold", toneText)}>
-                  Rank {score.rank} · {score.track.title}
+                  Rank {score.rank} · {score.headline}
+                </span>
+                <span className="block truncate text-[11px] text-fg-2">
+                  {score.track.title}
                 </span>
               </span>
               <ArrowsOutIcon size={14} className="shrink-0 text-fg-3" />

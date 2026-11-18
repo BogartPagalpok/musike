@@ -46,7 +46,7 @@ interface PlayerState {
   quality: Quality;
   autoRadio: boolean;
 
-  playList: (tracks: Track[], start?: number) => void;
+  playList: (tracks: Track[], start?: number, opts?: { ordered?: boolean }) => void;
   playRelated: (track: Track) => void;
   playTrack: (track: Track) => void;
   playNext: (track: Track) => void;
@@ -563,9 +563,14 @@ export const usePlayer = create<PlayerState>((set, get) => {
     quality: initialQuality(),
     autoRadio: saved.autoRadio ?? true,
 
-    playList: (tracks, start = 0) => {
+    playList: (tracks, start = 0, opts) => {
       if (!tracks.length) return;
       const first = tracks[start] ?? tracks[0];
+      if (opts?.ordered) {
+        set({ shuffle: false, queue: tracks.slice(), original: null });
+        load(start);
+        return;
+      }
       if (get().shuffle) {
         const rest = tracks.filter((_, i) => i !== start);
         set({ queue: [first, ...shuffled(rest)], original: tracks.slice() });
