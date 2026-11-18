@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import type { Track } from "../lib/types";
 import { getCachedVocalGuide } from "../lib/vocalGuide";
+import { getPlaybackPitchDominance } from "../player/equalizer";
 import { getExactPlaybackTime, playerHooks, usePlayer } from "../player/player";
 import { toast } from "./ui";
 
@@ -1335,6 +1336,18 @@ export const useVideoke = create<VideokeState>((set, get) => ({
     analyser.fftSize = 2048;
     lp2.connect(analyser);
     const timeData = new Float32Array(analyser.fftSize);
+
+    // Parallel Singer's Formant Bandpass (1250 - 3400 Hz) to distinguish human singing vowels from speaker piano bleed!
+    const formantBp = ctx.createBiquadFilter();
+    formantBp.type = "bandpass";
+    formantBp.frequency.value = 2150;
+    formantBp.Q.value = 0.85;
+    const formantAnalyser = ctx.createAnalyser();
+    formantAnalyser.fftSize = 1024;
+    source.connect(formantBp);
+    formantBp.connect(formantAnalyser);
+    const formantData = new Float32Array(formantAnalyser.fftSize);
+
     set({ micOn: true });
 
     let frame = 0;
@@ -1344,16 +1357,35 @@ export const useVideoke = create<VideokeState>((set, get) => ({
       micRaf = requestAnimationFrame(loop);
       if (frame++ % 2) return; // ~30 Hz vocal analysis rate
       analyser.getFloatTimeDomainData(timeData);
+      formantAnalyser.getFloatTimeDomainData(formantData);
 
       let sumSq = 0;
-      for (let i = 0; i < timeData.length; i++) sumSq += timeData[i] * timeData[i];
+      for (let i = 0; i < timeData.length; i++) sumSq += timeData[i]! * timeData[i]!;
       const rawRms = Math.sqrt(sumSq / timeData.length);
+
+      let fSq = 0;
+      for (let i = 0; i < formantData.length; i++) fSq += formantData[i]! * formantData[i]!;
+      const formantRms = Math.sqrt(fSq / formantData.length);
+
       const level = Math.min(1, rawRms * 7.5);
 
-      const detected = detectVocalPitch(timeData, ctx.sampleRate, take.noiseFloor);
-      if (!detected) {
+      let detected = detectVocalPitch(timeData, ctx.sampleRate, take.noiseFloor);
+      if (detected) {
+        // Speaker Piano / Instrumental Bleed Rejection (when singing on laptop/phone speakers without headphones):
+        // Distant piano from speakers has low 1.2-3.4kHz vocal formant ratio AND matches active playback spectrum at low RMS!
+        const pb = getPlaybackPitchDominance(detected.hz);
+        const formantRatio = formantRms / Math.max(1e-5, rawRms);
+        const likelySpeakerPianoBleed =
+          (pb.binLevel > 0.42 && rawRms < take.noiseFloor * 4.2 && formantRatio < 0.16) ||
+          (formantRatio < 0.085 && rawRms < 0.055);
+
+        if (likelySpeakerPianoBleed) {
+          take.noiseFloor = clamp(take.noiseFloor * 0.92 + rawRms * 0.08, 0.006, 0.045);
+          detected = null;
+        }
+      } else {
         // Slowly adapt ambient floor during unvoiced / instrumental moments
-        take.noiseFloor = clamp(take.noiseFloor * 0.96 + rawRms * 0.04, 0.004, 0.032);
+        take.noiseFloor = clamp(take.noiseFloor * 0.95 + rawRms * 0.05, 0.005, 0.042);
       }
 
       let midi: number | null = detected ? 69 + 12 * Math.log2(detected.hz / 440) : null;

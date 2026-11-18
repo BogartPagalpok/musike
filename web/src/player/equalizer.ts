@@ -295,6 +295,31 @@ export function readEqSpectrum(target: Uint8Array<ArrayBuffer>): boolean {
   return true;
 }
 
+const playbackSpecBuf = new Uint8Array(64);
+
+/**
+ * Returns 0..1 indicating how strongly the active music/karaoke playback is currently outputting energy
+ * around `hz` (used by Videoke mic analyzer to reject speaker piano/accompaniment bleed without OS voice ducking).
+ */
+export function getPlaybackPitchDominance(hz: number): { binLevel: number; overallLevel: number } {
+  const graph = eqHost.__musikeEqGraph;
+  if (!graph || graph.ctx.state !== "running") return { binLevel: 0, overallLevel: 0 };
+  graph.analyser.getByteFrequencyData(playbackSpecBuf);
+  const binHz = graph.ctx.sampleRate / graph.analyser.fftSize;
+  const bin = Math.min(playbackSpecBuf.length - 1, Math.max(0, Math.round(hz / binHz)));
+  const peak = Math.max(
+    playbackSpecBuf[Math.max(0, bin - 1)] ?? 0,
+    playbackSpecBuf[bin] ?? 0,
+    playbackSpecBuf[Math.min(playbackSpecBuf.length - 1, bin + 1)] ?? 0,
+  );
+  let sum = 0;
+  for (let i = 1; i < 32; i++) sum += playbackSpecBuf[i]!;
+  return {
+    binLevel: peak / 255,
+    overallLevel: sum / (31 * 255),
+  };
+}
+
 /** Computes the composite dB response across a set of frequencies for the interactive curve visualizer. */
 export function computeEqCurveDb(
   freqs: number[],

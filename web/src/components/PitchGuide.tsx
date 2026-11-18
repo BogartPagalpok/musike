@@ -357,8 +357,12 @@ export function PitchGuide({
           <span>Vocal Guide</span>
         </span>
 
-        {/* Target Note / Intro Countdown Pill */}
-        {hudTarget && (
+        {/* Syncing / Target Note / Intro Countdown Pill */}
+        {guide?.syncing ? (
+          <span className="animate-pulse rounded-full bg-sky-500/20 px-2.5 py-0.5 font-mono text-[10.5px] font-bold text-sky-200 ring-1 ring-sky-400/30">
+            Syncing vocal melody…
+          </span>
+        ) : hudTarget ? (
           <span
             className={cn(
               "rounded-full px-2.5 py-0.5 font-mono text-[10.5px] font-extrabold tabular-nums",
@@ -371,7 +375,7 @@ export function PitchGuide({
               ? `♪ Instrumental · ${hudTarget.note} in ${hudTarget.countdownSec}s`
               : `Hit Note: ${hudTarget.note}`}
           </span>
-        )}
+        ) : null}
 
         {micOn && stats.notesHit > 0 && (
           <div className="hidden items-center gap-1.5 sm:flex">
