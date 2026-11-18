@@ -20,7 +20,6 @@ import { songbookCode, useIsVideokeTrack, useVideoke } from "../stores/videoke";
 import { Artwork } from "./Artwork";
 import { FavoriteButton, ModeSwitch, OfflineButton } from "./Controls";
 import { LyricsView } from "./Lyrics";
-import { PitchGuide } from "./PitchGuide";
 import { WorldStageFrame } from "./ThemeSceneBackdrop";
 import { SLOT, VideoSlot } from "./Video";
 
@@ -177,12 +176,11 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
             </div>
           )}
 
-          {/* Main Video / Artwork Stage (Unified DAM/Utavie TV Monitor with Vocal Pitch Guide on Top!) */}
+          {/* Main Video / Artwork Stage */}
           <div className={cn("flex min-h-0 w-full items-center justify-center", isVideoke ? "flex-1 py-0.5" : "py-4")}>
             {isVideoke ? (
               <WorldStageFrame scene={sceneStyle} playing={status === "playing"} className="w-full">
                 <div className="flex w-full flex-col overflow-hidden rounded-[inherit] bg-black shadow-[0_24px_60px_rgba(0,0,0,0.65)] ring-1 ring-white/15">
-                  <PitchGuide overlay className="shrink-0" />
                   {showsVideo ? (
                     <VideoSlot
                       priority={SLOT.center}
@@ -255,6 +253,19 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
               <ModeSwitch />
               {isVideoke ? (
                 <>
+                  <button
+                    type="button"
+                    onClick={() => (micOn ? stopMic() : void startMic())}
+                    className={cn(
+                      "flex h-8 items-center gap-1.5 rounded-lg px-3 text-xs font-medium ring-1 transition-colors duration-150",
+                      micOn
+                        ? "bg-accent-soft font-semibold text-accent-text ring-accent/35"
+                        : "bg-surface-3 text-fg-2 ring-line hover:bg-surface-4 hover:text-fg",
+                    )}
+                  >
+                    <MicrophoneStageIcon size={14} weight={micOn ? "fill" : "regular"} />
+                    <span>{micOn ? "Mic On" : "Mic Off"}</span>
+                  </button>
                   {showsVideo && (
                     <button
                       type="button"

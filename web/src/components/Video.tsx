@@ -5,7 +5,6 @@ import {
   CornersOutIcon,
   HeadphonesIcon,
   MicrophoneStageIcon,
-  WaveformIcon,
   XIcon,
 } from "./icons";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
@@ -18,7 +17,6 @@ import { useUi } from "../stores/ui";
 import { useIsVideokeTrack, useVideoke } from "../stores/videoke";
 import { FavoriteButton, Scrubber, Transport, Volume } from "./Controls";
 import { IconButton } from "./IconButton";
-import { PitchGuide } from "./PitchGuide";
 
 /**
  * One <video> element serves every place video can appear. It is re-parented into the highest-priority
@@ -153,8 +151,10 @@ export function Theater() {
   const idle = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [chrome, setChrome] = useState(true);
   const [fullscreen, setFullscreen] = useState(false);
-  const [showGuide, setShowGuide] = useState(true);
   const isVideoke = useIsVideokeTrack();
+  const micOn = useVideoke((v) => v.micOn);
+  const startMic = useVideoke((v) => v.startMic);
+  const stopMic = useVideoke((v) => v.stopMic);
   const showScore = useVideoke((v) => v.showScore);
   const visible = open && isVideo && !!track;
 
@@ -230,21 +230,13 @@ export function Theater() {
           onPointerDown={wake}
           className={cn("fixed inset-0 z-50 flex flex-col bg-black", !chrome && "cursor-none")}
         >
-          {/* In Videoke Fullscreen: Keep the scrolling Vocal Pitch Guide pinned cleanly at the top of the TV screen! */}
-          {isVideoke && showGuide && (
-            <div className="overlay-top relative z-20 shrink-0 cursor-auto" onClick={(e) => e.stopPropagation()}>
-              <PitchGuide overlay />
-            </div>
-          )}
-
           {/* Main Video Display Area */}
           <div className="relative min-h-0 flex-1" onClick={() => toggle()} onDoubleClick={toggleFullscreen}>
             <VideoSlot priority={SLOT.theater} className="size-full bg-black" />
 
             <div
               className={cn(
-                "pointer-events-none absolute inset-x-0 top-0 bg-linear-to-b from-black/80 to-transparent px-4 pb-12 md:px-6",
-                !(isVideoke && showGuide) && "overlay-top",
+                "overlay-top pointer-events-none absolute inset-x-0 top-0 bg-linear-to-b from-black/80 to-transparent px-4 pb-12 md:px-6",
                 fade,
               )}
             >
@@ -257,16 +249,16 @@ export function Theater() {
                   <>
                     <button
                       type="button"
-                      onClick={() => setShowGuide((g) => !g)}
+                      onClick={() => (micOn ? stopMic() : void startMic())}
                       className={cn(
-                        "flex h-9 items-center gap-1.5 rounded-lg border px-3 text-xs font-semibold transition-colors duration-150 active:scale-95",
-                        showGuide
-                          ? "border-sky-400/40 bg-sky-500/20 text-sky-200"
-                          : "border-white/25 bg-zinc-900/90 text-white hover:bg-zinc-800",
+                        "flex h-9 items-center gap-1.5 rounded-md border px-3 text-xs font-semibold transition-colors duration-150 active:scale-95",
+                        micOn
+                          ? "border-emerald-500 bg-emerald-950 text-emerald-300"
+                          : "border-zinc-700 bg-zinc-900 text-white hover:bg-zinc-800",
                       )}
                     >
-                      <WaveformIcon size={15} />
-                      <span>{showGuide ? "Hide Guide" : "Vocal Guide"}</span>
+                      <MicrophoneStageIcon size={15} weight={micOn ? "fill" : "regular"} />
+                      <span>{micOn ? "Mic On" : "Mic Off"}</span>
                     </button>
                     <button
                       type="button"
@@ -274,7 +266,7 @@ export function Theater() {
                         void close();
                         showScore(track);
                       }}
-                      className="flex h-9 items-center gap-1.5 rounded-lg bg-accent px-3.5 text-xs font-bold text-accent-ink transition-[filter,transform] duration-150 hover:brightness-105 active:scale-95"
+                      className="flex h-9 items-center gap-1.5 rounded-md bg-accent px-3.5 text-xs font-bold text-accent-ink transition-[filter,transform] duration-150 hover:brightness-105 active:scale-95"
                     >
                       <MicrophoneStageIcon size={15} weight="fill" />
                       <span>{t.videoke.scoreMe}</span>

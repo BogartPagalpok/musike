@@ -1,6 +1,5 @@
 import { create } from "zustand";
 import type { Track } from "../lib/types";
-import { getCachedVocalGuide } from "../lib/vocalGuide";
 import { getPlaybackPitchDominance } from "../player/equalizer";
 import { getExactPlaybackTime, playerHooks, usePlayer } from "../player/player";
 import { toast } from "./ui";
@@ -33,18 +32,6 @@ export function songbookCode(id: string): string {
  * Accurate YIN Vocal Pitch Detection + Real-Time Note, Vibrato, Dynamics & Participation Analyzer
  * ---------------------------------------------------------------------------------------------- */
 
-export interface PitchPoint {
-  /** performance.now() in ms */
-  t: number;
-  /** Fractional MIDI note, or null when nothing is being sung. */
-  midi: number | null;
-  /** Pitch clarity (0..1) from YIN CMNDF */
-  clarity?: number;
-}
-
-/** Rolling 10 s of pitch readings for the scrolling guide. */
-export const pitchTrail: PitchPoint[] = [];
-
 export interface LiveVocalStats {
   notesHit: number;
   inTunePct: number;
@@ -71,7 +58,6 @@ interface NoteSegment {
   endMs: number;
   songStartSec: number;
   songEndSec: number;
-  targetMidi: number | null;
   midis: number[];
   rmsList: number[];
 }
@@ -268,16 +254,7 @@ function detectVocalPitch(
   };
 }
 
-/** Octave-folded cent error against a target reference MIDI note (or nearest chromatic note when null). */
-function pitchErrorCents(sungMidi: number, targetMidi: number | null): number {
-  if (targetMidi === null) {
-    return Math.abs(sungMidi - Math.round(sungMidi)) * 100;
-  }
-  const diff = (((sungMidi - targetMidi) % 12) + 18) % 12 - 6;
-  return Math.abs(diff) * 100;
-}
-
-/** Finalizes a held note segment to evaluate reference-melody pitch, stability, vibrato, long tones, scoops, kobushi & falls. */
+/** Finalizes a held note segment to evaluate chromatic pitch, stability, vibrato, long tones, scoops, kobushi & falls. */
 function finalizeNoteSegment(seg: NoteSegment, trackDurSec = 220): { hadVibrato: boolean; inTune: boolean } {
   const durMs = seg.endMs - seg.startMs;
   const durSec = durMs / 1000;
@@ -386,15 +363,12 @@ function finalizeNoteSegment(seg: NoteSegment, trackDurSec = 220): { hadVibrato:
     take.longToneCount++;
   }
 
-  // 6. Reference-Melody + Chromatic Intonation Evaluation + Section Bucket
+  // 6. Chromatic Intonation Evaluation + Section Bucket
   const secIdx = clamp(Math.floor((seg.songStartSec / Math.max(30, trackDurSec)) * 5), 0, 4);
   const bucket = take.sections[secIdx]!;
   let noteErrSum = 0;
   for (const m of core) {
-    // Blend reference guide melody accuracy (when a GuideBar is active) with chromatic precision
-    const chromErr = Math.abs(m - Math.round(m)) * 100;
-    const refErr = seg.targetMidi !== null ? pitchErrorCents(m, seg.targetMidi) : chromErr;
-    const err = seg.targetMidi !== null ? Math.min(refErr * 0.72 + chromErr * 0.28, chromErr + 28) : chromErr;
+    const err = Math.abs(m - Math.round(m)) * 100;
     noteErrSum += err;
     take.centsErrSum += err;
     take.evalFrames++;
@@ -713,18 +687,15 @@ function vibratoGradeLabel(count: number, totalSec: number, avgHz: number, avgDe
 }
 
 function songRangeFor(track: Track | null): { songMinMidi: number | null; songMaxMidi: number | null } {
-  const g = track ? getCachedVocalGuide(track.id) : null;
-  if (!g || g.bars.length === 0) return { songMinMidi: 60, songMaxMidi: 74 };
-  let lo = Infinity;
-  let hi = -Infinity;
-  for (const b of g.bars) {
-    if (b.midi < lo) lo = b.midi;
-    if (b.midi > hi) hi = b.midi;
+  if (!track) return { songMinMidi: 60, songMaxMidi: 74 };
+  let h = 5381;
+  for (let i = 0; i < track.id.length; i++) {
+    h = ((h << 5) + h + track.id.charCodeAt(i)) | 0;
   }
-  return {
-    songMinMidi: Number.isFinite(lo) ? Math.round(lo) : 60,
-    songMaxMidi: Number.isFinite(hi) ? Math.round(hi) : 74,
-  };
+  const u = Math.abs(h);
+  const lo = 57 + (u % 5); // A3 .. C#4
+  const span = 13 + ((u >> 4) % 6); // 13 .. 18 semitones
+  return { songMinMidi: lo, songMaxMidi: lo + span };
 }
 
 function deterministicAvgScore(trackId: string): number {
@@ -1185,7 +1156,6 @@ export const useVideoke = create<VideokeState>((set, get) => ({
   singNow: (track) => {
     get().mark(track);
     resetTake();
-    pitchTrail.length = 0;
     set({ liveStats: INITIAL_LIVE_STATS });
     const p = usePlayer.getState();
     const reserved = p.queue.slice(p.index + 1).filter((x) => get().ids.has(x.id) && x.id !== track.id);
@@ -1405,8 +1375,6 @@ export const useVideoke = create<VideokeState>((set, get) => ({
       }
 
       const now = performance.now();
-      pitchTrail.push({ t: now, midi, clarity: detected?.clarity });
-      while (pitchTrail.length && now - pitchTrail[0].t > 10_000) pitchTrail.shift();
 
       const pState = usePlayer.getState();
       const playing = pState.status === "playing";
@@ -1417,17 +1385,6 @@ export const useVideoke = create<VideokeState>((set, get) => ({
         const songSec = getExactPlaybackTime();
         const activeTrack = pState.queue[pState.index] ?? null;
         const trackDurSec = activeTrack?.duration && activeTrack.duration > 30 ? activeTrack.duration : 220;
-        const activeGuide = activeTrack ? getCachedVocalGuide(activeTrack.id) : null;
-
-        let activeTargetMidi: number | null = null;
-        if (activeGuide && activeGuide.bars.length > 0) {
-          for (const b of activeGuide.bars) {
-            if (b.end < songSec - 0.12) continue;
-            if (b.start > songSec + 0.12) break;
-            activeTargetMidi = b.midi;
-            break;
-          }
-        }
 
         const winBucket = Math.floor((songSec || (now - take.startedPlayMs) / 1000) / 2);
         take.activeWindows.add(winBucket);
@@ -1440,17 +1397,6 @@ export const useVideoke = create<VideokeState>((set, get) => ({
           if (!take.wasVoiced) {
             take.phraseOnsets++;
             take.wasVoiced = true;
-            if (activeGuide && activeGuide.bars.length > 0) {
-              let bestDelta: number | null = null;
-              for (const b of activeGuide.bars) {
-                const dt = (songSec - b.start) * 1000;
-                if (Math.abs(dt) <= 420 && (bestDelta === null || Math.abs(dt) < Math.abs(bestDelta))) {
-                  bestDelta = dt;
-                }
-                if (b.start > songSec + 0.5) break;
-              }
-              if (bestDelta !== null) take.timingOffsetsMs.push(bestDelta);
-            }
           }
 
           const cur = take.currentNote;
@@ -1459,7 +1405,6 @@ export const useVideoke = create<VideokeState>((set, get) => ({
             cur.rmsList.push(detected.rms);
             cur.endMs = now;
             cur.songEndSec = songSec;
-            if (cur.targetMidi === null && activeTargetMidi !== null) cur.targetMidi = activeTargetMidi;
             cur.anchorMidi = cur.anchorMidi * 0.85 + midi * 0.15;
           } else {
             if (cur) {
@@ -1476,7 +1421,6 @@ export const useVideoke = create<VideokeState>((set, get) => ({
               endMs: now,
               songStartSec: songSec,
               songEndSec: songSec,
-              targetMidi: activeTargetMidi,
               midis: [midi],
               rmsList: [detected.rms],
             };
@@ -1532,7 +1476,6 @@ export const useVideoke = create<VideokeState>((set, get) => ({
     micStream = null;
     void micCtx?.close().catch(() => {});
     micCtx = null;
-    pitchTrail.length = 0;
     set({ micOn: false, micLevel: 0, live: null, liveStats: INITIAL_LIVE_STATS });
   },
 
@@ -1637,7 +1580,6 @@ export const useVideoke = create<VideokeState>((set, get) => ({
     const s = get().score;
     if (s) set({ score: { ...s, phase: "mini", advanceAt: null } });
     resetTake();
-    pitchTrail.length = 0;
     set({ liveStats: INITIAL_LIVE_STATS });
     const p = usePlayer.getState();
     if (hasReservedNext()) p.jumpTo(p.index + 1);
@@ -1648,7 +1590,6 @@ export const useVideoke = create<VideokeState>((set, get) => ({
     get().dismiss();
     if (!s) return;
     resetTake();
-    pitchTrail.length = 0;
     set({ liveStats: INITIAL_LIVE_STATS });
     const p = usePlayer.getState();
     if (p.queue[p.index]?.id === s.track.id) {

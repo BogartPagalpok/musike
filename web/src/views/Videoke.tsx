@@ -13,7 +13,6 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Artwork } from "../components/Artwork";
 import { EmptyState, PageHeader } from "../components/Page";
-import { PitchGuide } from "../components/PitchGuide";
 import { TrackListSkeleton } from "../components/TrackList";
 import { SLOT, VideoSlot } from "../components/Video";
 import { MD, useMediaQuery } from "../hooks/useMediaQuery";
@@ -378,7 +377,6 @@ export default function Videoke() {
               {currentTrack ? (
                 <div className="flex flex-col gap-3">
                   <div className="flex flex-col overflow-hidden rounded-md bg-black">
-                    <PitchGuide overlay />
                     {showsVideo ? (
                       <VideoSlot
                         priority={SLOT.videoke}

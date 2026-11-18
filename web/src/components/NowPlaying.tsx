@@ -29,7 +29,6 @@ import { Artwork } from "./Artwork";
 import { FavoriteButton, ModeSwitch, OfflineButton, Scrubber, Transport } from "./Controls";
 import { IconButton } from "./IconButton";
 import { LyricsView } from "./Lyrics";
-import { PitchGuide } from "./PitchGuide";
 import { QueueList } from "./Queue";
 import { isBespokeDeckScene, ThemedPlayerDeck } from "./ThemedPlayerDecks";
 import { ThemeSceneBackdrop, WorldStageFrame } from "./ThemeSceneBackdrop";
@@ -235,9 +234,7 @@ export function PanelBody({ tab, slot }: { tab: PanelTab; slot: number }) {
                   <span className="truncate">{eqEnabled ? t.equalizer.presetNames[eqPreset] : t.dialogs.shortcuts.equalizer}</span>
                 </button>
               </div>
-              {isVideoke ? (
-                <PitchGuide compact />
-              ) : (
+              {!isVideoke && (
                 <div className="overflow-hidden">
                   <div className="flex items-center justify-between px-1 pt-2 pb-1">
                     <span className="text-[13px] font-semibold text-fg">{t.nowPlaying.tabLyrics}</span>
@@ -716,7 +713,6 @@ export function NowPlayingSheet({ open, onClose }: { open: boolean; onClose: () 
                   )}
                   <Scrubber touch />
                   <Transport big />
-                  {isVideoke && view === "player" && <PitchGuide compact className="mt-1" />}
                   <div className="flex items-center justify-around pt-1 text-fg/70">
                     {isVideoke ? (
                       <button
