@@ -183,7 +183,11 @@ final class MusikeAudio: NSObject, WKScriptMessageHandler {
 
     private func play() {
         let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playback, mode: .default)
+        if session.category == .playAndRecord {
+            try? session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetoothA2DP, .mixWithOthers])
+        } else {
+            try? session.setCategory(.playback, mode: .default)
+        }
         try? session.setActive(true)
         player?.play()
         emit("playing")

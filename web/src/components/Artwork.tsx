@@ -1,5 +1,5 @@
 import { MusicNotesIcon } from "./icons";
-import { useCallback, useState } from "react";
+import { useCallback, useState, type CSSProperties } from "react";
 import { cn } from "../lib/format";
 
 interface Props {
@@ -8,6 +8,7 @@ interface Props {
   fallback?: string;
   alt?: string;
   className?: string;
+  style?: CSSProperties;
   iconSize?: number;
 }
 
@@ -17,7 +18,7 @@ export function Artwork(props: Props) {
   return <ArtworkImage key={`${props.src ?? ""}|${props.fallback ?? ""}`} {...props} />;
 }
 
-function ArtworkImage({ src, fallback, alt = "", className, iconSize = 20 }: Props) {
+function ArtworkImage({ src, fallback, alt = "", className, style, iconSize = 20 }: Props) {
   const [current, setCurrent] = useState(src || fallback);
   const [state, setState] = useState<"loading" | "ok" | "error">(src || fallback ? "loading" : "error");
 
@@ -27,7 +28,7 @@ function ArtworkImage({ src, fallback, alt = "", className, iconSize = 20 }: Pro
   }, []);
 
   return (
-    <div className={cn("relative shrink-0 overflow-hidden bg-surface-3", className)}>
+    <div style={style} className={cn("relative shrink-0 overflow-hidden bg-surface-3", className)}>
       {state !== "error" && current && (
         <img
           ref={imgRef}

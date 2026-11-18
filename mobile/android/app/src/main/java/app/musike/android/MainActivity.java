@@ -4,11 +4,13 @@ import android.Manifest;
 import android.app.PendingIntent;
 import android.app.PictureInPictureParams;
 import android.app.RemoteAction;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.Icon;
+import android.media.AudioManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Rational;
@@ -49,6 +51,7 @@ public class MainActivity extends BridgeActivity {
                 if (req != null) {
                     if (Boolean.TRUE.equals(isGranted)) {
                         req.grant(req.getResources());
+                        keepMediaAudioMode();
                     } else {
                         req.deny();
                     }
@@ -68,6 +71,7 @@ public class MainActivity extends BridgeActivity {
                     if (needsAudio) {
                         if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
                             request.grant(request.getResources());
+                            keepMediaAudioMode();
                         } else {
                             pendingWebPermissionRequest = request;
                             recordAudioLauncher.launch(Manifest.permission.RECORD_AUDIO);
@@ -82,6 +86,25 @@ public class MainActivity extends BridgeActivity {
         // Draw behind the status and navigation bars on every Android version
         EdgeToEdge.enable(this, SystemBarStyle.dark(Color.TRANSPARENT), SystemBarStyle.dark(Color.TRANSPARENT));
         updatePipParams();
+    }
+
+    /** Prevents Android WebView mic capture from switching AudioManager into muffled MODE_IN_COMMUNICATION voice-call EQ. */
+    private void keepMediaAudioMode() {
+        WebView wv = getBridge() != null ? getBridge().getWebView() : null;
+        Runnable enforce = () -> {
+            try {
+                AudioManager am = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
+                if (am != null && am.getMode() != AudioManager.MODE_NORMAL) {
+                    am.setMode(AudioManager.MODE_NORMAL);
+                }
+            } catch (Exception ignored) {
+            }
+        };
+        enforce.run();
+        if (wv != null) {
+            wv.postDelayed(enforce, 250);
+            wv.postDelayed(enforce, 900);
+        }
     }
 
     @Override

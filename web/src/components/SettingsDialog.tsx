@@ -158,8 +158,13 @@ function ThemePage({ go }: { go: (p: Page) => void }) {
   const setTheme = useUi((s) => s.setTheme);
   const setAppearance = useAppearance((s) => s.set);
   const activePackId = useThemeStore((s) => s.activePackId);
+  const applyPack = useThemeStore((s) => s.applyPack);
+  const setSceneStyle = useThemeStore((s) => s.setSceneStyle);
   const activePackName =
     SKIN_PACKS.find((p) => p.id === activePackId)?.name ?? (activePackId === "custom-mix" ? "Custom Mix" : undefined);
+  const hardwarePacks = SKIN_PACKS.filter(
+    (p) => p.id === "retro-cassette" || p.id === "mirror-flame" || p.id === "sand-topo",
+  );
   return (
     <>
       <Group title="Themes">
@@ -171,10 +176,46 @@ function ThemePage({ go }: { go: (p: Page) => void }) {
           onClick={() => go("store")}
         />
       </Group>
+      <Group title="Signature Player Skins" footer="Full tactile player decks with matching app-wide palettes." className="p-3">
+        <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
+          {hardwarePacks.map((p) => {
+            const active = activePackId === p.id;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => applyPack(p.id)}
+                className={cn(
+                  "flex flex-col items-start gap-1 rounded-[12px] p-3 text-left ring-1 transition-all active:scale-[0.98]",
+                  active ? "ring-2 ring-accent bg-surface-3" : "ring-line bg-surface-2 hover:ring-line-strong",
+                )}
+              >
+                <div
+                  className="mb-1 h-10 w-full rounded-[8px] border border-white/15"
+                  style={{ background: p.previewGradient }}
+                />
+                <span className="truncate text-xs font-bold text-fg">{p.name}</span>
+                <span className="line-clamp-2 text-[10.5px] leading-snug text-fg-2">{p.tagline}</span>
+              </button>
+            );
+          })}
+        </div>
+      </Group>
       <Group title="Classic" className="p-3">
         <div role="radiogroup" className="grid grid-cols-3 gap-3 sm:grid-cols-5">
           {CLASSIC_THEMES.map((m) => (
-            <ThemeTile key={m.id} meta={m} active={theme === m.id} onPick={() => setTheme(m.id)} label={t.settings.themes[m.id]} />
+            <ThemeTile
+              key={m.id}
+              meta={m}
+              active={theme === m.id && activePackId === "classic-minimal"}
+              onPick={() => {
+                if (activePackId === "retro-cassette" || activePackId === "mirror-flame" || activePackId === "sand-topo") {
+                  setSceneStyle("none");
+                }
+                setTheme(m.id);
+              }}
+              label={t.settings.themes[m.id]}
+            />
           ))}
         </div>
       </Group>
@@ -186,6 +227,9 @@ function ThemePage({ go }: { go: (p: Page) => void }) {
               meta={m}
               active={theme === m.id}
               onPick={() => {
+                if (activePackId === "retro-cassette" || activePackId === "mirror-flame" || activePackId === "sand-topo") {
+                  setSceneStyle("none");
+                }
                 setTheme(m.id);
                 setAppearance({ accent: THEME_PALETTES[m.id]?.[0] ?? DEFAULT_ACCENT });
               }}

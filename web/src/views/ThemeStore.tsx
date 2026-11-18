@@ -49,6 +49,9 @@ const SCENE_FRAME_STYLE: Record<SceneStyle, string> = {
   shinobi: "border-yellow-400/55 rounded-lg bg-[#0b0d14]/75 shadow-[0_0_18px_rgba(250,204,21,0.18)]",
   akatsuki: "border-red-500/60 rounded-lg bg-[#070203]/75 shadow-[0_0_20px_rgba(239,68,68,0.22)]",
   grandline: "border-purple-400/60 rounded-lg bg-[#090612]/75 shadow-[0_0_18px_rgba(192,132,252,0.22)]",
+  cassette: "border-[#3c4046]/55 rounded-lg bg-[#e8e3d5]/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]",
+  mirrorflame: "border-orange-500/55 rounded-lg bg-[#16181d]/88 shadow-[0_0_18px_rgba(255,122,0,0.22)]",
+  sandtopo: "border-[#6b5b3e]/40 rounded-2xl bg-[#e3d3b3]/88 shadow-[0_6px_18px_rgba(92,74,42,0.22)]",
   custom: "border-white/25 rounded-lg bg-black/45",
 };
 

@@ -145,6 +145,40 @@ function PlayheadThumb({
         />
       );
 
+    case "cassette":
+      return (
+        <div
+          className={cn(
+            "grid size-4 place-items-center rounded-full border-2 border-[#2f333a] bg-[#ece8dc] shadow-[0_2px_5px_rgba(0,0,0,0.35)]",
+            isPlaying && !dragging && "animate-[spin_3s_linear_infinite]",
+          )}
+        >
+          <span className="size-1.5 rounded-full bg-[#2f333a]" />
+        </div>
+      );
+
+    case "mirrorflame":
+      return (
+        <div
+          className={cn(
+            "grid size-4 place-items-center rounded-full border-2 border-[#5b626e] bg-[#23262c] shadow-[0_0_10px_rgba(184,255,44,0.8)]",
+            dragging && "scale-125",
+          )}
+        >
+          <span className="size-1.5 rounded-full bg-[#b8ff2c]" />
+        </div>
+      );
+
+    case "sandtopo":
+      return (
+        <div
+          className={cn(
+            "size-5 rounded-full border-[2.5px] border-[#6b5b3e] bg-[#e5d5b6] shadow-[0_3px_8px_rgba(82,66,38,0.32)] transition-transform",
+            dragging && "scale-115",
+          )}
+        />
+      );
+
     default:
       return null;
   }
@@ -256,7 +290,8 @@ export function Slider({
 
   const currentX = (pct / 100) * trackWidth;
   const bufX = (bufPct / 100) * trackWidth;
-  const amp = drag !== null ? 0 : isPlaying ? 4.1 : 1.9;
+  const isLinearCustom = variant === "cassette" || variant === "mirrorflame" || variant === "sandtopo";
+  const amp = isLinearCustom || drag !== null ? 0 : isPlaying ? 4.1 : 1.9;
   const wavePath = isCustomSvgTrack ? buildWavePath(variant, trackWidth, phase, amp, 12) : "";
 
   // Compute exact vertical wave deflection & slope at playhead X so icon/thumb rides the scrubber wave seamlessly.
@@ -273,6 +308,12 @@ export function Slider({
         return "#ef4444";
       case "grandline":
         return "#c084fc";
+      case "cassette":
+        return "#3b3f46";
+      case "mirrorflame":
+        return "#b8ff2c";
+      case "sandtopo":
+        return "#736142";
       default:
         return "var(--accent)";
     }

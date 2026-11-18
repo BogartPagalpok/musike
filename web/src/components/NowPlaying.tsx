@@ -31,6 +31,7 @@ import { IconButton } from "./IconButton";
 import { LyricsView } from "./Lyrics";
 import { PitchGuide } from "./PitchGuide";
 import { QueueList } from "./Queue";
+import { isBespokeDeckScene, ThemedPlayerDeck } from "./ThemedPlayerDecks";
 import { ThemeSceneBackdrop, WorldStageFrame } from "./ThemeSceneBackdrop";
 import { SLOT, VideoSlot } from "./Video";
 
@@ -118,9 +119,15 @@ export function PanelBody({ tab, slot }: { tab: PanelTab; slot: number }) {
   const openPanel = useUi((s) => s.openPanel);
   const layoutTemplate = useAppearance((s) => s.layoutTemplate);
   const centerHasStage = layoutTemplate === "center-lyrics" || layoutTemplate === "cinema";
+  const sceneStyle = useThemeStore((s) => s.sceneStyle);
+  const bespokeDeck = isBespokeDeckScene(sceneStyle) && !isVideokeTrackFlag();
   const isVideoke = useIsVideokeTrack();
   const showScore = useVideoke((v) => v.showScore);
   const t = useT();
+
+  function isVideokeTrackFlag() {
+    return track ? useVideoke.getState().ids.has(track.id) : false;
+  }
 
   if (!track) {
     return <p className="px-2 py-16 text-center text-sm text-fg-2">{t.nowPlaying.playSomething}</p>;
@@ -137,57 +144,72 @@ export function PanelBody({ tab, slot }: { tab: PanelTab; slot: number }) {
     <div className="flex flex-col gap-3.5 px-1 pb-4">
       {!centerHasStage && (
         <>
-          <Stage track={track} slot={slot} />
-          <TrackHeading track={track} />
-          <ModeSwitch />
-          <div className="grid grid-cols-2 gap-2">
-            {isVideoke ? (
-              <button
-                type="button"
-                onClick={() => showScore(track)}
-                className="flex h-9 items-center justify-center gap-1.5 rounded-full bg-accent px-3 text-xs font-semibold text-accent-ink transition-transform hover:brightness-110 active:scale-[0.98]"
-              >
-                <MicrophoneStageIcon size={16} weight="fill" className="shrink-0" />
-                <span className="truncate">{t.videoke.finishAndScore}</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => void startRadio(track)}
-                className="flex h-9 items-center justify-center gap-1.5 rounded-full bg-surface-3 px-3 text-xs font-medium transition-colors hover:bg-surface-4 active:scale-[0.98]"
-              >
-                <RadioIcon size={16} className="shrink-0" />
-                <span className="truncate">{t.trackMenu.startRadio}</span>
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setEqualizerOpen(true)}
-              className={cn(
-                "flex h-9 items-center justify-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors active:scale-[0.98]",
-                eqEnabled ? "bg-accent-soft text-accent-text" : "bg-surface-3 text-fg-2 hover:bg-surface-4 hover:text-fg",
-              )}
-            >
-              <EqualizerIcon size={16} weight={eqEnabled ? "fill" : "regular"} className="shrink-0" />
-              <span className="truncate">{eqEnabled ? t.equalizer.presetNames[eqPreset] : t.dialogs.shortcuts.equalizer}</span>
-            </button>
-          </div>
-          {isVideoke ? (
-            <PitchGuide compact />
+          {bespokeDeck ? (
+            <>
+              <ThemedPlayerDeck
+                scene={sceneStyle}
+                track={track}
+                slot={slot}
+                compact
+                onOpenLyrics={() => openPanel("lyrics")}
+              />
+              <ModeSwitch />
+            </>
           ) : (
-            <div className="overflow-hidden">
-              <div className="flex items-center justify-between px-1 pt-2 pb-1">
-                <span className="text-[13px] font-semibold text-fg">{t.nowPlaying.tabLyrics}</span>
+            <>
+              <Stage track={track} slot={slot} />
+              <TrackHeading track={track} />
+              <ModeSwitch />
+              <div className="grid grid-cols-2 gap-2">
+                {isVideoke ? (
+                  <button
+                    type="button"
+                    onClick={() => showScore(track)}
+                    className="flex h-9 items-center justify-center gap-1.5 rounded-full bg-accent px-3 text-xs font-semibold text-accent-ink transition-transform hover:brightness-110 active:scale-[0.98]"
+                  >
+                    <MicrophoneStageIcon size={16} weight="fill" className="shrink-0" />
+                    <span className="truncate">{t.videoke.finishAndScore}</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void startRadio(track)}
+                    className="flex h-9 items-center justify-center gap-1.5 rounded-full bg-surface-3 px-3 text-xs font-medium transition-colors hover:bg-surface-4 active:scale-[0.98]"
+                  >
+                    <RadioIcon size={16} className="shrink-0" />
+                    <span className="truncate">{t.trackMenu.startRadio}</span>
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => openPanel("lyrics")}
-                  className="text-[11px] font-medium text-fg-3 transition-colors hover:text-fg"
+                  onClick={() => setEqualizerOpen(true)}
+                  className={cn(
+                    "flex h-9 items-center justify-center gap-1.5 rounded-full px-3 text-xs font-medium transition-colors active:scale-[0.98]",
+                    eqEnabled ? "bg-accent-soft text-accent-text" : "bg-surface-3 text-fg-2 hover:bg-surface-4 hover:text-fg",
+                  )}
                 >
-                  {t.nowPlaying.showLyrics}
+                  <EqualizerIcon size={16} weight={eqEnabled ? "fill" : "regular"} className="shrink-0" />
+                  <span className="truncate">{eqEnabled ? t.equalizer.presetNames[eqPreset] : t.dialogs.shortcuts.equalizer}</span>
                 </button>
               </div>
-              <LyricsView compact className="h-[190px]" />
-            </div>
+              {isVideoke ? (
+                <PitchGuide compact />
+              ) : (
+                <div className="overflow-hidden">
+                  <div className="flex items-center justify-between px-1 pt-2 pb-1">
+                    <span className="text-[13px] font-semibold text-fg">{t.nowPlaying.tabLyrics}</span>
+                    <button
+                      type="button"
+                      onClick={() => openPanel("lyrics")}
+                      className="text-[11px] font-medium text-fg-3 transition-colors hover:text-fg"
+                    >
+                      {t.nowPlaying.showLyrics}
+                    </button>
+                  </div>
+                  <LyricsView compact className="h-[190px]" />
+                </div>
+              )}
+            </>
           )}
         </>
       )}
@@ -478,8 +500,12 @@ export function NowPlayingSheet({ open, onClose }: { open: boolean; onClose: () 
             {sceneStyle !== "none" ? (
               <>
                 <ThemeSceneBackdrop contained />
-                <div className="absolute inset-0 bg-black/35" />
-                <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-b from-transparent to-black/65" />
+                {sceneStyle !== "cassette" && sceneStyle !== "sandtopo" && (
+                  <>
+                    <div className="absolute inset-0 bg-black/30" />
+                    <div className="absolute inset-x-0 bottom-0 h-1/2 bg-linear-to-b from-transparent to-black/60" />
+                  </>
+                )}
               </>
             ) : (
               <>
@@ -490,9 +516,9 @@ export function NowPlayingSheet({ open, onClose }: { open: boolean; onClose: () 
             )}
           </div>
 
-          <div className="overlay-top relative flex min-h-0 flex-1 flex-col px-6 pb-[calc(12px+env(safe-area-inset-bottom))]">
+          <div className="overlay-top relative flex min-h-0 flex-1 flex-col px-5 pb-[calc(12px+env(safe-area-inset-bottom))]">
             {/* Grabber: drag down to close */}
-            <div className="flex h-12 shrink-0 touch-none items-center justify-between" onPointerDown={(e) => drag.start(e)}>
+            <div className="flex h-11 shrink-0 touch-none items-center justify-between" onPointerDown={(e) => drag.start(e)}>
               <button
                 type="button"
                 onClick={onClose}
@@ -502,176 +528,200 @@ export function NowPlayingSheet({ open, onClose }: { open: boolean; onClose: () 
                 <CaretDownIcon size={22} weight="bold" />
               </button>
               <span className="h-1.5 w-10 rounded-full bg-fg/30" />
-              <button
-                type="button"
-                onClick={() => setEqualizerOpen(true)}
-                aria-label={t.player.equalizer}
-                className={cn(
-                  "-mr-2 grid size-10 place-items-center rounded-full active:bg-fg/10",
-                  eqEnabled ? "text-accent-text" : "text-fg/80",
-                )}
-              >
-                <EqualizerIcon size={21} weight={eqEnabled ? "fill" : "regular"} />
-              </button>
-            </div>
-
-            {/* Middle: fixed artwork, or the lyrics / queue view. Never scrolls the player itself. */}
-            {view === "player" ? (
-              <div className="relative min-h-0 flex-1 [container-type:size]" onPointerDown={!showsVideo ? (e) => drag.start(e) : undefined}>
-                <div className={cn("absolute inset-0 flex items-center justify-center", !showsVideo && "touch-none")}>
-                  {showsVideo ? (
-                    <WorldStageFrame scene={sceneStyle} playing={status === "playing"} className="w-full">
-                      <div className="w-full overflow-hidden rounded-[inherit] bg-transparent shadow-[0_20px_50px_rgb(0_0_0/0.5)]">
-                        <VideoSlot
-                          priority={SLOT.sheet}
-                          expandable
-                          className="mx-auto max-h-[100cqh] w-full bg-transparent"
-                          style={{ aspectRatio: Math.min(16 / 9, Math.max(9 / 16, aspect)) }}
-                        />
-                      </div>
-                    </WorldStageFrame>
-                  ) : (
-                    <WorldStageFrame
-                      scene={sceneStyle}
-                      playing={status === "playing"}
-                      className={cn(
-                        "size-[min(86cqw,86cqh)] transition-transform duration-500 ease-out-expo",
-                        status === "playing" ? "scale-100" : "scale-[0.88]",
-                      )}
-                    >
-                      <Artwork
-                        src={track.art}
-                        fallback={track.thumb}
-                        alt={t.nowPlaying.coverOf(track.title)}
-                        iconSize={56}
-                        className="size-full overflow-hidden rounded-[inherit] shadow-[0_24px_60px_rgb(0_0_0/0.5)]"
-                      />
-                    </WorldStageFrame>
-                  )}
-                </div>
-              </div>
-            ) : view === "lyrics" ? (
-              <div className="flex min-h-0 flex-1 flex-col">
-                {showsVideo ? (
-                  <div className="shrink-0 pb-2">
-                    <button
-                      type="button"
-                      onClick={() => setView("player")}
-                      title="Switch to full video player"
-                      className="group relative block w-full overflow-hidden rounded-2xl bg-transparent shadow-xl transition-transform active:scale-[0.98]"
-                    >
-                      <VideoSlot
-                        priority={SLOT.sheet}
-                        expandable
-                        className="mx-auto max-h-[30dvh] w-full"
-                        style={{ aspectRatio: Math.min(16 / 9, Math.max(9 / 16, aspect)) }}
-                      />
-                    </button>
-                    <div className="mt-2 flex items-center gap-2 px-1">
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[15px] font-semibold tracking-tight text-fg">{track.title}</p>
-                        <p className="truncate text-[13px] text-fg-2">{track.artist}</p>
-                      </div>
-                      <FavoriteButton track={track} />
-                    </div>
-                  </div>
-                ) : (
-                  <SheetMiniHeader track={track} showsVideo={false} onVideoClick={() => setView("player")} />
-                )}
-                <LyricsView className="-mx-4 min-h-0 flex-1" />
-              </div>
-            ) : (
-              <div className="flex min-h-0 flex-1 flex-col">
-                <SheetMiniHeader track={track} showsVideo={showsVideo} onVideoClick={() => setView("player")} />
-                <div className="scroll-area -mx-4 min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pt-2">
-                  <QueueList compact />
-                </div>
-              </div>
-            )}
-
-            {/* Bottom controls are always in the same place */}
-            <div className="flex shrink-0 flex-col gap-3 pt-5">
-              {view === "player" && (
-                <div className="flex items-center gap-2">
-                  <div className="min-w-0 flex-1">
-                    <h2 className="truncate text-[21px] leading-tight font-bold tracking-tight text-fg">{track.title}</h2>
-                    <p className={cn("truncate text-[17px]", status === "error" ? "text-danger" : "text-fg-2")}>
-                      {statusText ?? track.artist}
-                    </p>
-                  </div>
-                  <OfflineButton track={track} />
-                  <FavoriteButton track={track} />
-                  <IconButton
-                    label={t.trackList.moreFor(track.title)}
-                    onClick={(e) => {
-                      const r = e.currentTarget.getBoundingClientRect();
-                      useUi.getState().openMenu({ track, x: r.right, y: r.bottom + 6 });
-                    }}
-                  >
-                    <DotsThreeIcon size={22} weight="bold" />
-                  </IconButton>
-                </div>
-              )}
-              <Scrubber touch />
-              <Transport big />
-              {isVideoke && view === "player" && <PitchGuide compact className="mt-1" />}
-              <div className="flex items-center justify-around pt-1 text-fg/70">
-                {isVideoke ? (
-                  <button
-                    type="button"
-                    onClick={() => showScore(track)}
-                    aria-label={t.videoke.scoreMe}
-                    className="flex h-10 items-center gap-1.5 rounded-full bg-accent px-3.5 text-xs font-bold text-accent-ink transition-transform active:scale-95"
-                  >
-                    <MicrophoneStageIcon size={18} weight="fill" />
-                    <span>{t.videoke.scoreMe}</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => toggleView("lyrics")}
-                    aria-pressed={view === "lyrics"}
-                    aria-label={view === "lyrics" ? t.nowPlaying.backToPlayer : t.nowPlaying.showLyrics}
-                    className={cn(
-                      "grid size-11 place-items-center rounded-full transition-colors active:scale-95",
-                      view === "lyrics" ? "bg-fg/15 text-fg" : "active:bg-fg/10",
-                    )}
-                  >
-                    <MicrophoneStageIcon size={22} weight={view === "lyrics" ? "fill" : "regular"} />
-                  </button>
-                )}
-                {capabilities.video && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const next = !preferVideo;
-                      setPreferVideo(next);
-                      if (next) setView("player");
-                    }}
-                    aria-pressed={preferVideo}
-                    aria-label={t.player.video}
-                    className={cn(
-                      "grid size-11 place-items-center rounded-full transition-colors active:scale-95",
-                      preferVideo ? "bg-fg/15 text-fg" : "active:bg-fg/10",
-                    )}
-                  >
-                    <VideoCameraIcon size={22} weight={preferVideo ? "fill" : "regular"} />
-                  </button>
-                )}
+              {view !== "player" && isBespokeDeckScene(sceneStyle) && !isVideoke ? (
                 <button
                   type="button"
-                  onClick={() => toggleView("queue")}
-                  aria-pressed={view === "queue"}
-                  aria-label={t.player.queue}
+                  onClick={() => setView("player")}
+                  className="-mr-1 rounded-full bg-fg/15 px-3 py-1 text-xs font-bold text-fg active:scale-95"
+                >
+                  Player
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setEqualizerOpen(true)}
+                  aria-label={t.player.equalizer}
                   className={cn(
-                    "grid size-11 place-items-center rounded-full transition-colors active:scale-95",
-                    view === "queue" ? "bg-fg/15 text-fg" : "active:bg-fg/10",
+                    "-mr-2 grid size-10 place-items-center rounded-full active:bg-fg/10",
+                    eqEnabled ? "text-accent-text" : "text-fg/80",
                   )}
                 >
-                  <QueueIcon size={22} weight={view === "queue" ? "bold" : "regular"} />
+                  <EqualizerIcon size={21} weight={eqEnabled ? "fill" : "regular"} />
                 </button>
-              </div>
+              )}
             </div>
+
+            {view === "player" && isBespokeDeckScene(sceneStyle) && !isVideoke ? (
+              <div className="flex min-h-0 flex-1 items-center justify-center py-1">
+                <ThemedPlayerDeck
+                  scene={sceneStyle}
+                  track={track}
+                  slot={SLOT.sheet}
+                  onOpenLyrics={() => toggleView("lyrics")}
+                  onOpenQueue={() => toggleView("queue")}
+                />
+              </div>
+            ) : (
+              <>
+                {/* Middle: fixed artwork, or the lyrics / queue view. Never scrolls the player itself. */}
+                {view === "player" ? (
+                  <div className="relative min-h-0 flex-1 [container-type:size]" onPointerDown={!showsVideo ? (e) => drag.start(e) : undefined}>
+                    <div className={cn("absolute inset-0 flex items-center justify-center", !showsVideo && "touch-none")}>
+                      {showsVideo ? (
+                        <WorldStageFrame scene={sceneStyle} playing={status === "playing"} className="w-full">
+                          <div className="w-full overflow-hidden rounded-[inherit] bg-transparent shadow-[0_20px_50px_rgb(0_0_0/0.5)]">
+                            <VideoSlot
+                              priority={SLOT.sheet}
+                              expandable
+                              className="mx-auto max-h-[100cqh] w-full bg-transparent"
+                              style={{ aspectRatio: Math.min(16 / 9, Math.max(9 / 16, aspect)) }}
+                            />
+                          </div>
+                        </WorldStageFrame>
+                      ) : (
+                        <WorldStageFrame
+                          scene={sceneStyle}
+                          playing={status === "playing"}
+                          className={cn(
+                            "size-[min(86cqw,86cqh)] transition-transform duration-500 ease-out-expo",
+                            status === "playing" ? "scale-100" : "scale-[0.88]",
+                          )}
+                        >
+                          <Artwork
+                            src={track.art}
+                            fallback={track.thumb}
+                            alt={t.nowPlaying.coverOf(track.title)}
+                            iconSize={56}
+                            className="size-full overflow-hidden rounded-[inherit] shadow-[0_24px_60px_rgb(0_0_0/0.5)]"
+                          />
+                        </WorldStageFrame>
+                      )}
+                    </div>
+                  </div>
+                ) : view === "lyrics" ? (
+                  <div className="flex min-h-0 flex-1 flex-col">
+                    {showsVideo ? (
+                      <div className="shrink-0 pb-2">
+                        <button
+                          type="button"
+                          onClick={() => setView("player")}
+                          title="Switch to full video player"
+                          className="group relative block w-full overflow-hidden rounded-2xl bg-transparent shadow-xl transition-transform active:scale-[0.98]"
+                        >
+                          <VideoSlot
+                            priority={SLOT.sheet}
+                            expandable
+                            className="mx-auto max-h-[30dvh] w-full"
+                            style={{ aspectRatio: Math.min(16 / 9, Math.max(9 / 16, aspect)) }}
+                          />
+                        </button>
+                        <div className="mt-2 flex items-center gap-2 px-1">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[15px] font-semibold tracking-tight text-fg">{track.title}</p>
+                            <p className="truncate text-[13px] text-fg-2">{track.artist}</p>
+                          </div>
+                          <FavoriteButton track={track} />
+                        </div>
+                      </div>
+                    ) : (
+                      <SheetMiniHeader track={track} showsVideo={false} onVideoClick={() => setView("player")} />
+                    )}
+                    <LyricsView className="-mx-4 min-h-0 flex-1" />
+                  </div>
+                ) : (
+                  <div className="flex min-h-0 flex-1 flex-col">
+                    <SheetMiniHeader track={track} showsVideo={showsVideo} onVideoClick={() => setView("player")} />
+                    <div className="scroll-area -mx-4 min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pt-2">
+                      <QueueList compact />
+                    </div>
+                  </div>
+                )}
+
+                {/* Bottom controls are always in the same place */}
+                <div className="flex shrink-0 flex-col gap-3 pt-5">
+                  {view === "player" && (
+                    <div className="flex items-center gap-2">
+                      <div className="min-w-0 flex-1">
+                        <h2 className="truncate text-[21px] leading-tight font-bold tracking-tight text-fg">{track.title}</h2>
+                        <p className={cn("truncate text-[17px]", status === "error" ? "text-danger" : "text-fg-2")}>
+                          {statusText ?? track.artist}
+                        </p>
+                      </div>
+                      <OfflineButton track={track} />
+                      <FavoriteButton track={track} />
+                      <IconButton
+                        label={t.trackList.moreFor(track.title)}
+                        onClick={(e) => {
+                          const r = e.currentTarget.getBoundingClientRect();
+                          useUi.getState().openMenu({ track, x: r.right, y: r.bottom + 6 });
+                        }}
+                      >
+                        <DotsThreeIcon size={22} weight="bold" />
+                      </IconButton>
+                    </div>
+                  )}
+                  <Scrubber touch />
+                  <Transport big />
+                  {isVideoke && view === "player" && <PitchGuide compact className="mt-1" />}
+                  <div className="flex items-center justify-around pt-1 text-fg/70">
+                    {isVideoke ? (
+                      <button
+                        type="button"
+                        onClick={() => showScore(track)}
+                        aria-label={t.videoke.scoreMe}
+                        className="flex h-10 items-center gap-1.5 rounded-full bg-accent px-3.5 text-xs font-bold text-accent-ink transition-transform active:scale-95"
+                      >
+                        <MicrophoneStageIcon size={18} weight="fill" />
+                        <span>{t.videoke.scoreMe}</span>
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => toggleView("lyrics")}
+                        aria-pressed={view === "lyrics"}
+                        aria-label={view === "lyrics" ? t.nowPlaying.backToPlayer : t.nowPlaying.showLyrics}
+                        className={cn(
+                          "grid size-11 place-items-center rounded-full transition-colors active:scale-95",
+                          view === "lyrics" ? "bg-fg/15 text-fg" : "active:bg-fg/10",
+                        )}
+                      >
+                        <MicrophoneStageIcon size={22} weight={view === "lyrics" ? "fill" : "regular"} />
+                      </button>
+                    )}
+                    {capabilities.video && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const next = !preferVideo;
+                          setPreferVideo(next);
+                          if (next) setView("player");
+                        }}
+                        aria-pressed={preferVideo}
+                        aria-label={t.player.video}
+                        className={cn(
+                          "grid size-11 place-items-center rounded-full transition-colors active:scale-95",
+                          preferVideo ? "bg-fg/15 text-fg" : "active:bg-fg/10",
+                        )}
+                      >
+                        <VideoCameraIcon size={22} weight={preferVideo ? "fill" : "regular"} />
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => toggleView("queue")}
+                      aria-pressed={view === "queue"}
+                      aria-label={t.player.queue}
+                      className={cn(
+                        "grid size-11 place-items-center rounded-full transition-colors active:scale-95",
+                        view === "queue" ? "bg-fg/15 text-fg" : "active:bg-fg/10",
+                      )}
+                    >
+                      <QueueIcon size={22} weight={view === "queue" ? "bold" : "regular"} />
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </motion.div>
       )}

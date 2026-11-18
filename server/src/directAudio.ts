@@ -135,6 +135,15 @@ interface RawInnerTubeFormat {
   width?: number;
   height?: number;
   audioChannels?: number;
+  isDrc?: boolean;
+  audioTrack?: { id?: string; displayName?: string; audioIsDefault?: boolean };
+}
+
+function isDrcStream(f: { isDrc?: boolean; url?: string; format_id?: string }): boolean {
+  if (f.isDrc) return true;
+  if (typeof f.format_id === "string" && /drc/i.test(f.format_id)) return true;
+  if (typeof f.url === "string" && /[?&]xtags=[^&]*drc/i.test(f.url)) return true;
+  return false;
 }
 
 interface RawInnerTubePlayerResponse {
@@ -213,12 +222,17 @@ export async function directAudio(id: string, clients: string[] = DEFAULT_CLIENT
         reason = raw.playabilityStatus.reason || reason;
       } else {
         const allowAdaptive = client === "VISIONOS";
-        const audioOnly = allowAdaptive
+        const allAudioOnly = allowAdaptive
           ? (raw.streamingData?.adaptiveFormats ?? []).filter(
               (f) => typeof f.url === "string" && (f.mimeType?.startsWith("audio/") || f.audioChannels) && !f.width,
             )
           : [];
-        const bestAudio = audioOnly.sort(
+        const cleanAudio = allAudioOnly.filter(
+          (f) => !isDrcStream(f) && f.audioTrack?.audioIsDefault !== false,
+        );
+        const audioOnly = cleanAudio.length ? cleanAudio : allAudioOnly.filter((f) => !isDrcStream(f));
+        const candidateAudio = audioOnly.length ? audioOnly : allAudioOnly;
+        const bestAudio = candidateAudio.sort(
           (a, b) => Number(b.mimeType?.startsWith("audio/mp4")) - Number(a.mimeType?.startsWith("audio/mp4")) || (b.bitrate ?? 0) - (a.bitrate ?? 0),
         )[0];
         const muxed = (raw.streamingData?.formats ?? []).filter(
@@ -248,11 +262,15 @@ export async function directAudio(id: string, clients: string[] = DEFAULT_CLIENT
         continue;
       }
       const allowAdaptive = client === "VISIONOS";
-      const formats: any[] = allowAdaptive
+      const rawFormats: any[] = allowAdaptive
         ? [...(info.streaming_data?.adaptive_formats ?? []), ...(info.streaming_data?.formats ?? [])].filter(
             (f) => f.has_audio && !f.has_video && typeof f.url === "string",
           )
         : [];
+      const cleanFormats = rawFormats.filter(
+        (f) => !isDrcStream({ isDrc: f.is_drc ?? f.isDrc, url: f.url }) && f.audio_track?.audio_is_default !== false,
+      );
+      const formats = cleanFormats.length ? cleanFormats : rawFormats;
       let best = formats.sort(
         (a, b) => Number(b.mime_type?.startsWith("audio/mp4")) - Number(a.mime_type?.startsWith("audio/mp4")) || (b.bitrate ?? 0) - (a.bitrate ?? 0),
       )[0];

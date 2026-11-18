@@ -165,11 +165,12 @@ function getOrCreateGraph(): EqGraph | null {
     });
 
     const compressorNode = ctx.createDynamicsCompressor();
-    compressorNode.threshold.value = -20;
-    compressorNode.knee.value = 18;
-    compressorNode.ratio.value = 3.5;
-    compressorNode.attack.value = 0.008;
-    compressorNode.release.value = 0.18;
+    // Transparent studio mastering glue: gentle ratio + slow release prevents audible volume pumping/breathing
+    compressorNode.threshold.value = -9;
+    compressorNode.knee.value = 24;
+    compressorNode.ratio.value = 1.75;
+    compressorNode.attack.value = 0.035;
+    compressorNode.release.value = 0.45;
 
     const dryGain = ctx.createGain();
     const wetGain = ctx.createGain();
@@ -232,26 +233,28 @@ function applyGraphParams(state: EqualizerSaved) {
     return;
   }
 
-  // Automatic headroom compensation when strong boosts are active and preamp is 0
-  const maxBoost = Math.max(0, ...state.bands) + state.bassBoost * 0.6 + state.clarity * 0.5;
-  const autoHeadroom = state.compressor ? 1.5 : Math.max(0, (maxBoost - 6) * 0.35);
-  const effectivePreamp = state.preamp - autoHeadroom;
+  // Steady static headroom compensation across all boosted bands so positive boosts never clip OS audio output or pump
+  const sampleFreqs = [32, 64, 85, 125, 250, 500, 1000, 2000, 3200, 4000, 8000, 16000];
+  const rawCurve = computeEqCurveDb(sampleFreqs, { ...state, preamp: 0 });
+  const peakBoostDb = Math.max(0, ...rawCurve);
+  const autoHeadroom = state.compressor ? Math.max(0.8, peakBoostDb * 0.65) : Math.max(0, (peakBoostDb - 0.5) * 0.85);
+  const effectivePreamp = Math.max(-15, Math.min(12, state.preamp - autoHeadroom));
 
-  preampNode.gain.setTargetAtTime(dbToLinear(effectivePreamp), now, 0.015);
-  bassNode.gain.setTargetAtTime(state.bassBoost, now, 0.015);
-  clarityNode.gain.setTargetAtTime(state.clarity, now, 0.015);
+  preampNode.gain.setTargetAtTime(dbToLinear(effectivePreamp), now, 0.025);
+  bassNode.gain.setTargetAtTime(state.bassBoost, now, 0.025);
+  clarityNode.gain.setTargetAtTime(state.clarity, now, 0.025);
 
   bandNodes.forEach((node, idx) => {
-    node.gain.setTargetAtTime(state.bands[idx] ?? 0, now, 0.015);
+    node.gain.setTargetAtTime(state.bands[idx] ?? 0, now, 0.025);
   });
 
   if (state.compressor) {
-    dryGain.gain.setTargetAtTime(0, now, 0.02);
-    // Makeup gain for compressor
-    wetGain.gain.setTargetAtTime(dbToLinear(2.5), now, 0.02);
+    dryGain.gain.setTargetAtTime(0, now, 0.03);
+    // Gentle static makeup gain without causing dynamic loudness pumping
+    wetGain.gain.setTargetAtTime(dbToLinear(0.8), now, 0.03);
   } else {
-    dryGain.gain.setTargetAtTime(1, now, 0.02);
-    wetGain.gain.setTargetAtTime(0, now, 0.02);
+    dryGain.gain.setTargetAtTime(1, now, 0.03);
+    wetGain.gain.setTargetAtTime(0, now, 0.03);
   }
 }
 

@@ -139,7 +139,7 @@ function toLyricsData(rec: LrcLibRecord): LyricsData | null {
   return { synced, plain, duration: rec.duration };
 }
 
-async function fetchLyricsFor(track: Track): Promise<LyricsData | "none"> {
+export async function fetchLyricsFor(track: Track): Promise<LyricsData | "none"> {
   const cached = lyricsCache.get(track.id);
   if (cached) return cached;
   const existing = inflightLyrics.get(track.id);

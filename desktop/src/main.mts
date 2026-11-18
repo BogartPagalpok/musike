@@ -17,6 +17,12 @@ if (!app.requestSingleInstanceLock()) {
   process.exit(0);
 }
 
+// Prevent Chromium/OS WebRTC input AGC and system-wide echo-cancellation from ducking or muffling music playback.
+app.commandLine.appendSwitch(
+  "disable-features",
+  "WebRtcAllowInputVolumeAdjustment,ChromeWideEchoCancellation,HardwareMediaKeyHandling",
+);
+
 // Everything the user owns lives in their profile, so updates and reinstalls keep it.
 const userData = app.getPath("userData");
 process.env.MUSIKE_DATA_DIR = path.join(userData, "data");
@@ -135,6 +141,7 @@ function createMainWindow(url: string): BrowserWindow {
       contextIsolation: true,
       sandbox: true,
       spellcheck: false,
+      backgroundThrottling: false,
       autoplayPolicy: "no-user-gesture-required",
     },
   });

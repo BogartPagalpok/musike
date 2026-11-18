@@ -1,6 +1,5 @@
 import type { Innertube } from "youtubei.js";
 import { isLang, msg, type Lang } from "./i18n.js";
-import { getActivityProfile } from "./library.js";
 import { isUnwantedRegionalTrack, radio, search, sized, text, toTrack, withClient } from "./search.js";
 import type { Track } from "./types.js";
 import { HttpError, VIDEO_ID } from "./types.js";
@@ -190,17 +189,18 @@ const MOOD_PRIORITY_PLAYLISTS: Record<string, string[]> = {
 };
 
 const MOOD_SEARCH_HINTS: Record<string, string> = {
-  ggMPOg1uX3NISTh4UmtWcFgz: "sad emotional acoustic",
-  ggMPOg1uX1JOQWZFeDByc2Jm: "chill acoustic relax",
-  ggMPOg1uX1JCQnB2QXVYVEIz: "love song romantic",
-  ggMPOg1uXzZQbDB5eThLRTQ3: "upbeat feel good",
-  ggMPOg1uX0NvNGNhWThMYWRh: "chill study focus",
-  ggMPOg1uXzIxYkNac21YZ2Z0: "upbeat energy hype",
-  ggMPOg1uX2w1aW1CRDFTSUNo: "party dance hits",
-  ggMPOg1uX2JxQ2hxc2J5UFhR: "late night r&b chill",
-  ggMPOg1uX044Z2o5WERLckpU: "drive hits",
-  ggMPOg1uX2lRZUZiMnNrQnJW: "energetic hits",
-  ggMPOg1uX1MxaFQ3Z0JMZkN4: "calm sleep acoustic",
+  ggMPOg1uX3NISTh4UmtWcFgz: "sad heartbreak acoustic ballad songs",
+  ggMPOg1uX1JOQWZFeDByc2Jm: "chill relax lo-fi acoustic songs",
+  ggMPOg1uX1JCQnB2QXVYVEIz: "romantic love ballad songs",
+  ggMPOg1uXzZQbDB5eThLRTQ3: "feel good happy upbeat pop songs",
+  ggMPOg1uX0NvNGNhWThMYWRh: "deep focus study chill instrumental lo-fi",
+  ggMPOg1uXzIxYkNac21YZ2Z0: "workout gym hype high energy songs",
+  ggMPOg1uX2w1aW1CRDFTSUNo: "party club dance hits songs",
+  ggMPOg1uX2JxQ2hxc2J5UFhR: "late night chill r&b soul songs",
+  ggMPOg1uX1F0bWVKNFlyWG9I: "80s 90s 2000s throwback classic hits",
+  ggMPOg1uX044Z2o5WERLckpU: "road trip driving hits songs",
+  ggMPOg1uX2lRZUZiMnNrQnJW: "energetic upbeat pop rock songs",
+  ggMPOg1uX1MxaFQ3Z0JMZkN4: "calm peaceful sleep ambient acoustic",
 };
 
 const genreList = cached(6 * 60 * MINUTE, async (key): Promise<Genre[]> => {
@@ -311,13 +311,18 @@ const genreState = cached(30 * MINUTE, async (key): Promise<GenreState> => {
     }),
   );
   const editorial = (p: any) => /RDCLAK/.test(p.id);
-  const shelfPlaylists = [
-    ...roundRobin(perShelf.map((list) => list.filter(editorial))),
-    ...roundRobin(perShelf.map((list) => list.filter((p) => !editorial(p)))),
-  ].map((p): string => p.id);
+  const editorialOnly = roundRobin(perShelf.map((list) => list.filter(editorial))).map((p): string => p.id);
+  const communityOnly = roundRobin(perShelf.map((list) => list.filter((p) => !editorial(p)))).map((p): string => p.id);
   const priority = MOOD_PRIORITY_PLAYLISTS[id] ?? [];
-  const playlists = [...new Set([...priority, ...shelfPlaylists])];
-  const first = priority.length > 0 ? Math.min(playlists.length, Math.max(5, priority.length)) : songs.length >= 10 ? 2 : 4;
+  // Prefer official YouTube Music editorial playlists so random user-generated playlists never pollute a Mood or Genre!
+  const playlists = [
+    ...new Set(
+      priority.length + editorialOnly.length >= 2
+        ? [...priority, ...editorialOnly]
+        : [...priority, ...editorialOnly, ...communityOnly],
+    ),
+  ];
+  const first = priority.length > 0 ? Math.min(playlists.length, Math.max(5, priority.length)) : songs.length >= 12 ? 3 : 5;
   const playlistLists = await Promise.all(playlists.slice(0, first).map((p) => playlistItems(p, 50, lang)));
   const fromPlaylists = roundRobin(playlistLists).filter((i) => {
     const track = toTrack(i, "song");
@@ -325,9 +330,17 @@ const genreState = cached(30 * MINUTE, async (key): Promise<GenreState> => {
   });
 
   // Filter out any abnormal tracks (e.g. >15 min compilations/DJ sets) and unwanted regional tracks
-  const tracks = uniqueTracks([...songs, ...fromPlaylists].map((i) => toTrack(i, "song")))
+  let tracks = uniqueTracks([...songs, ...fromPlaylists].map((i) => toTrack(i, "song")))
     .filter((t) => !isUnwantedRegionalTrack(t) && (t.duration === 0 || (t.duration >= 25 && t.duration <= 15 * 60)))
     .slice(0, MAX_GENRE_TRACKS);
+
+  // If a mood page had sparse shelves, supplement strictly with pure mood-authentic songs (never unrelated user history!)
+  if (tracks.length < 20 && MOOD_SEARCH_HINTS[id]) {
+    const fallbackMoodSongs = await search(MOOD_SEARCH_HINTS[id]!, "song", lang).catch(() => [] as Track[]);
+    tracks = uniqueTracks([...tracks, ...fallbackMoodSongs])
+      .filter((t) => !isUnwantedRegionalTrack(t) && (t.duration === 0 || (t.duration >= 25 && t.duration <= 15 * 60)))
+      .slice(0, MAX_GENRE_TRACKS);
+  }
   if (!tracks.length && !albums.length) throw new HttpError(404, msg("genreEmpty"));
 
   // The genre's own song and album shelves weigh more than playlists.
@@ -357,54 +370,10 @@ const genreState = cached(30 * MINUTE, async (key): Promise<GenreState> => {
   };
 });
 
-const activitySeedTracks = cached(5 * MINUTE, async (key): Promise<Track[]> => {
-  const [langRaw = "en", id = ""] = key.split("|");
-  const lang: Lang = isLang(langRaw) ? langRaw : "en";
-  const activity = await getActivityProfile();
-  const hint = MOOD_SEARCH_HINTS[id];
-  const batches = await Promise.all([
-    ...activity.topArtists.slice(0, 3).map((artist) =>
-      search(`${artist} ${hint ?? ""}`.trim(), "song", lang)
-        .then((res) =>
-          res
-            .filter(
-              (t) =>
-                !isUnwantedRegionalTrack(t) &&
-                (t.duration === 0 || (t.duration >= 25 && t.duration <= 15 * 60)),
-            )
-            .slice(0, 5),
-        )
-        .catch(() => [] as Track[]),
-    ),
-    ...(!hint
-      ? activity.topTracks.slice(0, 2).map((seed) =>
-          radio(seed.id)
-            .then((res) => res.filter((t) => !isUnwantedRegionalTrack(t)).slice(0, 6))
-            .catch(() => [] as Track[]),
-        )
-      : []),
-  ]);
-  return roundRobin(batches);
-});
-
+/** Pure authentic Mood/Genre page: returns only tracks genuinely belonging to the selected Mood or Genre. */
 export const genre = async (id: string, lang: Lang): Promise<GenrePage> => {
-  const [state, activity] = await Promise.all([genreState(keyOf(lang, id)), getActivityProfile()]);
-  const base = state.page;
-  if (!activity.topArtists.length && !activity.topTracks.length) return base;
-
-  const matchesKnownArtist = (artist: string) =>
-    artist.split(",").some((a) => activity.knownArtists.has(a.trim().toLowerCase()));
-  const familiarBase = base.tracks.filter((t) => matchesKnownArtist(t.artist));
-  const discoveryBase = base.tracks.filter((t) => !matchesKnownArtist(t.artist));
-
-  const sig = `${lang}|${id}|${activity.topArtists.slice(0, 4).join(",")}|${activity.topTracks[0]?.id ?? ""}`;
-  const activityTracks = await activitySeedTracks(sig).catch(() => [] as Track[]);
-
-  const merged = uniqueTracks([...roundRobin([activityTracks, familiarBase, discoveryBase]), ...base.tracks])
-    .filter((t) => !isUnwantedRegionalTrack(t))
-    .slice(0, MAX_GENRE_TRACKS);
-
-  return { ...base, tracks: merged };
+  const state = await genreState(keyOf(lang, id));
+  return state.page;
 };
 
 /** Reads the next few playlists of the genre and appends the artists they bring. */
@@ -588,8 +557,8 @@ const REGION_CHARTS: Record<string, RegionChartConfig> = {
       "VLPL4fGSI1pDJn5kI81J1fYWK5eZRl1zJ5kM",
     ],
     trendingPlaylists: [
-      "VLPL4fGSI1pDJn6t3TXLGiiJdD-sZbrG3tG0",
-      "VLRDCLAK5uy_kPX0g3hZ9R0j11N3vPj0E2gQo32P5A",
+      "VLOLAK5uy_kNWGJvgWVqlt5LsFDL9Sdluly4M8TvGkM",
+      "VLPL4fGSI1pDJn61unMfmrUSz68RT8IFFnks",
     ],
   },
   US: {
@@ -631,7 +600,7 @@ const REGION_CHARTS: Record<string, RegionChartConfig> = {
   },
 };
 
-const chartsList = cached(60 * MINUTE, async (key): Promise<ChartsData> => {
+const chartsList = cached(5 * MINUTE, async (key): Promise<ChartsData> => {
   const { lang, id: regionCode } = parseKey(key);
   const targetRegion = regionCode && REGION_CHARTS[regionCode.toUpperCase()] ? regionCode.toUpperCase() : "GLOBAL";
   const cfg = REGION_CHARTS[targetRegion] ?? REGION_CHARTS.GLOBAL!;

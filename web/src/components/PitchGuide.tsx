@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "../lib/format";
-import { getImmediateFallbackGuide, loadVocalGuide, type VocalGuideTrack } from "../lib/vocalGuide";
+import { getCachedVocalGuide, loadVocalGuide, type VocalGuideTrack } from "../lib/vocalGuide";
 import { getExactPlaybackTime, selectCurrent, usePlayer } from "../player/player";
 import { noteName, pitchTrail, useVideoke } from "../stores/videoke";
 import { MicrophoneStageIcon, WaveformIcon } from "./icons";
@@ -37,7 +37,7 @@ export function PitchGuide({
   const stopMic = useVideoke((v) => v.stopMic);
 
   const [guide, setGuide] = useState<VocalGuideTrack | null>(() =>
-    track ? getImmediateFallbackGuide(track) : null,
+    track ? getCachedVocalGuide(track.id) : null,
   );
   const [hudTarget, setHudTarget] = useState<{ note: string; countdownSec: number | null } | null>(null);
 
@@ -47,15 +47,14 @@ export function PitchGuide({
   const centerRef = useRef(62);
   const octaveShiftRef = useRef(0);
 
-  // Load synced phrase/melody guide whenever the track changes (instant fallback first, then LRCLIB synced)
+  // Load vocal-only synced phrase guide (never draws fake bars over instrumentals)
   useEffect(() => {
     if (!track) {
       setGuide(null);
       return;
     }
     let cancelled = false;
-    const immediate = getImmediateFallbackGuide(track);
-    setGuide(immediate);
+    setGuide(getCachedVocalGuide(track.id));
     octaveShiftRef.current = 0;
 
     void loadVocalGuide(track).then((loaded) => {
@@ -376,8 +375,8 @@ export function PitchGuide({
             )}
           >
             {hudTarget.countdownSec !== null
-              ? `♪ ${hudTarget.note} in ${hudTarget.countdownSec}s`
-              : `Target: ${hudTarget.note}`}
+              ? `♪ Instrumental · ${hudTarget.note} in ${hudTarget.countdownSec}s`
+              : `Hit Note: ${hudTarget.note}`}
           </span>
         )}
 

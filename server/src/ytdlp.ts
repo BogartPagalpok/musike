@@ -110,6 +110,8 @@ export function clearResolved() {
 const isAudioOnly = (f: RawFormat) => !!f.url && f.vcodec === "none" && !!f.acodec && f.acodec !== "none";
 const isMuxed = (f: RawFormat) => !!f.url && !!f.vcodec && f.vcodec !== "none" && !!f.acodec && f.acodec !== "none";
 const isHttps = (f: RawFormat) => !f.protocol || f.protocol === "https";
+const isDrcRaw = (f: RawFormat) =>
+  /drc/i.test(f.format_id ?? "") || (typeof f.url === "string" && /[?&]xtags=[^&]*drc/i.test(f.url));
 
 function toStream(f: RawFormat, kind: "audio" | "video"): StreamFormat {
   const mime = kind === "audio" ? (f.ext === "webm" ? "audio/webm" : "audio/mp4") : "video/mp4";
@@ -117,8 +119,10 @@ function toStream(f: RawFormat, kind: "audio" | "video"): StreamFormat {
 }
 
 function pickAudio(formats: RawFormat[]): RawFormat | undefined {
-  const audio = formats.filter((f) => isAudioOnly(f) && isHttps(f));
-  // AAC in MP4 plays everywhere, including iOS Safari. Opus/WebM or muxed MP4 is the fallback.
+  const allAudio = formats.filter((f) => isAudioOnly(f) && isHttps(f));
+  const nonDrc = allAudio.filter((f) => !isDrcRaw(f));
+  const audio = nonDrc.length ? nonDrc : allAudio;
+  // Original non-DRC AAC in MP4 (itag 140) plays everywhere without YouTube "Stable Volume" DRC pumping.
   return (
     audio.find((f) => f.format_id === "140") ??
     audio.filter((f) => f.ext === "m4a").sort((a, b) => (b.abr ?? 0) - (a.abr ?? 0))[0] ??

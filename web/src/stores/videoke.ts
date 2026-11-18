@@ -159,8 +159,8 @@ function detectVocalPitch(
   for (let i = 0; i < buf.length; i++) sumSq += buf[i] * buf[i];
   const rms = Math.sqrt(sumSq / buf.length);
 
-  // Adaptive vocal energy gate: rejects room hum and distant speaker bleed
-  const gate = Math.max(0.013, Math.min(0.045, noiseFloor * 2.15));
+  // Adaptive vocal energy gate: rejects room hum and distant speaker bleed without OS voice-call ducking
+  const gate = Math.max(0.017, Math.min(0.05, noiseFloor * 2.35));
   if (rms < gate) return null;
 
   const minTau = Math.max(2, Math.floor(sampleRate / 1050)); // ~C6 soprano top
@@ -213,7 +213,7 @@ function detectVocalPitch(
   }
 
   const clarity = clamp(1 - cmndf[bestTau], 0, 1);
-  if (clarity < 0.74) return null;
+  if (clarity < 0.78) return null;
 
   // Parabolic interpolation around bestTau for sub-sample (< 0.5 cent) precision
   const s0 = cmndf[bestTau - 1];
@@ -971,7 +971,6 @@ export const useVideoke = create<VideokeState>((set, get) => ({
     pitchTrail.length = 0;
     set({ liveStats: INITIAL_LIVE_STATS });
     const p = usePlayer.getState();
-    p.setPreferVideo(true);
     const reserved = p.queue.slice(p.index + 1).filter((x) => get().ids.has(x.id) && x.id !== track.id);
     usePlayer.setState({ repeat: "off" });
     p.playList([track, ...reserved], 0);
@@ -993,23 +992,85 @@ export const useVideoke = create<VideokeState>((set, get) => ({
   startMic: async () => {
     if (get().micOn) return;
     try {
+      // Prefer built-in / wired mic over Bluetooth headset mic when available so Bluetooth headphones stay in hi-fi A2DP stereo
+      // instead of dropping to 8kHz HFP phone-call audio!
+      let preferredDeviceId: string | undefined;
       try {
-        micStream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: { ideal: true },
-            noiseSuppression: { ideal: true },
-            autoGainControl: { ideal: false },
-            channelCount: { ideal: 1 },
-          },
-        });
+        if (navigator.mediaDevices?.enumerateDevices) {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const inputs = devices.filter((d) => d.kind === "audioinput" && d.deviceId && d.deviceId !== "default");
+          const nonBluetooth = inputs.find(
+            (d) => d.label && !/\b(airpods|bluetooth|hands-?free|headset|buds|wireless)\b/i.test(d.label),
+          );
+          if (nonBluetooth && inputs.some((d) => /\b(airpods|bluetooth|hands-?free|headset|buds)\b/i.test(d.label))) {
+            preferredDeviceId = nonBluetooth.deviceId;
+          }
+        }
       } catch {
-        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        /* ignore device enumeration failure */
+      }
+
+      // CRITICAL: Disable OS echoCancellation / noiseSuppression / autoGainControl!
+      // Enabling them forces macOS CoreAudio, Android AudioManager, iOS AVAudioSession & Windows WASAPI into
+      // VOICE_COMMUNICATION / telephony ducking mode, which muffles bass, collapses stereo, and drops playback volume.
+      const hiFiConstraints: MediaTrackConstraints = {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+        channelCount: 1,
+        ...(preferredDeviceId ? { deviceId: { ideal: preferredDeviceId } } : {}),
+      };
+
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: hiFiConstraints });
+      } catch {
+        micStream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+        });
+      }
+
+      // If labels were hidden before permission grant and getUserMedia picked a Bluetooth HFP mic while a built-in mic exists,
+      // seamlessly switch to the built-in mic so headphone output returns to full 48kHz stereo quality!
+      const activeTrack = micStream.getAudioTracks()[0];
+      if (activeTrack && /\b(airpods|bluetooth|hands-?free|buds)\b/i.test(activeTrack.label)) {
+        const devices = await navigator.mediaDevices.enumerateDevices().catch(() => []);
+        const builtIn = devices.find(
+          (d) =>
+            d.kind === "audioinput" &&
+            d.deviceId &&
+            d.deviceId !== "default" &&
+            d.label &&
+            !/\b(airpods|bluetooth|hands-?free|buds)\b/i.test(d.label),
+        );
+        if (builtIn) {
+          try {
+            const cleaner = await navigator.mediaDevices.getUserMedia({
+              audio: {
+                deviceId: { exact: builtIn.deviceId },
+                echoCancellation: false,
+                noiseSuppression: false,
+                autoGainControl: false,
+              },
+            });
+            micStream.getTracks().forEach((tr) => tr.stop());
+            micStream = cleaner;
+          } catch {
+            /* keep original stream if switch fails */
+          }
+        }
       }
     } catch {
       toast("Microphone permission denied or unavailable", "error");
       return;
     }
-    micCtx = newAudioContext();
+    try {
+      const Ctor =
+        window.AudioContext ??
+        (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+      micCtx = Ctor ? new Ctor({ latencyHint: "interactive", sampleRate: 48000 }) : null;
+    } catch {
+      micCtx = newAudioContext();
+    }
     if (!micCtx) {
       micStream.getTracks().forEach((tr) => tr.stop());
       micStream = null;
@@ -1327,6 +1388,12 @@ playerHooks.onEnded = (track) => {
   return true;
 };
 playerHooks.blockRadio = (track) => useVideoke.getState().ids.has(track.id);
+playerHooks.forceVideo = (track) => useVideoke.getState().ids.has(track.id);
+playerHooks.onTrackStarted = (track) => {
+  if (!useVideoke.getState().ids.has(track.id) && useVideoke.getState().micOn) {
+    useVideoke.getState().stopMic();
+  }
+};
 
 /** Whether the track playing now is a Videoke song (its video already shows the lyrics). */
 export function useIsVideokeTrack(): boolean {

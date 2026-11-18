@@ -114,11 +114,23 @@ final class MusikeYouTube: NSObject, WKScriptMessageHandler {
             let details = result?["videoDetails"] as? [String: Any] ?? [:]
             let streamingData = result?["streamingData"] as? [String: Any]
             let allowAdaptive = client.name == "VISIONOS"
-            let adaptiveAudio = allowAdaptive
+            let allAdaptiveAudio = allowAdaptive
                 ? (streamingData?["adaptiveFormats"] as? [[String: Any]] ?? [])
                     .filter { ($0["mimeType"] as? String)?.hasPrefix("audio/") == true && $0["url"] != nil }
-                    .sorted { Self.int($0["bitrate"]) > Self.int($1["bitrate"]) }
                 : []
+            // Exclude YouTube "Stable Volume" DRC streams (isDrc / xtags=drc) and secondary dubbed tracks so volume never pumps
+            let cleanAdaptiveAudio = allAdaptiveAudio.filter { fmt in
+                if (fmt["isDrc"] as? Bool) == true { return false }
+                if let urlStr = fmt["url"] as? String, urlStr.range(of: "xtags=[^&]*drc", options: [.regularExpression, .caseInsensitive]) != nil {
+                    return false
+                }
+                if let track = fmt["audioTrack"] as? [String: Any], let isDefault = track["audioIsDefault"] as? Bool, !isDefault {
+                    return false
+                }
+                return true
+            }
+            let adaptiveAudio = (cleanAdaptiveAudio.isEmpty ? allAdaptiveAudio : cleanAdaptiveAudio)
+                .sorted { Self.int($0["bitrate"]) > Self.int($1["bitrate"]) }
             let mp4Audio = adaptiveAudio.filter { ($0["mimeType"] as? String)?.hasPrefix("audio/mp4") == true }
             let progressive = (streamingData?["formats"] as? [[String: Any]] ?? [])
                 .filter { $0["url"] != nil }

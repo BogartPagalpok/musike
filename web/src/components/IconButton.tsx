@@ -89,6 +89,44 @@ function PlayDiscDecor({ variant, playing }: { variant: PlayButtonStyle; playing
         </svg>
       );
 
+    case "cassette":
+      return (
+        <svg viewBox="0 0 64 64" aria-hidden="true" className="pointer-events-none absolute inset-0 size-full">
+          <defs>
+            <linearGradient id="cassetteKeyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="0%" stopColor="#737880" />
+              <stop offset="55%" stopColor="#555a61" />
+              <stop offset="100%" stopColor="#3c4046" />
+            </linearGradient>
+          </defs>
+          <circle cx="32" cy="32" r="30.5" fill="url(#cassetteKeyGrad)" stroke="#23262b" strokeWidth="2.5" />
+          <circle cx="32" cy="32" r="25" fill="none" stroke="#ffffff" strokeOpacity="0.18" strokeWidth="1.2" />
+        </svg>
+      );
+
+    case "mirrorflame":
+      return (
+        <svg viewBox="0 0 64 64" aria-hidden="true" className="pointer-events-none absolute inset-0 size-full">
+          <defs>
+            <linearGradient id="mirrorFlameRing" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ff6a00" />
+              <stop offset="55%" stopColor="#ffb700" />
+              <stop offset="100%" stopColor="#b8ff2c" />
+            </linearGradient>
+          </defs>
+          <circle cx="32" cy="32" r="30.5" fill="#181a1f" stroke="#2f343d" strokeWidth="2" />
+          <circle cx="32" cy="32" r="25.5" fill="#1e2128" stroke="url(#mirrorFlameRing)" strokeWidth="2.8" />
+        </svg>
+      );
+
+    case "sandtopo":
+      return (
+        <svg viewBox="0 0 64 64" aria-hidden="true" className="pointer-events-none absolute inset-0 size-full">
+          <circle cx="32" cy="32" r="30.5" fill="#dfd0b1" stroke="#b9a37b" strokeWidth="1.6" />
+          <circle cx="32" cy="32" r="24" fill="#d8c6a3" stroke="#6b5b3e" strokeWidth="2.2" />
+        </svg>
+      );
+
     default:
       return null;
   }
@@ -110,8 +148,10 @@ export const PlayDisc = forwardRef<HTMLButtonElement, PlayDiscProps>(function Pl
   const variant = styleVariant ?? activeStyle;
   const isPlaying = playing ?? playerPlaying;
 
-  const isLightForeground = variant === "akatsuki";
+  const isLightForeground = variant === "akatsuki" || variant === "cassette";
   const isDarkForeground = variant === "shinobi" || variant === "grandline";
+  const alwaysShowIcon =
+    variant === "default" || variant === "cassette" || variant === "mirrorflame" || variant === "sandtopo";
 
   return (
     <button
@@ -124,6 +164,8 @@ export const PlayDisc = forwardRef<HTMLButtonElement, PlayDiscProps>(function Pl
         "group/disc relative grid shrink-0 place-items-center overflow-hidden rounded-full transition-transform duration-200 ease-out-expo",
         "hover:scale-[1.04] active:scale-[0.95] disabled:opacity-40",
         variant === "default" && "bg-accent text-accent-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.45)]",
+        variant === "mirrorflame" && "text-[#ff8a1f] shadow-[0_0_16px_rgba(255,122,0,0.32)]",
+        variant === "sandtopo" && "text-[#5c4d33] shadow-[0_6px_14px_rgba(92,74,42,0.24)]",
         isLightForeground && "text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]",
         isDarkForeground && "text-[#140e00]",
         className,
@@ -131,7 +173,7 @@ export const PlayDisc = forwardRef<HTMLButtonElement, PlayDiscProps>(function Pl
       {...rest}
     >
       <PlayDiscDecor variant={variant} playing={isPlaying} />
-      {variant === "default" ? (
+      {alwaysShowIcon ? (
         <span className="relative z-10 grid place-items-center">{children}</span>
       ) : (
         <span className="relative z-10 grid place-items-center rounded-full bg-black/50 p-1.5 text-white opacity-0 backdrop-blur-[2px] transition-opacity duration-200 group-hover/disc:opacity-95 group-focus-visible/disc:opacity-95">

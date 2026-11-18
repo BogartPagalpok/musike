@@ -11,9 +11,32 @@ import {
 import { useAppearance } from "./appearance";
 import { useUi } from "./ui";
 
-export type PlayheadStyle = "default" | "pixel" | "shinobi" | "akatsuki" | "grandline";
-export type PlayButtonStyle = "default" | "shinobi" | "akatsuki" | "grandline";
-export type SceneStyle = "none" | "shinobi" | "akatsuki" | "grandline" | "custom";
+export type PlayheadStyle =
+  | "default"
+  | "pixel"
+  | "shinobi"
+  | "akatsuki"
+  | "grandline"
+  | "cassette"
+  | "mirrorflame"
+  | "sandtopo";
+export type PlayButtonStyle =
+  | "default"
+  | "shinobi"
+  | "akatsuki"
+  | "grandline"
+  | "cassette"
+  | "mirrorflame"
+  | "sandtopo";
+export type SceneStyle =
+  | "none"
+  | "shinobi"
+  | "akatsuki"
+  | "grandline"
+  | "cassette"
+  | "mirrorflame"
+  | "sandtopo"
+  | "custom";
 
 export type SaleMode = "beta" | "live";
 export type SkinCategory = "all" | "anime" | "music";
@@ -108,6 +131,66 @@ export const SKIN_PACKS: readonly SkinPack[] = [
     unlockCode: "",
   },
   {
+    id: "retro-cassette",
+    name: "Bainil Retro Cassette",
+    badge: "New · Free",
+    worldLabel: "TAPE · BAINIL",
+    category: "music",
+    tagline: "Perforated brushed-stone portable cassette deck with spinning tape reels & mechanical piano keys.",
+    highlights: ["Live spinning dual tape reels", "3-digit mechanical counter", "5 tactile piano-key buttons"],
+    free: true,
+    pricePhp: 0,
+    priceUsd: 0,
+    playhead: "cassette",
+    playButton: "cassette",
+    scene: "cassette",
+    baseTheme: "cream",
+    accent: "#475569",
+    secondaryAccent: "#64748b",
+    previewGradient: "linear-gradient(145deg, #e2ddd0 0%, #d2ccb8 58%, #beb7a0 100%)",
+    unlockCode: "",
+  },
+  {
+    id: "mirror-flame",
+    name: "Mirror Flame Console",
+    badge: "New · Free",
+    worldLabel: "ROTARY · FLAME",
+    category: "music",
+    tagline: "Dark crinkle-metal studio console with glowing orange-lime rotary dial, dual dB faders & live lyric bar.",
+    highlights: ["Interactive neon rotary dial", "Dual glowing 20dB / 10dB faders", "Live orange-lime waveform & lyrics"],
+    free: true,
+    pricePhp: 0,
+    priceUsd: 0,
+    playhead: "mirrorflame",
+    playButton: "mirrorflame",
+    scene: "mirrorflame",
+    baseTheme: "oled",
+    accent: "#ff7a00",
+    secondaryAccent: "#a3e635",
+    previewGradient: "linear-gradient(145deg, #181a1e 0%, #121317 55%, #26180c 100%)",
+    unlockCode: "",
+  },
+  {
+    id: "sand-topo",
+    name: "Desert Topo Neumorphic",
+    badge: "New · Free",
+    worldLabel: "TOPO · DUNE",
+    category: "music",
+    tagline: "Warm sand topographic contour backdrop with teardrop artwork frame & soft neumorphic controls.",
+    highlights: ["Topographic contour map backdrop", "Teardrop leaf-frame cover art", "Soft tactile dune neumorphism"],
+    free: true,
+    pricePhp: 0,
+    priceUsd: 0,
+    playhead: "sandtopo",
+    playButton: "sandtopo",
+    scene: "sandtopo",
+    baseTheme: "cream",
+    accent: "#6b5b3e",
+    secondaryAccent: "#8c7853",
+    previewGradient: "linear-gradient(145deg, #e6d6b6 0%, #d9c49d 58%, #c7ae82 100%)",
+    unlockCode: "",
+  },
+  {
     id: "naruto-shinobi",
     name: "Naruto: Hidden Leaf Moon",
     badge: "Naruto World",
@@ -172,6 +255,9 @@ export const SKIN_PACKS: readonly SkinPack[] = [
 export const PLAYHEAD_META: readonly { id: PlayheadStyle; label: string; desc: string }[] = [
   { id: "default", label: "Studio Flat", desc: "Clean minimal straight progress track" },
   { id: "pixel", label: "Pixel Wave", desc: "Google Material You animated squiggly bar" },
+  { id: "cassette", label: "Magnetic Tape", desc: "Spinning mini tape spool on oxide ribbon" },
+  { id: "mirrorflame", label: "Neon Flame", desc: "Glowing chartreuse-orange studio fader bar" },
+  { id: "sandtopo", label: "Dune Tactile", desc: "Warm sand neumorphic bar with circle thumb" },
   { id: "shinobi", label: "Shuriken Chakra", desc: "Golden zig-zag wave with riding Shuriken" },
   { id: "akatsuki", label: "Tsukuyomi Pulse", desc: "Crimson crest wave with Mangekyō Sharingan" },
   { id: "grandline", label: "Gear 5 Bounce", desc: "Nika moonlight wave with Straw Hat rider" },
@@ -179,6 +265,9 @@ export const PLAYHEAD_META: readonly { id: PlayheadStyle; label: string; desc: s
 
 export const PLAY_BUTTON_META: readonly { id: PlayButtonStyle; label: string; desc: string }[] = [
   { id: "default", label: "Studio Disc", desc: "Solid accent circular play button" },
+  { id: "cassette", label: "Tape Deck Key", desc: "Brushed dark charcoal tactile key disc" },
+  { id: "mirrorflame", label: "Flame Ring", desc: "Dark studio button with neon orange-lime ring" },
+  { id: "sandtopo", label: "Dune Emboss", desc: "Double-ring warm sand neumorphic button" },
   { id: "shinobi", label: "Hidden Leaf Seal", desc: "Moonlight gold chakra spiral disc" },
   { id: "akatsuki", label: "Mangekyō Disc", desc: "Crimson Tsukuyomi Sharingan iris disc" },
   { id: "grandline", label: "Nika Moonlight", desc: "Gear 5 violet moonlight ring disc" },
@@ -186,6 +275,9 @@ export const PLAY_BUTTON_META: readonly { id: PlayButtonStyle; label: string; de
 
 export const SCENE_META: readonly { id: SceneStyle; label: string; desc: string }[] = [
   { id: "none", label: "Clean Studio", desc: "Pure dark surface with album glow" },
+  { id: "cassette", label: "Bainil Cassette", desc: "Perforated warm-stone retro tape recorder deck" },
+  { id: "mirrorflame", label: "Mirror Flame", desc: "Dark crinkle-metal neon rotary studio console" },
+  { id: "sandtopo", label: "Desert Topo", desc: "Warm sand topographic contour neumorphic deck" },
   { id: "shinobi", label: "Naruto Moon", desc: "Live Naruto Konoha rooftop moonlight video" },
   { id: "akatsuki", label: "Itachi Blood Moon", desc: "Live Itachi Tsukuyomi crimson moon video" },
   { id: "grandline", label: "Luffy Gear 5", desc: "Live Gear 5 Nika moonlight video" },
@@ -194,6 +286,9 @@ export const SCENE_META: readonly { id: SceneStyle; label: string; desc: string 
 
 export const WORLD_BADGE_BY_SCENE: Record<SceneStyle, string | null> = {
   none: null,
+  cassette: "TAPE · BAINIL",
+  mirrorflame: "ROTARY · FLAME",
+  sandtopo: "TOPO · DUNE",
   shinobi: "木ノ葉 · SHINOBI",
   akatsuki: "月読 · UCHIHA",
   grandline: "GEAR 5 · NIKA",

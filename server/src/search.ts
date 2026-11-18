@@ -154,8 +154,14 @@ export async function search(query: string, type: "song" | "video" | "podcast" |
     const q = /podcast/i.test(query) ? query : `${query} podcast`;
     try {
       const result = await withClient((yt) => yt.search(q, { type: "video" }), lang);
-      const tracks = (result.videos ?? []).map((v) => toTrack(v, "video")).filter((t): t is Track => !!t);
-      if (tracks.length) return tracks;
+      const all = (result.videos ?? []).map((v) => toTrack(v, "video")).filter((t): t is Track => !!t);
+      const longForm = all.filter(
+        (t) =>
+          (t.duration === 0 || t.duration >= 180) &&
+          !/\b(karaoke|official\s+music\s+video|lyric\s+video|#shorts|shorts)\b/i.test(t.title),
+      );
+      if (longForm.length >= 4) return longForm;
+      if (all.length) return all;
     } catch (e) {
       failures.push(`YouTube podcast search: ${reason(e)}`);
     }

@@ -259,6 +259,9 @@ export interface ActivityProfile {
   knownArtists: Set<string>;
 }
 
+const KARAOKE_NOISE =
+  /\b(karaoke|videoke|minus\s*one|backing\s*track|sing\s*king|covers\s*ph|karafun|acoustic\s*heaven|myallkaraoke|stingray\s*karaoke)\b/i;
+
 /** Summarizes the user's most-played artists and tracks across play history, favorites, and playlists. */
 export async function getActivityProfile(): Promise<ActivityProfile> {
   const lib = await load().catch(() => ({ favorites: [], playlists: [], history: [], plays: {} }) as StoredLibrary);
@@ -267,6 +270,7 @@ export async function getActivityProfile(): Promise<ActivityProfile> {
   const trackScores = new Map<string, { track: Track; score: number }>();
 
   const addTrack = (t: Track, baseScore: number) => {
+    if (KARAOKE_NOISE.test(`${t.title} ${t.artist}`)) return;
     const playBonus = Math.min(20, (plays[t.id] ?? 0) * 2);
     const score = baseScore + playBonus;
     const prev = trackScores.get(t.id);

@@ -178,6 +178,19 @@ export default function Videoke() {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Release mic input stream automatically when leaving the Videoke tab if no Videoke song is actively playing
+  useEffect(() => {
+    return () => {
+      const p = usePlayer.getState();
+      const cur = p.queue[p.index];
+      if (!cur || !useVideoke.getState().ids.has(cur.id) || p.status !== "playing") {
+        if (useVideoke.getState().micOn) {
+          useVideoke.getState().stopMic();
+        }
+      }
+    };
+  }, []);
+
   // Debounce title/artist search-as-you-type (ignore pure #code digits so local songbook code punch works too)
   useEffect(() => {
     const trimmed = searchInput.trim();

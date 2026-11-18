@@ -136,6 +136,7 @@ function readSaved(): Partial<Saved> {
 }
 
 const QUALITY_AUTO_V1 = "musike:video-quality-auto-v1";
+const PURE_AUDIO_V1 = "musike:pure-audio-default-v1";
 
 function initialQuality(): Quality {
   try {
@@ -148,6 +149,19 @@ function initialQuality(): Quality {
   }
   const q = saved.quality;
   return q === "auto" || q === "sd" || q === "hd" || q === "1080p" ? q : "auto";
+}
+
+function initialPreferVideo(): boolean {
+  if (!capabilities.video) return false;
+  try {
+    if (localStorage.getItem(PURE_AUDIO_V1) !== "1") {
+      localStorage.setItem(PURE_AUDIO_V1, "1");
+      return false;
+    }
+  } catch {
+    /* ignore */
+  }
+  return saved.preferVideo ?? false;
 }
 
 const saved = readSaved();
@@ -187,21 +201,24 @@ function lookupClip(track: Track): Promise<string | null> {
 export const playerHooks: {
   onEnded: ((track: Track) => boolean) | null;
   blockRadio: ((track: Track) => boolean) | null;
-} = { onEnded: null, blockRadio: null };
+  forceVideo: ((track: Track) => boolean) | null;
+  onTrackStarted: ((track: Track) => void) | null;
+} = { onEnded: null, blockRadio: null, forceVideo: null, onTrackStarted: null };
 
-const needsClipLookup = (track: Track, preferVideo: boolean) =>
-  preferVideo && track.kind === "song" && !isLocalTrack(track.id) && !clipFor.has(track.id);
+const needsClipLookup = (track: Track, wantsVideo: boolean) =>
+  wantsVideo && track.kind === "song" && !isLocalTrack(track.id) && !clipFor.has(track.id);
 
 export const usePlayer = create<PlayerState>((set, get) => {
+  const wantsVideo = (track: Track) => get().preferVideo || !!playerHooks.forceVideo?.(track);
   const kindFor = (track: Track): Kind =>
-    capabilities.video && get().preferVideo && !isLocalTrack(track.id) && (track.kind === "video" || !!clipFor.get(track.id))
+    capabilities.video && wantsVideo(track) && !isLocalTrack(track.id) && (track.kind === "video" || !!clipFor.get(track.id))
       ? "video"
       : "audio";
   /** The YouTube id to stream: the song itself, or its music video in Video mode. */
   const mediaIdFor = (track: Track, kind: Kind) =>
     kind === "video" && track.kind !== "video" ? clipFor.get(track.id)! : track.id;
   const noteFor = (track: Track) =>
-    get().preferVideo && track.kind === "song" && clipFor.get(track.id) === null ? ("noClip" as const) : null;
+    wantsVideo(track) && track.kind === "song" && clipFor.get(track.id) === null ? ("noClip" as const) : null;
   const activeMedia = (): HTMLMediaElement | null => (loaded ? mediaFor(loaded.kind) : null);
 
   function play(media: HTMLMediaElement) {
@@ -218,7 +235,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     if (!track) return;
 
     // Video mode on a song: find its music video first, then load whichever fits.
-    if (capabilities.video && needsClipLookup(track, s.preferVideo)) {
+    if (capabilities.video && needsClipLookup(track, wantsVideo(track))) {
       const mine = ++token;
       set({
         index,
@@ -328,11 +345,12 @@ export const usePlayer = create<PlayerState>((set, get) => {
     const track = s.queue[s.index];
     if (!track || recordedToken === token) return;
     recordedToken = token;
+    playerHooks.onTrackStarted?.(track);
     useLibrary.getState().recordPlay(track);
     // Warm up the next track (and, in Video mode, find and resolve its clip) so it starts quickly.
     const upcoming = s.queue[s.index + 1];
     if (!upcoming || isLocalTrack(upcoming.id)) return;
-    if (s.preferVideo) void lookupClip(upcoming).then((id) => api.prepare(id ?? upcoming.id).catch(() => {}));
+    if (wantsVideo(upcoming)) void lookupClip(upcoming).then((id) => api.prepare(id ?? upcoming.id).catch(() => {}));
     else api.prepare(upcoming.id).catch(() => {});
   }
 
@@ -511,7 +529,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     set({ videoNote: noteFor(track) });
     if (!loaded || loaded.id !== track.id) return;
     const wasPlaying = s.status === "playing" || s.status === "loading";
-    if (needsClipLookup(track, s.preferVideo)) return load(s.index, { startAt: s.position, autoplay: wasPlaying });
+    if (needsClipLookup(track, wantsVideo(track))) return load(s.index, { startAt: s.position, autoplay: wasPlaying });
     const kind = kindFor(track);
     if (loaded.kind === kind && (kind === "audio" || loaded.quality === s.quality)) return;
     load(s.index, { startAt: s.position, autoplay: wasPlaying });
@@ -534,8 +552,8 @@ export const usePlayer = create<PlayerState>((set, get) => {
     muted: saved.muted ?? false,
     shuffle: saved.shuffle ?? false,
     repeat: saved.repeat ?? "off",
-    // Builds without video (Android) always play audio, whatever a backup or an old session says.
-    preferVideo: capabilities.video && (saved.preferVideo ?? false),
+    // Pure studio audio by default on music/podcast tabs; Videoke tracks automatically use video via playerHooks.forceVideo.
+    preferVideo: initialPreferVideo(),
     quality: initialQuality(),
     autoRadio: saved.autoRadio ?? true,
 
@@ -647,7 +665,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
         loaded.id !== track.id ||
         loaded.kind !== kind ||
         (kind === "video" && loaded.quality !== s.quality) ||
-        needsClipLookup(track, s.preferVideo);
+        needsClipLookup(track, wantsVideo(track));
       if (stale || s.status === "error") return load(s.index, { startAt: s.position });
       const media = mediaFor(kind);
       if (media.paused) play(media);

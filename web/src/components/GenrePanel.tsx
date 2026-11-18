@@ -34,9 +34,10 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
   const favorites = useLibrary((s) => s.favorites);
   const [loadingKey, setLoadingKey] = useState<string | null>(null);
 
+  const karaokeRe = /\b(karaoke|videoke|minus\s*one|sing\s*king|covers\s*ph|karafun|acoustic\s*heaven|myallkaraoke)\b/i;
   const seenSeeds = new Set<string>();
-  const activitySeeds = [...favorites.slice(0, 10), ...history.slice(0, 15)].filter(
-    (tr) => !seenSeeds.has(tr.id) && !!seenSeeds.add(tr.id),
+  const activitySeeds = [...favorites.slice(0, 12), ...history.slice(0, 18)].filter(
+    (tr) => !karaokeRe.test(`${tr.title} ${tr.artist}`) && !seenSeeds.has(tr.id) && !!seenSeeds.add(tr.id),
   );
 
   const cards = [

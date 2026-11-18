@@ -1,4 +1,5 @@
 import {
+  ArrowsClockwiseIcon,
   CaretDownIcon,
   CaretUpIcon,
   CheckCircleIcon,
@@ -8,7 +9,7 @@ import {
   HeartIcon,
   PlayIcon,
 } from "../components/icons";
-import { useEffect, useState, type MouseEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type MouseEvent, type ReactNode } from "react";
 import { Link } from "react-router";
 import { Artwork } from "../components/Artwork";
 import { Equalizer } from "../components/Brand";
@@ -26,17 +27,30 @@ import { useLibrary } from "../stores/library";
 import { useOffline } from "../stores/offline";
 import { useUi } from "../stores/ui";
 
-const chartsCache = new Map<string, ChartsData>();
+const CHARTS_TTL_MS = 3 * 60_000;
+const chartsCache = new Map<string, { data: ChartsData; fetchedAt: number }>();
 
 function Shortcut({ to, label, tracks, cover }: { to: string; label: string; tracks: Track[]; cover: ReactNode }) {
   const playList = usePlayer((s) => s.playList);
+  const currentId = usePlayer((s) => selectCurrent(s)?.id ?? null);
+  const isPlaying = usePlayer((s) => s.status === "playing");
+  const hasCurrent = !!currentId && tracks.some((tr) => tr.id === currentId);
   const t = useT();
   return (
     <div className="group relative flex h-14 items-center gap-2.5 overflow-hidden rounded-[12px] bg-surface-2 pr-2 ring-1 ring-line transition-all hover:bg-surface-3 active:scale-[0.98] sm:gap-3 sm:pr-2.5">
       <Link to={to} className="absolute inset-0" aria-label={label} />
       <span className="pointer-events-none size-14 shrink-0 overflow-hidden">{cover}</span>
-      <span className="pointer-events-none min-w-0 flex-1 truncate text-[13px] font-semibold tracking-tight">{label}</span>
-      {tracks.length > 0 && (
+      <span className="pointer-events-none min-w-0 flex-1">
+        <span className="block truncate text-[13px] font-semibold tracking-tight text-fg">{label}</span>
+        <span className="block truncate text-[11px] text-fg-2 tabular-nums">
+          {tracks.length} {tracks.length === 1 ? "track" : "tracks"}
+        </span>
+      </span>
+      {hasCurrent && isPlaying ? (
+        <span className="pointer-events-none relative z-10 pr-1 text-accent-text">
+          <Equalizer live />
+        </span>
+      ) : tracks.length > 0 ? (
         <button
           type="button"
           onClick={() => playList(tracks, 0)}
@@ -45,22 +59,38 @@ function Shortcut({ to, label, tracks, cover }: { to: string; label: string; tra
         >
           <PlayIcon size={14} weight="fill" />
         </button>
-      )}
+      ) : null}
     </div>
   );
 }
 
 function RecentCard({ track, onPlay }: { track: Track; onPlay: () => void }) {
+  const isCurrent = usePlayer((s) => selectCurrent(s)?.id === track.id);
+  const isPlaying = usePlayer((s) => s.status === "playing" || s.status === "loading");
   return (
-    <button type="button" onClick={onPlay} className="group flex w-36 shrink-0 snap-start flex-col gap-2 text-left md:w-42">
-      <span className="relative block overflow-hidden rounded-[12px] shadow-sm">
+    <button type="button" onClick={onPlay} className="group flex w-34 shrink-0 snap-start flex-col gap-2 text-left md:w-38">
+      <span
+        className={cn(
+          "relative block overflow-hidden rounded-[12px] shadow-sm ring-1 transition-all",
+          isCurrent ? "ring-2 ring-accent" : "ring-line/50",
+        )}
+      >
         <Artwork src={track.art} fallback={track.thumb} className="aspect-square w-full transition-transform duration-300 group-hover:scale-[1.03]" />
-        <span className="absolute right-2 bottom-2 grid size-9 translate-y-1 place-items-center rounded-full bg-black/65 text-white opacity-0 backdrop-blur-md transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:opacity-100">
-          <PlayIcon size={16} weight="fill" />
-        </span>
+        {isCurrent ? (
+          <span className="absolute inset-x-1.5 bottom-1.5 flex items-center justify-between rounded-full bg-black/75 px-2.5 py-1 text-[10px] font-bold text-accent-text backdrop-blur-md">
+            <span>Playing</span>
+            <Equalizer live={isPlaying} />
+          </span>
+        ) : (
+          <span className="absolute right-2 bottom-2 grid size-9 translate-y-1 place-items-center rounded-full bg-black/65 text-white opacity-0 backdrop-blur-md transition-all duration-200 group-hover:translate-y-0 group-hover:opacity-100 group-focus-visible:opacity-100">
+            <PlayIcon size={16} weight="fill" />
+          </span>
+        )}
       </span>
       <span className="min-w-0 px-0.5">
-        <span className="block truncate text-[13px] font-medium tracking-tight text-fg">{track.title}</span>
+        <span className={cn("block truncate text-[13px] font-medium tracking-tight", isCurrent ? "text-accent-text" : "text-fg")}>
+          {track.title}
+        </span>
         <span className="block truncate text-xs text-fg-2">{track.artist}</span>
       </span>
     </button>
@@ -111,7 +141,6 @@ function ChartTrackCell({
         className="absolute inset-0 rounded-[10px] focus-visible:outline-offset-[-2px]"
       />
 
-      {/* Artwork with Apple Music hover play overlay */}
       <div className="pointer-events-none relative size-11 shrink-0 overflow-hidden rounded-[8px] shadow-xs">
         <Artwork src={track.thumb} className="size-full object-cover" />
         <span
@@ -124,7 +153,6 @@ function ChartTrackCell({
         </span>
       </div>
 
-      {/* Rank Number (Apple Music tabular chart numeral) */}
       <span
         className={cn(
           "pointer-events-none w-5 shrink-0 text-center text-[13px] font-semibold tabular-nums",
@@ -134,7 +162,6 @@ function ChartTrackCell({
         {rank}
       </span>
 
-      {/* Title & Artist */}
       <div className="pointer-events-none min-w-0 flex-1 border-b border-line/70 py-1.5 group-hover:border-transparent">
         <p className={cn("truncate text-[13.5px] leading-snug font-medium tracking-tight", isCurrent ? "text-accent-text" : "text-fg")}>
           {track.title}
@@ -145,7 +172,6 @@ function ChartTrackCell({
         </p>
       </div>
 
-      {/* Right metadata / hover actions */}
       <div className="relative z-10 flex shrink-0 items-center gap-0.5">
         <span className="pointer-events-none hidden pr-1 text-[11.5px] text-fg-2 tabular-nums sm:inline group-hover:hidden">
           {track.duration ? formatTime(track.duration) : ""}
@@ -186,32 +212,55 @@ function Top50Section() {
     }
   });
   const cacheKey = `${lang}:${region}`;
-  const [charts, setCharts] = useState<ChartsData | null>(() => chartsCache.get(cacheKey) ?? null);
+  const [charts, setCharts] = useState<ChartsData | null>(() => chartsCache.get(cacheKey)?.data ?? null);
   const [loading, setLoading] = useState(!charts);
+  const [refreshing, setRefreshing] = useState(false);
   const [tab, setTab] = useState<"global" | "trending">("global");
   const [expanded, setExpanded] = useState(false);
 
-  useEffect(() => {
-    const cached = chartsCache.get(cacheKey);
-    if (cached) {
-      setCharts(cached);
-      setLoading(false);
-      return;
-    }
-    const ctrl = new AbortController();
-    setLoading(true);
-    api
-      .charts(ctrl.signal, region)
-      .then((data) => {
-        chartsCache.set(cacheKey, data);
-        setCharts(data);
+  const fetchCharts = useCallback(
+    (force = false, signal?: AbortSignal) => {
+      const entry = chartsCache.get(cacheKey);
+      const isFresh = entry && Date.now() - entry.fetchedAt < CHARTS_TTL_MS;
+      if (entry) {
+        setCharts(entry.data);
         setLoading(false);
-      })
-      .catch(() => {
-        if (!ctrl.signal.aborted) setLoading(false);
-      });
-    return () => ctrl.abort();
-  }, [cacheKey, region]);
+      }
+      if (!force && isFresh) return;
+
+      if (entry) setRefreshing(true);
+      else setLoading(true);
+
+      api
+        .charts(signal, region)
+        .then((data) => {
+          chartsCache.set(cacheKey, { data, fetchedAt: Date.now() });
+          setCharts(data);
+          setLoading(false);
+          setRefreshing(false);
+        })
+        .catch(() => {
+          if (!signal?.aborted) {
+            setLoading(false);
+            setRefreshing(false);
+          }
+        });
+    },
+    [cacheKey, region],
+  );
+
+  useEffect(() => {
+    const ctrl = new AbortController();
+    fetchCharts(false, ctrl.signal);
+    const interval = setInterval(() => fetchCharts(true), CHARTS_TTL_MS);
+    const onFocus = () => fetchCharts(false);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      ctrl.abort();
+      clearInterval(interval);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [fetchCharts]);
 
   const activeTracks = (tab === "global" ? charts?.global : charts?.trending) ?? [];
   const defaultCount = 20;
@@ -229,14 +278,23 @@ function Top50Section() {
     <Section
       title={t.home.top50Title}
       action={
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => fetchCharts(true)}
+            title="Refresh live charts"
+            aria-label="Refresh live charts"
+            className="grid size-8 shrink-0 place-items-center rounded-full bg-surface-2 text-fg-2 ring-1 ring-line transition-colors hover:bg-surface-3 hover:text-fg active:scale-95"
+          >
+            <ArrowsClockwiseIcon size={14} className={cn(refreshing && "animate-spin text-accent-text")} />
+          </button>
           {activeTracks.length > 0 && (
             <button
               type="button"
               onClick={() => playList(activeTracks, 0)}
               aria-label={t.home.playTop50}
               title={t.home.playTop50}
-              className="flex items-center gap-1.5 h-8 px-3.5 rounded-full bg-accent text-accent-ink font-semibold text-xs whitespace-nowrap shadow-sm transition-transform hover:scale-105 active:scale-95 shrink-0"
+              className="flex h-8 shrink-0 items-center gap-1.5 rounded-full bg-accent px-3.5 text-xs font-semibold whitespace-nowrap text-accent-ink shadow-sm transition-transform hover:scale-105 active:scale-95"
             >
               <PlayIcon size={13} weight="fill" />
               <span>{t.home.playTop50}</span>
@@ -245,7 +303,7 @@ function Top50Section() {
           <div
             role="tablist"
             aria-label={t.home.top50Title}
-            className="flex items-center rounded-lg bg-surface-2 p-0.5 ring-1 ring-line shrink-0"
+            className="flex shrink-0 items-center rounded-lg bg-surface-2 p-0.5 ring-1 ring-line"
           >
             <button
               type="button"
@@ -312,7 +370,6 @@ function Top50Section() {
           <TrackListSkeleton rows={8} />
         ) : activeTracks.length > 0 ? (
           <div className="px-3 md:px-5">
-            {/* Responsive 1 to 5 Column Apple Music Chart Grid adapting to container width */}
             <div className="rounded-2xl bg-surface-1/90 p-1.5 ring-1 ring-line md:rounded-none md:bg-transparent md:p-0 md:ring-0">
               <ol className="grid grid-cols-1 gap-x-5 gap-y-0.5 @[500px]/home:grid-cols-2 @[780px]/home:grid-cols-3 @[1060px]/home:grid-cols-4 @[1360px]/home:grid-cols-5">
                 {visibleTracks.map((tr, i) => (
@@ -360,6 +417,13 @@ export default function Home() {
   const playList = usePlayer((s) => s.playList);
   const t = useT();
   const show = useAppearance();
+  const [hour, setHour] = useState(() => new Date().getHours());
+
+  useEffect(() => {
+    const id = setInterval(() => setHour(new Date().getHours()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   const empty = status === "ready" && !favorites.length && !playlists.length && !history.length && !offlineTracks.length;
 
   return (
@@ -368,7 +432,7 @@ export default function Home() {
 
       <div className="px-4 pt-2 pb-4 md:px-6 md:pt-4">
         <h1 className="text-2xl leading-tight font-bold tracking-tight md:text-[28px]">
-          {t.time.greeting(new Date().getHours())}
+          {t.time.greeting(hour)}
         </h1>
       </div>
 
@@ -383,9 +447,18 @@ export default function Home() {
                 label={t.nav.favorites}
                 tracks={favorites}
                 cover={
-                  <span className="grid size-full place-items-center bg-accent-soft text-accent-text">
-                    <HeartIcon size={22} weight="fill" />
-                  </span>
+                  favorites[0]?.thumb ? (
+                    <span className="relative block size-full">
+                      <Artwork src={favorites[0].thumb} className="size-full opacity-80" />
+                      <span className="absolute inset-0 grid place-items-center bg-black/35 text-accent-text">
+                        <HeartIcon size={18} weight="fill" />
+                      </span>
+                    </span>
+                  ) : (
+                    <span className="grid size-full place-items-center bg-accent-soft text-accent-text">
+                      <HeartIcon size={22} weight="fill" />
+                    </span>
+                  )
                 }
               />
               <Shortcut
@@ -403,9 +476,13 @@ export default function Home() {
                 label={t.nav.recentlyPlayed}
                 tracks={history}
                 cover={
-                  <span className="grid size-full place-items-center bg-surface-3 text-fg-2">
-                    <ClockCounterClockwiseIcon size={22} />
-                  </span>
+                  history[0]?.thumb ? (
+                    <Artwork src={history[0].thumb} className="size-full" />
+                  ) : (
+                    <span className="grid size-full place-items-center bg-surface-3 text-fg-2">
+                      <ClockCounterClockwiseIcon size={22} />
+                    </span>
+                  )
                 }
               />
               {playlists.slice(0, 5).map((p) => (
@@ -420,19 +497,7 @@ export default function Home() {
             </div>
           )}
 
-          <Top50Section />
-
-          <Section
-            title={t.home.curatedCollections}
-            action={
-              <Link to={paths.search} className="text-xs font-medium text-fg-2 hover:text-fg">
-                {t.home.seeAll}
-              </Link>
-            }
-          >
-            <MoodCollections />
-          </Section>
-
+          {/* Live Recently Played right near the top so every played track updates Home in real time */}
           {show.homeRecent && history.length > 0 && (
             <Section
               title={t.nav.recentlyPlayed}
@@ -449,6 +514,19 @@ export default function Home() {
               </div>
             </Section>
           )}
+
+          <Top50Section />
+
+          <Section
+            title={t.home.curatedCollections}
+            action={
+              <Link to={paths.search} className="text-xs font-medium text-fg-2 hover:text-fg">
+                {t.home.seeAll}
+              </Link>
+            }
+          >
+            <MoodCollections />
+          </Section>
 
           {show.homeFavorites && favorites.length > 0 && (
             <Section

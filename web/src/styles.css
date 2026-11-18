@@ -754,6 +754,92 @@ html[data-scene="grandline"] .app-tabbar {
   border-top: 1px solid rgba(192, 132, 252, 0.4);
 }
 
+/* Bainil Retro Cassette Recorder Palette */
+html[data-scene="cassette"] {
+  color-scheme: light;
+  --bg: #d6d1bf;
+  --surface-1: #e0dbca;
+  --surface-2: #d2ccb9;
+  --surface-3: #c5bfa9;
+  --surface-4: #b5ae96;
+  --line: rgb(55 58 64 / 0.22);
+  --line-strong: rgb(55 58 64 / 0.45);
+  --fg: #26292e;
+  --fg-2: #4a4f57;
+  --fg-3: #6c727c;
+}
+html[data-scene="cassette"] .island,
+html[data-scene="cassette"] .app-main,
+html[data-scene="cassette"] .app-miniplayer {
+  border: 1.5px solid rgba(45, 49, 56, 0.34);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    0 8px 24px rgba(45, 42, 32, 0.16);
+}
+html[data-scene="cassette"] .app-playerbar,
+html[data-scene="cassette"] .app-tabbar {
+  border-top: 1.5px solid rgba(45, 49, 56, 0.32);
+  background: color-mix(in srgb, #cfc9b6 88%, transparent);
+}
+
+/* Mirror Flame Dark Rotary Studio Console Palette */
+html[data-scene="mirrorflame"] {
+  color-scheme: dark;
+  --bg: #121316;
+  --surface-1: #181a1e;
+  --surface-2: #1f2227;
+  --surface-3: #282c33;
+  --surface-4: #333842;
+  --line: rgb(255 255 255 / 0.1);
+  --line-strong: rgb(255 122 0 / 0.48);
+  --fg: #f8fafc;
+  --fg-2: #a8b1bf;
+  --fg-3: #646e7d;
+}
+html[data-scene="mirrorflame"] .island,
+html[data-scene="mirrorflame"] .app-main,
+html[data-scene="mirrorflame"] .app-miniplayer {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 0 24px rgba(255, 115, 0, 0.05),
+    0 14px 36px rgba(0, 0, 0, 0.72);
+}
+html[data-scene="mirrorflame"] .app-playerbar,
+html[data-scene="mirrorflame"] .app-tabbar {
+  border-top: 1px solid rgba(255, 136, 0, 0.28);
+  box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.65);
+}
+
+/* Desert Topo Warm Sand Neumorphic Palette */
+html[data-scene="sandtopo"] {
+  color-scheme: light;
+  --bg: #dcc8a2;
+  --surface-1: #e4d3b2;
+  --surface-2: #d8c5a0;
+  --surface-3: #cbb68e;
+  --surface-4: #bca57a;
+  --line: rgb(92 77 51 / 0.18);
+  --line-strong: rgb(92 77 51 / 0.36);
+  --fg: #4b3d26;
+  --fg-2: #6d5b3d;
+  --fg-3: #8c7856;
+}
+html[data-scene="sandtopo"] .island,
+html[data-scene="sandtopo"] .app-main,
+html[data-scene="sandtopo"] .app-miniplayer {
+  border: 1px solid rgba(255, 248, 231, 0.55);
+  box-shadow:
+    -6px -6px 18px rgba(255, 247, 228, 0.48),
+    10px 12px 26px rgba(96, 77, 45, 0.22);
+}
+html[data-scene="sandtopo"] .app-playerbar,
+html[data-scene="sandtopo"] .app-tabbar {
+  border-top: 1px solid rgba(255, 248, 231, 0.52);
+  background: color-mix(in srgb, #e2d1b0 84%, transparent);
+  box-shadow: 0 -8px 22px rgba(96, 77, 45, 0.14);
+}
+
 /* Google Pixel Squiggly Progress Bar Wave Animation */
 @keyframes pixelWave {
   from {
