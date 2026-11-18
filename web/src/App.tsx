@@ -176,7 +176,7 @@ export default function App() {
             appRoutes
           )}
         </main>
-        {isMd && layoutTemplate !== "center-lyrics" && panelOpen && <SidePanel />}
+        {isMd && layoutTemplate !== "center-lyrics" && panelOpen && hasTrack && <SidePanel />}
       </div>
 
       {isMd ? (

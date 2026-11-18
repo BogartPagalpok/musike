@@ -10,13 +10,16 @@ import type { Genre, Track } from "../lib/types";
 import { usePlayer } from "../player/player";
 import { useLibrary } from "../stores/library";
 
-const ACCENT_VARS = [
-  "var(--c1, var(--accent))",
-  "var(--c2, var(--accent))",
-  "var(--c3, var(--accent))",
-  "var(--c4, var(--accent))",
-  "var(--c5, var(--accent))",
-  "var(--c6, var(--accent))",
+/** Solid matte editorial swatches (zero purple/indigo, contrast >= 7:1 with #f4f4f5 text). */
+const EDITORIAL_SWATCHES = [
+  "#143829", // Studio Forest
+  "#172f42", // Deep Atlantic
+  "#3d2219", // Roasted Terracotta
+  "#2f2b16", // Aged Olive
+  "#133436", // Deep Petrol
+  "#3b1921", // Oxblood Wine
+  "#232933", // Carbon Slate
+  "#382714", // Warm Umber
 ];
 
 function hashIndex(s: string, mod: number): number {
@@ -25,7 +28,6 @@ function hashIndex(s: string, mod: number): number {
   return h % mod;
 }
 
-/** Curated Mood & Vibe Mixes — Apple Music editorial cards with container-responsive layout. */
 export function MoodCollections({ compact = false }: { compact?: boolean }) {
   const t = useT();
   const navigate = useNavigate();
@@ -46,27 +48,20 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
           {
             key: "activity",
             genreId: undefined as string | undefined,
-            title: "Your Activity Mix",
-            sub: "Based on songs & artists you always play",
+            title: "Daily Mix",
             query: "",
           },
         ]
       : []),
-    { key: "chill", genreId: "ggMPOg1uX1JOQWZFeDByc2Jm", ...t.home.collections.chill },
-    {
-      key: "sad",
-      genreId: "ggMPOg1uX3NISTh4UmtWcFgz",
-      title: "Sad & Heartbreak",
-      sub: "Emotional ballads, acoustic & heartbreak songs",
-      query: "sad heartbreak emotional songs",
-    },
-    { key: "focus", genreId: "ggMPOg1uX0NvNGNhWThMYWRh", ...t.home.collections.focus },
-    { key: "energy", genreId: "ggMPOg1uXzIxYkNac21YZ2Z0", ...t.home.collections.energy },
-    { key: "feelGood", genreId: "ggMPOg1uXzZQbDB5eThLRTQ3", ...t.home.collections.feelGood },
-    { key: "lateNight", genreId: "ggMPOg1uX2JxQ2hxc2J5UFhR", ...t.home.collections.lateNight },
-    { key: "party", genreId: "ggMPOg1uX2w1aW1CRDFTSUNo", ...t.home.collections.party },
-    { key: "romance", genreId: "ggMPOg1uX1JCQnB2QXVYVEIz", ...t.home.collections.romance },
-    { key: "throwback", genreId: "ggMPOg1uX1F0bWVKNFlyWG9I", ...t.home.collections.throwback },
+    { key: "chill", genreId: "ggMPOg1uX1JOQWZFeDByc2Jm", title: t.home.collections.chill.title, query: t.home.collections.chill.query },
+    { key: "sad", genreId: "ggMPOg1uX3NISTh4UmtWcFgz", title: "Sad & Acoustic", query: "sad heartbreak emotional songs" },
+    { key: "focus", genreId: "ggMPOg1uX0NvNGNhWThMYWRh", title: t.home.collections.focus.title, query: t.home.collections.focus.query },
+    { key: "energy", genreId: "ggMPOg1uXzIxYkNac21YZ2Z0", title: t.home.collections.energy.title, query: t.home.collections.energy.query },
+    { key: "feelGood", genreId: "ggMPOg1uXzZQbDB5eThLRTQ3", title: t.home.collections.feelGood.title, query: t.home.collections.feelGood.query },
+    { key: "lateNight", genreId: "ggMPOg1uX2JxQ2hxc2J5UFhR", title: t.home.collections.lateNight.title, query: t.home.collections.lateNight.query },
+    { key: "party", genreId: "ggMPOg1uX2w1aW1CRDFTSUNo", title: t.home.collections.party.title, query: t.home.collections.party.query },
+    { key: "romance", genreId: "ggMPOg1uX1JCQnB2QXVYVEIz", title: t.home.collections.romance.title, query: t.home.collections.romance.query },
+    { key: "throwback", genreId: "ggMPOg1uX1F0bWVKNFlyWG9I", title: t.home.collections.throwback.title, query: t.home.collections.throwback.query },
   ];
 
   const handlePlayMix = async (key: string, genreId: string | undefined, query: string, e: React.MouseEvent) => {
@@ -115,10 +110,10 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
 
   return (
     <div className={cn("@container", !compact && "px-4 md:px-6")}>
-      <div className="grid grid-cols-2 gap-2.5 @[620px]:grid-cols-4">
-        {cards.map(({ key, genreId, title, sub, query }, idx) => {
+      <div className="grid grid-cols-2 gap-3 @[620px]:grid-cols-3 @[960px]:grid-cols-5">
+        {cards.map(({ key, genreId, title, query }, idx) => {
           const busy = loadingKey === key;
-          const tone = ACCENT_VARS[idx % ACCENT_VARS.length]!;
+          const swatch = EDITORIAL_SWATCHES[idx % EDITORIAL_SWATCHES.length]!;
           const targetUrl = genreId ? `${paths.genre(genreId)}?view=songs` : `${paths.search}?q=${encodeURIComponent(query)}`;
           const openCard = (e: React.MouseEvent) => {
             if (key === "activity") {
@@ -130,34 +125,31 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
           return (
             <article
               key={key}
-              style={{
-                backgroundImage: `radial-gradient(circle at 100% 0%, color-mix(in srgb, ${tone} 18%, transparent), transparent 65%)`,
-              }}
-              className="group relative flex flex-col justify-between gap-2 overflow-hidden rounded-[12px] bg-surface-2 p-3.5 text-left ring-1 ring-line transition-colors duration-150 hover:bg-surface-3 hover:ring-line-strong"
+              style={{ backgroundColor: swatch }}
+              className="group relative flex h-24 flex-col justify-between overflow-hidden rounded-lg p-3.5 text-left transition-[filter] duration-150 hover:brightness-110"
             >
               <button
                 type="button"
                 onClick={openCard}
                 aria-label={title}
-                className="absolute inset-0 rounded-[12px] focus-visible:outline-offset-[-2px]"
+                className="absolute inset-0 cursor-pointer rounded-lg focus-visible:outline-offset-[-2px]"
               />
-              <div className="flex items-start justify-end">
+              <p className="pointer-events-none relative z-10 line-clamp-2 text-[15px] leading-snug font-bold tracking-tight text-[#f4f4f5]">
+                {title}
+              </p>
+              <div className="flex justify-end">
                 <button
                   type="button"
                   onClick={(e) => handlePlayMix(key, genreId, query, e)}
                   aria-label={t.home.playMix(title)}
                   title={t.home.playMix(title)}
                   className={cn(
-                    "relative z-10 grid size-7 shrink-0 place-items-center rounded-full bg-accent text-accent-ink shadow-xs transition-[opacity,filter,transform] duration-150 hover:brightness-105 active:scale-95",
+                    "relative z-10 grid size-8 shrink-0 cursor-pointer place-items-center rounded-full bg-[#f4f4f5] text-[#09090b] shadow-sm transition-opacity duration-150 active:scale-95",
                     busy ? "animate-pulse opacity-100" : "opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100",
                   )}
                 >
-                  <PlayIcon size={13} weight="fill" />
+                  <PlayIcon size={14} weight="fill" />
                 </button>
-              </div>
-              <div className="pointer-events-none relative z-10 min-w-0">
-                <p className="truncate text-[13.5px] font-semibold tracking-tight text-fg">{title}</p>
-                <p className="mt-0.5 line-clamp-1 text-[11.5px] text-fg-2">{sub}</p>
               </div>
             </article>
           );
@@ -167,7 +159,6 @@ export function MoodCollections({ compact = false }: { compact?: boolean }) {
   );
 }
 
-/** Apple Music-style category tiles for Moods & Moments and Genres & Styles (container-responsive). */
 export function BrowseAllGrid({ compact = false, limit }: { compact?: boolean; limit?: number }) {
   const lang = useI18n((s) => s.lang);
   const t = useT();
@@ -176,9 +167,9 @@ export function BrowseAllGrid({ compact = false, limit }: { compact?: boolean; l
   if (genres.status === "loading") {
     return (
       <div aria-label={t.common.loading} className={cn("@container", !compact && "px-4 md:px-6")}>
-        <div className="grid grid-cols-2 gap-2.5 @[520px]:grid-cols-3 @[780px]:grid-cols-4 @[1080px]:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 @[520px]:grid-cols-3 @[780px]:grid-cols-4 @[1080px]:grid-cols-6">
           {Array.from({ length: limit ?? 12 }, (_, i) => (
-            <span key={i} className="skeleton h-13 rounded-[11px]" />
+            <span key={i} className="skeleton h-20 rounded-lg" />
           ))}
         </div>
       </div>
@@ -189,7 +180,7 @@ export function BrowseAllGrid({ compact = false, limit }: { compact?: boolean; l
     return (
       <p className={cn("text-sm text-fg-2", !compact && "px-4 md:px-6")}>
         {genres.message}{" "}
-        <button type="button" onClick={genres.retry} className="font-medium text-fg underline-offset-2 hover:underline">
+        <button type="button" onClick={genres.retry} className="cursor-pointer font-medium text-fg underline-offset-2 hover:underline">
           {t.common.retry}
         </button>
       </p>
@@ -201,7 +192,7 @@ export function BrowseAllGrid({ compact = false, limit }: { compact?: boolean; l
     const items = all.slice(0, limit);
     return (
       <div className={cn("@container", !compact && "px-4 md:px-6")}>
-        <div className="grid grid-cols-2 gap-2.5 @[520px]:grid-cols-3 @[780px]:grid-cols-4 @[1080px]:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 @[520px]:grid-cols-3 @[780px]:grid-cols-4 @[1080px]:grid-cols-6">
           {items.map((g) => (
             <CategoryTile key={g.id} genre={g} />
           ))}
@@ -216,9 +207,9 @@ export function BrowseAllGrid({ compact = false, limit }: { compact?: boolean; l
   return (
     <div className={cn("@container flex flex-col gap-7", !compact && "px-4 md:px-6")}>
       {moods.length > 0 && (
-        <div className="flex flex-col gap-2.5">
-          <h3 className="text-sm font-semibold tracking-tight text-fg-2">{t.search.moodsSection}</h3>
-          <div className="grid grid-cols-2 gap-2.5 @[520px]:grid-cols-3 @[780px]:grid-cols-4 @[1040px]:grid-cols-5">
+        <div className="flex flex-col gap-3">
+          <h3 className="text-base font-bold tracking-tight text-fg">{t.search.moodsSection}</h3>
+          <div className="grid grid-cols-2 gap-3 @[520px]:grid-cols-3 @[780px]:grid-cols-4 @[1040px]:grid-cols-5">
             {moods.map((g) => (
               <CategoryTile key={g.id} genre={g} />
             ))}
@@ -227,9 +218,9 @@ export function BrowseAllGrid({ compact = false, limit }: { compact?: boolean; l
       )}
 
       {styles.length > 0 && (
-        <div className="flex flex-col gap-2.5">
-          <h3 className="text-sm font-semibold tracking-tight text-fg-2">{t.search.genresSection}</h3>
-          <div className="grid grid-cols-2 gap-2.5 @[520px]:grid-cols-3 @[780px]:grid-cols-4 @[1040px]:grid-cols-5">
+        <div className="flex flex-col gap-3">
+          <h3 className="text-base font-bold tracking-tight text-fg">{t.search.genresSection}</h3>
+          <div className="grid grid-cols-2 gap-3 @[520px]:grid-cols-3 @[780px]:grid-cols-4 @[1040px]:grid-cols-5">
             {styles.map((g) => (
               <CategoryTile key={g.id} genre={g} />
             ))}
@@ -241,23 +232,19 @@ export function BrowseAllGrid({ compact = false, limit }: { compact?: boolean; l
 }
 
 function CategoryTile({ genre }: { genre: Genre }) {
-  const tone = ACCENT_VARS[hashIndex(genre.id, ACCENT_VARS.length)]!;
+  const swatch = EDITORIAL_SWATCHES[hashIndex(genre.id, EDITORIAL_SWATCHES.length)]!;
   return (
     <Link
       to={genre.kind === "mood" ? `${paths.genre(genre.id)}?view=songs` : paths.genre(genre.id)}
       state={{ name: genre.name }}
-      style={{
-        backgroundImage: `linear-gradient(135deg, color-mix(in srgb, ${tone} 16%, transparent), transparent 65%)`,
-      }}
-      className="group relative flex h-13 items-center gap-2.5 overflow-hidden rounded-[11px] bg-surface-2 px-3.5 text-fg ring-1 ring-line transition-colors duration-150 hover:bg-surface-3"
+      style={{ backgroundColor: swatch }}
+      className="group relative flex h-20 items-start overflow-hidden rounded-lg p-3.5 text-[#f4f4f5] transition-[filter] duration-150 hover:brightness-110"
     >
-      <span style={{ backgroundColor: tone }} className="h-5 w-1 shrink-0 rounded-full opacity-85 transition-opacity duration-150 group-hover:opacity-100" />
-      <span className="truncate text-[13px] font-semibold tracking-tight">{genre.name}</span>
+      <span className="line-clamp-2 text-[14.5px] leading-snug font-bold tracking-tight">{genre.name}</span>
     </Link>
   );
 }
 
-/** YouTube Music's mood & genre list as chips; each opens the category's artists and songs. */
 export function GenrePanel({ id }: { id: string }) {
   const lang = useI18n((s) => s.lang);
   const t = useT();
@@ -268,11 +255,11 @@ export function GenrePanel({ id }: { id: string }) {
   const styles = list.filter((g) => g.kind !== "mood");
 
   return (
-    <div id={id} className="rounded-[16px] bg-surface-2 p-3.5">
+    <div id={id} className="rounded-lg bg-surface-2 p-3.5">
       {genres.status === "loading" && (
         <div aria-label={t.common.loading} className="flex flex-wrap gap-2">
           {Array.from({ length: 14 }, (_, i) => (
-            <span key={i} className="skeleton h-9 rounded-full" style={{ width: `${64 + ((i * 23) % 56)}px` }} />
+            <span key={i} className="skeleton h-8 rounded-md" style={{ width: `${64 + ((i * 23) % 56)}px` }} />
           ))}
         </div>
       )}
@@ -280,7 +267,7 @@ export function GenrePanel({ id }: { id: string }) {
       {genres.status === "error" && (
         <p className="px-1 text-sm text-fg-2">
           {genres.message}{" "}
-          <button type="button" onClick={genres.retry} className="font-medium text-fg underline-offset-2 hover:underline">
+          <button type="button" onClick={genres.retry} className="cursor-pointer font-medium text-fg underline-offset-2 hover:underline">
             {t.common.retry}
           </button>
         </p>
@@ -290,14 +277,14 @@ export function GenrePanel({ id }: { id: string }) {
         <div className="flex flex-col gap-4">
           {moods.length > 0 && (
             <div>
-              <p className="mb-2 px-1 text-xs font-semibold tracking-wider text-fg-2 uppercase">{t.search.moodsSection}</p>
-              <ul className="flex flex-wrap gap-2">
+              <p className="mb-2 px-1 text-xs font-semibold text-fg-2">{t.search.moodsSection}</p>
+              <ul className="flex flex-wrap gap-1.5">
                 {moods.map((g) => (
                   <li key={g.id}>
                     <Link
                       to={`${paths.genre(g.id)}?view=songs`}
                       state={{ name: g.name }}
-                      className="block h-9 rounded-full bg-surface-3 px-4 text-sm leading-9 transition-colors hover:bg-surface-4"
+                      className="block h-8 rounded-md bg-surface-3 px-3 text-xs font-medium leading-8 transition-colors duration-150 hover:bg-surface-4"
                     >
                       {g.name}
                     </Link>
@@ -308,14 +295,14 @@ export function GenrePanel({ id }: { id: string }) {
           )}
           {styles.length > 0 && (
             <div>
-              <p className="mb-2 px-1 text-xs font-semibold tracking-wider text-fg-2 uppercase">{t.search.genresSection}</p>
-              <ul className="flex flex-wrap gap-2">
+              <p className="mb-2 px-1 text-xs font-semibold text-fg-2">{t.search.genresSection}</p>
+              <ul className="flex flex-wrap gap-1.5">
                 {styles.map((g) => (
                   <li key={g.id}>
                     <Link
                       to={`${paths.genre(g.id)}?view=songs`}
                       state={{ name: g.name }}
-                      className="block h-9 rounded-full bg-surface-3 px-4 text-sm leading-9 transition-colors hover:bg-surface-4"
+                      className="block h-8 rounded-md bg-surface-3 px-3 text-xs font-medium leading-8 transition-colors duration-150 hover:bg-surface-4"
                     >
                       {g.name}
                     </Link>

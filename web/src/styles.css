@@ -17,44 +17,44 @@
 :root,
 [data-theme="dark"] {
   color-scheme: dark;
-  --bg: #0b0c0f;
-  --surface-1: #13151c;
-  --surface-2: #1c1f29;
-  --surface-3: #252936;
-  --surface-4: #303545;
-  --line: rgb(255 255 255 / 0.15);
-  --line-strong: rgb(255 255 255 / 0.25);
-  --fg: #f5f7fa;
-  --fg-2: #b8bfcc;
-  --fg-3: #9098a8;
-  --accent: #c3ec52;
-  --accent-ink: #0b0c0f;
-  --accent-text: #c3ec52;
-  --accent-soft: rgb(195 236 82 / 0.14);
-  --highlight: rgb(255 255 255 / 0.08);
-  --scrim: rgb(5 6 8 / 0.76);
-  --danger: #ff7a6b;
+  --bg: #09090b;
+  --surface-1: #111113;
+  --surface-2: #18181b;
+  --surface-3: #222226;
+  --surface-4: #2e2e34;
+  --line: rgb(255 255 255 / 0.08);
+  --line-strong: rgb(255 255 255 / 0.16);
+  --fg: #f4f4f5;
+  --fg-2: #a1a1aa;
+  --fg-3: #71717a;
+  --accent: #1ed760;
+  --accent-ink: #050a06;
+  --accent-text: #22c55e;
+  --accent-soft: rgb(34 197 94 / 0.14);
+  --highlight: rgb(255 255 255 / 0.06);
+  --scrim: rgb(5 5 7 / 0.78);
+  --danger: #ef4444;
 }
 
 [data-theme="light"] {
   color-scheme: light;
-  --bg: #e9ebef;
+  --bg: #f4f4f5;
   --surface-1: #ffffff;
-  --surface-2: #f4f5f8;
-  --surface-3: #e4e7ec;
-  --surface-4: #d3d8e0;
-  --line: rgb(15 18 25 / 0.12);
-  --line-strong: rgb(15 18 25 / 0.2);
-  --fg: #0f1117;
-  --fg-2: #414754;
-  --fg-3: #5d6473;
-  --accent: #c3ec52;
-  --accent-ink: #0b0c0f;
-  --accent-text: #455c00;
-  --accent-soft: rgb(110 150 0 / 0.14);
-  --highlight: rgb(255 255 255 / 0.85);
-  --scrim: rgb(20 22 28 / 0.48);
-  --danger: #c4372a;
+  --surface-2: #f4f4f6;
+  --surface-3: #e4e4e7;
+  --surface-4: #d4d4d8;
+  --line: rgb(24 24 27 / 0.09);
+  --line-strong: rgb(24 24 27 / 0.18);
+  --fg: #09090b;
+  --fg-2: #52525b;
+  --fg-3: #71717a;
+  --accent: #15803d;
+  --accent-ink: #ffffff;
+  --accent-text: #15803d;
+  --accent-soft: rgb(22 163 74 / 0.12);
+  --highlight: rgb(255 255 255 / 0.9);
+  --scrim: rgb(24 24 27 / 0.45);
+  --danger: #dc2626;
 }
 
 [data-theme="oled"] {
@@ -398,7 +398,7 @@ html:is([data-theme="synthwave"], [data-theme="candy"], [data-theme="arcade"], [
     --color-accent-soft: var(--accent-soft);
     --color-scrim: var(--scrim);
     --color-danger: var(--danger);
-    --font-display: "Bricolage Grotesque", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Variable", system-ui, sans-serif;
+    --font-display: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Variable", system-ui, sans-serif;
     --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
     --font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
     --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);

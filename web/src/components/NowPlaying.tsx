@@ -347,17 +347,28 @@ export function SidePanel() {
           </div>
         ) : (
           <>
-            <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b border-line/60 px-3">
+            <div className="flex h-13 shrink-0 items-center justify-between gap-1 border-b border-line/60 px-3">
               <PanelTabs tab={tab} onTab={openPanel} />
-              <button
-                type="button"
-                onClick={toggleCollapse}
-                title="Collapse right sidebar"
-                aria-label="Collapse right sidebar"
-                className="grid size-8 shrink-0 place-items-center rounded-lg text-fg-2 transition-colors hover:bg-surface-3 hover:text-fg"
-              >
-                <SidebarSimpleIcon size={17} mirrored weight="regular" />
-              </button>
+              <div className="flex shrink-0 items-center gap-0.5">
+                <button
+                  type="button"
+                  onClick={toggleCollapse}
+                  title="Collapse right sidebar"
+                  aria-label="Collapse right sidebar"
+                  className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-md text-fg-2 transition-colors duration-150 hover:bg-surface-3 hover:text-fg"
+                >
+                  <SidebarSimpleIcon size={16} mirrored weight="regular" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => useUi.getState().setPanelDocked(false)}
+                  title={t.common.close}
+                  aria-label={t.common.close}
+                  className="grid size-8 shrink-0 cursor-pointer place-items-center rounded-md text-fg-2 transition-colors duration-150 hover:bg-surface-3 hover:text-fg"
+                >
+                  <XIcon size={16} weight="regular" />
+                </button>
+              </div>
             </div>
             <div className={cn("scroll-area min-h-0 flex-1 px-2 pt-2", tab === "lyrics" ? "flex flex-col overflow-hidden" : "overflow-y-auto")}>
               <PanelBody tab={tab} slot={SLOT.panel} />

@@ -27,16 +27,16 @@ export const DEFAULT_APPEARANCE: Appearance = {
   sidebarPlaylists: true,
   compactSidebar: false,
   sidebarExpanded: true,
-  sidebarWidth: 280,
+  sidebarWidth: 248,
   sidebarTab: "browse",
-  rightPanelWidth: 340,
+  rightPanelWidth: 332,
   rightPanelCollapsed: false,
   albumColumn: true,
-  texture: true,
+  texture: false,
   homeShortcuts: true,
   homeRecent: true,
   homeFavorites: true,
-  layoutTemplate: "center-lyrics",
+  layoutTemplate: "default",
 };
 
 /** Ready-made accents. "volt" is Musike's own. */
@@ -79,16 +79,21 @@ export function cleanAppearance(input: unknown): Appearance {
   return out;
 }
 
-const HOME_DEFAULTS_V2 = "musike:home-defaults-v2";
+const STUDIO_CLEAN_V3 = "musike:studio-clean-v3";
 
 function read(): Appearance {
   try {
     const parsed = cleanAppearance(JSON.parse(localStorage.getItem(KEY) ?? "{}"));
-    if (localStorage.getItem(HOME_DEFAULTS_V2) !== "1") {
-      parsed.homeShortcuts = false;
-      parsed.homeRecent = false;
-      parsed.homeFavorites = false;
-      localStorage.setItem(HOME_DEFAULTS_V2, "1");
+    if (localStorage.getItem(STUDIO_CLEAN_V3) !== "1") {
+      parsed.layoutTemplate = "default";
+      parsed.sidebarWidth = 248;
+      parsed.sidebarTab = "browse";
+      parsed.texture = false;
+      parsed.homeShortcuts = true;
+      parsed.homeRecent = true;
+      parsed.homeFavorites = true;
+      if (parsed.accent === "#c3ec52") parsed.accent = DEFAULT_ACCENT;
+      localStorage.setItem(STUDIO_CLEAN_V3, "1");
     }
     return parsed;
   } catch {

@@ -18,16 +18,16 @@ function Entry({ to, name, kind, tracks, sub }: { to: string; name: string; kind
     <li>
       <Link
         to={to}
-        className="group flex items-center gap-3.5 rounded-[14px] bg-surface-2/90 p-2.5 ring-1 ring-line transition-colors hover:bg-surface-3 @[460px]:flex-col @[460px]:items-stretch @[460px]:bg-transparent @[460px]:p-3 @[460px]:ring-0 @[460px]:hover:bg-surface-2"
+        className="group flex items-center gap-3.5 rounded-lg bg-surface-2 p-2.5 transition-colors duration-150 hover:bg-surface-3 @[460px]:flex-col @[460px]:items-stretch @[460px]:bg-transparent @[460px]:p-3 @[460px]:hover:bg-surface-2"
       >
         <Cover
           kind={kind}
           tracks={tracks}
           iconSize={26}
-          className="size-14 shrink-0 rounded-[11px] @[460px]:aspect-square @[460px]:size-auto @[460px]:w-full @[460px]:rounded-[14px] @[460px]:shadow-[0_12px_32px_rgb(0_0_0/0.3)]"
+          className="size-14 shrink-0 rounded-md @[460px]:aspect-square @[460px]:size-auto @[460px]:w-full @[460px]:rounded-lg"
         />
         <span className="min-w-0 flex-1">
-          <span className="block truncate font-semibold text-[14.5px] text-fg leading-snug">{name}</span>
+          <span className="block truncate font-semibold text-[14px] text-fg leading-snug">{name}</span>
           <span className="block truncate text-xs text-fg-2 mt-0.5 leading-snug">{sub}</span>
         </span>
       </Link>
@@ -56,9 +56,9 @@ export default function Library() {
           <button
             type="button"
             onClick={() => setCreating(true)}
-            className="flex h-9 items-center gap-1.5 rounded-full bg-accent pr-3.5 pl-3 text-xs font-semibold text-accent-ink transition-transform active:scale-[0.97]"
+            className="flex h-8 cursor-pointer items-center gap-1.5 rounded-md bg-fg px-3 text-xs font-semibold text-bg transition-opacity duration-150 hover:opacity-90 active:scale-[0.97]"
           >
-            <PlusIcon size={16} weight="bold" /> <span className="hidden sm:inline">{t.nav.newPlaylist}</span>
+            <PlusIcon size={15} weight="bold" /> <span className="hidden sm:inline">{t.nav.newPlaylist}</span>
             <span className="sm:hidden">{t.library.newShort}</span>
           </button>
           </>
@@ -69,7 +69,7 @@ export default function Library() {
         <Entry to={paths.favorites} name={t.nav.favorites} kind="favorites" tracks={favorites} sub={t.common.tracks(favorites.length)} />
         <Entry to={paths.downloads} name={t.nav.downloads} kind="downloads" tracks={offlineTracks} sub={t.common.tracks(offlineTracks.length)} />
         <Entry to={paths.device} name={t.device.title} kind="device" tracks={deviceTracks} sub={t.common.tracks(deviceTracks.length)} />
-        <Entry to={paths.themes} name={t.nav.themes} kind="themes" tracks={[]} sub="Custom player & backdrops" />
+        <Entry to={paths.themes} name={t.nav.themes} kind="themes" tracks={[]} sub="Skins & appearance" />
         <Entry to={paths.history} name={t.nav.recentlyPlayed} kind="history" tracks={history} sub={t.common.tracks(history.length)} />
         {playlists.map((p) => (
           <Entry

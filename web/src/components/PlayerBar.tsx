@@ -20,38 +20,52 @@ export function PlayerBar() {
   const equalizerOpen = useUi((s) => s.equalizerOpen);
   const setEqualizerOpen = useUi((s) => s.setEqualizerOpen);
   const setShortcutsOpen = useUi((s) => s.setShortcutsOpen);
+  const panelOpen = useUi((s) => s.panelOpen);
+  const drawerOpen = useUi((s) => s.drawerOpen);
+  const panelTab = useUi((s) => s.panelTab);
+  const togglePanel = useUi((s) => s.togglePanel);
+  const layoutTemplate = useAppearance((s) => s.layoutTemplate);
   const sidebarTab = useAppearance((s) => s.sidebarTab);
   const compactSidebar = useAppearance((s) => s.compactSidebar);
   const setAppearance = useAppearance((s) => s.set);
   const isVideoke = useIsVideokeTrack();
 
-  const toggleSidebarTab = (tab: "lyrics" | "playing") => {
-    if (compactSidebar) {
-      setAppearance({ compactSidebar: false, sidebarTab: tab });
-    } else if (sidebarTab === tab) {
-      setAppearance({ sidebarTab: "browse" });
-    } else {
-      setAppearance({ sidebarTab: tab });
+  const isStageMode = layoutTemplate === "center-lyrics";
+  const inspectorOpen = isStageMode ? !compactSidebar : (panelOpen || drawerOpen) && !!track;
+  const activeTab = isStageMode ? sidebarTab : panelTab;
+
+  const toggleInspector = (tab: "lyrics" | "playing") => {
+    if (isStageMode) {
+      if (compactSidebar) setAppearance({ compactSidebar: false, sidebarTab: tab });
+      else if (sidebarTab === tab) setAppearance({ sidebarTab: "browse" });
+      else setAppearance({ sidebarTab: tab });
+      return;
     }
+    if (useAppearance.getState().rightPanelCollapsed) {
+      setAppearance({ rightPanelCollapsed: false });
+      useUi.getState().openPanel(tab);
+      return;
+    }
+    togglePanel(tab);
   };
 
   return (
     <footer aria-label="Player controls" className="app-playerbar relative z-[2] shrink-0 border-t border-line bg-bg">
-      <div className="grid h-[100px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-5 px-4 py-2">
-        <div className="flex min-w-0 items-center gap-3.5">
+      <div className="grid h-[84px] grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-4 px-4">
+        <div className="flex min-w-0 items-center gap-3">
           {track ? (
             <>
               <button
                 type="button"
-                onClick={() => toggleSidebarTab("playing")}
+                onClick={() => toggleInspector("playing")}
                 aria-label={t.player.showNowPlaying}
-                className="group relative shrink-0 rounded-[10px] transition-transform active:scale-[0.96]"
+                className="group relative shrink-0 cursor-pointer rounded-md transition-opacity duration-150 hover:opacity-90 active:scale-[0.97]"
               >
-                <Artwork src={track.thumb} className="size-16 rounded-[10px] shadow-md" />
+                <Artwork src={track.thumb} className="size-13 rounded-md" />
               </button>
               <div className="min-w-0">
-                <p className="truncate text-[15px] font-semibold tracking-tight">{track.title}</p>
-                <p className={cn("truncate text-[13px] mt-0.5", status === "error" ? "text-danger" : "text-fg-2")}>
+                <p className="truncate text-[14px] font-medium text-fg leading-snug">{track.title}</p>
+                <p className={cn("truncate text-[12.5px] leading-snug", status === "error" ? "text-danger" : "text-fg-2")}>
                   {statusText ?? track.artist}
                 </p>
               </div>
@@ -59,17 +73,17 @@ export function PlayerBar() {
               <OfflineButton track={track} size="sm" />
             </>
           ) : (
-            <p className="truncate pl-1 text-sm text-fg-3">{t.player.nothingPlaying}</p>
+            <p className="truncate pl-1 text-[13px] text-fg-3">{t.player.nothingPlaying}</p>
           )}
         </div>
 
-        <div className="flex w-[min(48vw,640px)] flex-col items-center gap-2">
+        <div className="flex w-[min(46vw,600px)] flex-col items-center gap-1.5">
           <Transport />
           <Scrubber className="w-full" />
         </div>
 
-        <div className="flex items-center justify-end gap-1">
-          <ModeSwitch className="max-xl:hidden" />
+        <div className="flex items-center justify-end gap-0.5">
+          <ModeSwitch className="max-xl:hidden mr-1" />
           <IconButton
             label={t.player.equalizer}
             size="sm"
@@ -82,19 +96,19 @@ export function PlayerBar() {
             <IconButton
               label={t.nowPlaying.tabLyrics}
               size="sm"
-              active={!compactSidebar && sidebarTab === "lyrics"}
-              onClick={() => toggleSidebarTab("lyrics")}
+              active={inspectorOpen && activeTab === "lyrics"}
+              onClick={() => toggleInspector("lyrics")}
             >
-              <MicrophoneStageIcon size={18} weight={!compactSidebar && sidebarTab === "lyrics" ? "fill" : "regular"} />
+              <MicrophoneStageIcon size={18} weight={inspectorOpen && activeTab === "lyrics" ? "fill" : "regular"} />
             </IconButton>
           )}
           <IconButton
             label={`${t.nowPlaying.tabPlaying} & ${t.player.queue}`}
             size="sm"
-            active={!compactSidebar && sidebarTab === "playing"}
-            onClick={() => toggleSidebarTab("playing")}
+            active={inspectorOpen && activeTab === "playing"}
+            onClick={() => toggleInspector("playing")}
           >
-            <QueueIcon size={18} weight={!compactSidebar && sidebarTab === "playing" ? "bold" : "regular"} />
+            <QueueIcon size={18} weight={inspectorOpen && activeTab === "playing" ? "bold" : "regular"} />
           </IconButton>
           <Volume className="max-lg:hidden" />
           <IconButton label={t.player.shortcuts} size="sm" onClick={() => setShortcutsOpen(true)} className="max-xl:hidden">

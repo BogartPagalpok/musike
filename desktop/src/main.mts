@@ -43,8 +43,8 @@ const loadServer = async () => ({
 });
 
 const THEME: Record<string, { color: string; symbolColor: string }> = {
-  dark: { color: "#0B0C0F", symbolColor: "#ECEEF2" },
-  light: { color: "#E9EBEF", symbolColor: "#12141A" },
+  dark: { color: "#09090b", symbolColor: "#f4f4f5" },
+  light: { color: "#fafafa", symbolColor: "#18181b" },
   oled: { color: "#000000", symbolColor: "#F2F4F8" },
   midnight: { color: "#070B14", symbolColor: "#E8EEF9" },
   rose: { color: "#130A12", symbolColor: "#F5E9F3" },

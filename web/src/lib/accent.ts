@@ -36,8 +36,8 @@ export interface ThemeMeta {
 }
 
 export const THEMES: readonly ThemeMeta[] = [
-  { id: "dark", scheme: "dark", bg: "#0b0c0f", surface1: "#121318", surface2: "#181a20", fg: "#eceef2", surfaceRgb: [0x18, 0x1a, 0x20] },
-  { id: "light", scheme: "light", bg: "#e9ebef", surface1: "#ffffff", surface2: "#f2f3f6", fg: "#12141a", surfaceRgb: [0xf2, 0xf3, 0xf6] },
+  { id: "dark", scheme: "dark", bg: "#09090b", surface1: "#111113", surface2: "#18181b", fg: "#f4f4f5", surfaceRgb: [0x18, 0x18, 0x1b] },
+  { id: "light", scheme: "light", bg: "#f4f4f5", surface1: "#ffffff", surface2: "#f4f4f6", fg: "#09090b", surfaceRgb: [0xf4, 0xf4, 0xf6] },
   { id: "oled", scheme: "dark", bg: "#000000", surface1: "#08090c", surface2: "#101217", fg: "#f2f4f8", surfaceRgb: [0x10, 0x12, 0x17] },
   { id: "midnight", scheme: "dark", bg: "#070b14", surface1: "#0d1322", surface2: "#131b2e", fg: "#e8eef9", surfaceRgb: [0x13, 0x1b, 0x2e] },
   { id: "rose", scheme: "dark", bg: "#130a12", surface1: "#1c101b", surface2: "#261624", fg: "#f5e9f3", surfaceRgb: [0x26, 0x16, 0x24] },
@@ -138,7 +138,7 @@ export const getThemeMeta = (id: string): ThemeMeta =>
 const WHITE: Rgb = [255, 255, 255];
 const BLACK: Rgb = [0, 0, 0];
 
-export const DEFAULT_ACCENT = "#c3ec52";
+export const DEFAULT_ACCENT = "#1ed760";
 
 export const isHex = (v: unknown): v is string => typeof v === "string" && /^#[0-9a-f]{6}$/i.test(v);
 

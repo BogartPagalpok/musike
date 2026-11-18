@@ -48,7 +48,7 @@ const SCENE_FRAME_STYLE: Record<SceneStyle, string> = {
   none: "border-white/15 rounded-lg bg-black/35",
   shinobi: "border-yellow-400/55 rounded-lg bg-[#0b0d14]/75 shadow-[0_0_18px_rgba(250,204,21,0.18)]",
   akatsuki: "border-red-500/60 rounded-lg bg-[#070203]/75 shadow-[0_0_20px_rgba(239,68,68,0.22)]",
-  grandline: "border-[#c084fc]/60 rounded-lg bg-[#090612]/80 shadow-[0_0_18px_rgba(192,132,252,0.22)]",
+  grandline: "border-amber-400/55 rounded-lg bg-[#0c0a06]/85 shadow-[0_0_18px_rgba(245,158,11,0.2)]",
   cassette: "border-[#3c4046]/55 rounded-lg bg-[#e8e3d5]/85 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]",
   mirrorflame: "border-orange-500/55 rounded-lg bg-[#16181d]/88 shadow-[0_0_18px_rgba(255,122,0,0.22)]",
   sandtopo: "border-[#6b5b3e]/40 rounded-2xl bg-[#e3d3b3]/88 shadow-[0_6px_18px_rgba(92,74,42,0.22)]",
@@ -232,24 +232,24 @@ function PackCard({
   return (
     <article
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-xl bg-surface-2 ring-1 transition-colors duration-150",
-        active ? "ring-[2px] ring-accent shadow-[0_12px_32px_rgb(0_0_0/0.4)]" : "ring-line hover:ring-line-strong",
+        "group relative flex flex-col overflow-hidden rounded-lg bg-surface-2 transition-colors duration-150",
+        active ? "ring-2 ring-accent" : "hover:bg-surface-3/70",
       )}
     >
       {/* Scene Preview Canvas + Real Player Strip */}
       <div
-        className="relative flex h-[124px] flex-col justify-end overflow-hidden p-3 select-none"
+        className="relative flex h-[128px] flex-col justify-end overflow-hidden p-3 select-none"
         style={{ background: pack.previewGradient }}
       >
         <button
           type="button"
           onClick={usable ? onApply : onPreview}
           aria-label={`${usable ? "Apply" : "Preview"} ${pack.name}`}
-          className="absolute inset-0 z-[5]"
+          className="absolute inset-0 z-[5] cursor-pointer"
         />
         <ThemeSceneBackdrop sceneOverride={pack.scene} contained />
 
-        <div className={cn("relative z-10 flex items-center gap-2.5 border px-2.5 py-2 backdrop-blur-sm", frameCls)}>
+        <div className={cn("relative z-10 flex items-center gap-2.5 border px-2.5 py-2", frameCls)}>
           <div onClick={(e) => e.stopPropagation()}>
             <PlayDisc px={34} styleVariant={pack.playButton} playing label={`${pack.name} play button`}>
               <PlayIcon size={14} weight="fill" />
@@ -272,7 +272,7 @@ function PackCard({
       {/* Title, Summary, Action */}
       <div className="flex items-center justify-between gap-3 px-3.5 py-3">
         <div className="min-w-0 flex-1">
-          <h3 className="truncate text-[14.5px] font-semibold tracking-tight text-fg">{pack.name}</h3>
+          <h3 className="truncate text-[14px] font-semibold tracking-tight text-fg">{pack.name}</h3>
           <p className="mt-0.5 truncate text-[12px] text-fg-2">{pack.tagline}</p>
         </div>
 
@@ -281,7 +281,7 @@ function PackCard({
             <button
               type="button"
               onClick={onUnlock}
-              className="px-2 py-1 text-[11.5px] font-medium text-fg-3 transition-colors hover:text-fg"
+              className="cursor-pointer px-2 py-1 text-[11.5px] font-medium text-fg-3 transition-colors duration-150 hover:text-fg"
             >
               ₱{pack.pricePhp}
             </button>
@@ -291,8 +291,8 @@ function PackCard({
               type="button"
               onClick={onApply}
               className={cn(
-                "flex h-8.5 items-center rounded-full px-3.5 text-xs font-semibold transition-transform active:scale-95",
-                active ? "bg-surface-3 text-fg ring-1 ring-line-strong" : "bg-accent text-accent-ink",
+                "flex h-8 cursor-pointer items-center rounded-md px-3 text-xs font-semibold transition-opacity duration-150 active:scale-95",
+                active ? "bg-surface-3 text-fg" : "bg-fg text-bg hover:opacity-90",
               )}
             >
               {active ? "Active" : "Apply"}
@@ -303,14 +303,14 @@ function PackCard({
                 type="button"
                 onClick={onPreview}
                 title={`Preview ${pack.name} live`}
-                className="flex h-8.5 items-center rounded-full bg-surface-3 px-3 text-xs font-semibold text-fg ring-1 ring-line transition-transform hover:bg-surface-4 active:scale-95"
+                className="flex h-8 cursor-pointer items-center rounded-md bg-surface-3 px-2.5 text-xs font-medium text-fg transition-colors duration-150 hover:bg-surface-4"
               >
-                Test
+                Preview
               </button>
               <button
                 type="button"
                 onClick={onUnlock}
-                className="flex h-8.5 items-center gap-1 rounded-full bg-accent px-3 text-xs font-semibold text-accent-ink transition-transform active:scale-95"
+                className="flex h-8 cursor-pointer items-center gap-1 rounded-md bg-fg px-2.5 text-xs font-semibold text-bg transition-opacity duration-150 hover:opacity-90"
               >
                 <LockKeyIcon size={12} weight="bold" />
                 <span>₱{pack.pricePhp}</span>

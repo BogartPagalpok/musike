@@ -78,14 +78,14 @@ function PlayDiscDecor({ variant, playing }: { variant: PlayButtonStyle; playing
         <svg viewBox="0 0 64 64" aria-hidden="true" className={cn("pointer-events-none absolute inset-0 size-full", spin)}>
           <defs>
             <radialGradient id="grandlineNikaGrad" cx="45%" cy="40%" r="55%">
-              <stop offset="0%" stopColor="#f3e8ff" />
-              <stop offset="60%" stopColor="#c084fc" />
-              <stop offset="100%" stopColor="#7e22ce" />
+              <stop offset="0%" stopColor="#ffffff" />
+              <stop offset="60%" stopColor="#fde68a" />
+              <stop offset="100%" stopColor="#d97706" />
             </radialGradient>
           </defs>
-          <circle cx="32" cy="32" r="30.5" fill="url(#grandlineNikaGrad)" stroke="#1a1030" strokeWidth="2.5" />
-          <circle cx="32" cy="32" r="22" fill="none" stroke="#ffffff" strokeOpacity="0.55" strokeWidth="1.8" strokeDasharray="6 4" />
-          <circle cx="32" cy="32" r="14" fill="#130524" fillOpacity="0.22" />
+          <circle cx="32" cy="32" r="30.5" fill="url(#grandlineNikaGrad)" stroke="#451a03" strokeWidth="2.5" />
+          <circle cx="32" cy="32" r="22" fill="none" stroke="#ffffff" strokeOpacity="0.65" strokeWidth="1.8" strokeDasharray="6 4" />
+          <circle cx="32" cy="32" r="14" fill="#291502" fillOpacity="0.18" />
         </svg>
       );
 
@@ -161,9 +161,9 @@ export const PlayDisc = forwardRef<HTMLButtonElement, PlayDiscProps>(function Pl
       title={label}
       style={{ width: px, height: px }}
       className={cn(
-        "group/disc relative grid shrink-0 place-items-center overflow-hidden rounded-full transition-transform duration-200 ease-out-expo",
-        "hover:scale-[1.04] active:scale-[0.95] disabled:opacity-40",
-        variant === "default" && "bg-accent text-accent-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.45)]",
+        "group/disc relative grid shrink-0 cursor-pointer place-items-center overflow-hidden rounded-full transition-[transform,opacity,background-color] duration-150 ease-out",
+        "hover:opacity-92 active:scale-[0.95] disabled:opacity-40",
+        variant === "default" && "bg-fg text-bg",
         variant === "mirrorflame" && "text-[#ff8a1f] shadow-[0_0_16px_rgba(255,122,0,0.32)]",
         variant === "sandtopo" && "text-[#5c4d33] shadow-[0_6px_14px_rgba(92,74,42,0.24)]",
         isLightForeground && "text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)]",
