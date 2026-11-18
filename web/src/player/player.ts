@@ -5,7 +5,7 @@ import { createAudio } from "../lib/audio";
 import { desktop, type DesktopMediaAction } from "../lib/desktop";
 import { shuffled } from "../lib/format";
 import type { Track } from "../lib/types";
-import { attachEqualizer, registerEqMedia, useEqualizer } from "./equalizer";
+import { attachEqualizer, registerEqMedia } from "./equalizer";
 import { useLibrary } from "../stores/library";
 import { getDeviceFileBlobUrl, isLocalTrack } from "../stores/deviceFiles";
 import { getOfflineBlobUrl } from "../stores/offline";
@@ -222,10 +222,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
   const activeMedia = (): HTMLMediaElement | null => (loaded ? mediaFor(loaded.kind) : null);
 
   function play(media: HTMLMediaElement) {
-    const curTrack = get().queue[get().index];
-    if (useEqualizer.getState().enabled || (curTrack && playerHooks.forceVideo?.(curTrack))) {
-      attachEqualizer(media);
-    }
+    attachEqualizer(media);
     media.play().catch((err: DOMException) => {
       if (err.name === "AbortError") return; // src changed mid-start
       if (err.name === "NotAllowedError") set({ status: "paused" }); // autoplay blocked
@@ -479,10 +476,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     media.addEventListener("playing", () => {
       if (!isActive()) return;
       if (media === videoEl) lastVideoPlayAt = Date.now();
-      const curTrack = get().queue[get().index];
-      if (useEqualizer.getState().enabled || (curTrack && playerHooks.forceVideo?.(curTrack))) {
-        attachEqualizer(media);
-      }
+      attachEqualizer(media);
       set({ status: "playing", statusText: null });
       onStarted();
       syncPlaybackState();

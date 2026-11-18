@@ -314,41 +314,130 @@ export function ensurePlaybackAnalyser() {
   }
 }
 
+export const ECHO_BAND_EDGES_HZ = [80, 150, 250, 400, 650, 1050, 1750, 2800, 4200] as const;
+export const ECHO_BIN_COUNT = 512;
+
+export function echoBandForHz(hz: number): number {
+  for (let k = 0; k < 8; k++) {
+    if (hz < ECHO_BAND_EDGES_HZ[k + 1]!) return k;
+  }
+  return 7;
+}
+
+/** Converts `AnalyserNode.getFloatFrequencyData` (dBFS) into linear amplitude bins + 8 sub-band RMS envelopes. */
+export function extractLinearBinsAndBands(
+  dbBuf: Float32Array,
+  binHz: number,
+  outBins: Float32Array,
+  outBands: Float32Array,
+) {
+  const limit = Math.min(outBins.length, dbBuf.length);
+  for (let b = 0; b < limit; b++) {
+    const db = dbBuf[b]!;
+    outBins[b] = db > -110 && Number.isFinite(db) ? Math.pow(10, db / 20) : 0;
+  }
+  for (let k = 0; k < 8; k++) {
+    const b0 = Math.max(1, Math.round(ECHO_BAND_EDGES_HZ[k]! / binHz));
+    const b1 = Math.min(limit - 1, Math.round(ECHO_BAND_EDGES_HZ[k + 1]! / binHz));
+    let sq = 0;
+    let cnt = 0;
+    for (let b = b0; b <= b1; b++) {
+      const v = outBins[b]!;
+      sq += v * v;
+      cnt++;
+    }
+    outBands[k] = cnt > 0 ? Math.sqrt(sq / cnt) : 0;
+  }
+}
+
 const harmSpecBuf = new Uint8Array(2048);
+const harmFloatDb = new Float32Array(2048);
+const harmTimeBuf = new Float32Array(4096);
+const curPlayBins = new Float32Array(ECHO_BIN_COUNT);
+const curPlayBands = new Float32Array(8);
+const maxHoldPlayBins = new Float32Array(ECHO_BIN_COUNT);
+const maxHoldPlayBands = new Float32Array(8);
 const prevLowMidBins = new Float32Array(40);
 let rollingFluxMean = 0;
 let lastBeatOnsetMs = 0;
 
 export interface PlaybackHarmonicSnapshot {
   available: boolean;
+  binHz: number;
+  playRms: number;
+  maxHoldBins: Float32Array;
+  maxHoldBands: Float32Array;
   chroma: Float32Array;
   beatOnset: boolean;
   binLevel: number;
   overallLevel: number;
 }
 
+/** Resets max-hold speaker echo buffers when starting a new song or mic take. */
+export function resetPlaybackEchoHold() {
+  maxHoldPlayBins.fill(0);
+  maxHoldPlayBands.fill(0);
+}
+
 /**
- * Extracts real-time 12-bin pitch-class chroma, bass/snare beat onsets, and accompaniment pitch dominance
- * from the high-resolution 4096-point `harmonicAnalyser` (~11.7 Hz/bin).
+ * Extracts real-time 12-bin pitch-class chroma, bass/snare beat onsets, linear `playRms`,
+ * and ~220ms decaying max-hold 8-band/512-bin speaker reference spectra for acoustic echo cancellation.
  */
 export function samplePlaybackHarmonics(sungHz: number | null, nowMs = performance.now()): PlaybackHarmonicSnapshot {
   const chroma = new Float32Array(12);
   const graph = eqHost.__musikeEqGraph;
   if (!graph || graph.ctx.state !== "running") {
-    return { available: false, chroma, beatOnset: false, binLevel: 0, overallLevel: 0 };
+    return {
+      available: false,
+      binHz: 11.71875,
+      playRms: 0,
+      maxHoldBins: maxHoldPlayBins,
+      maxHoldBands: maxHoldPlayBands,
+      chroma,
+      beatOnset: false,
+      binLevel: 0,
+      overallLevel: 0,
+    };
   }
 
   graph.harmonicAnalyser.getByteFrequencyData(harmSpecBuf);
+  graph.harmonicAnalyser.getFloatFrequencyData(harmFloatDb);
+  graph.harmonicAnalyser.getFloatTimeDomainData(harmTimeBuf);
   const binHz = graph.ctx.sampleRate / graph.harmonicAnalyser.fftSize;
 
-  // 1. Overall playback energy check (60 Hz .. 2500 Hz)
+  let tSq = 0;
+  for (let i = 0; i < harmTimeBuf.length; i++) tSq += harmTimeBuf[i]! * harmTimeBuf[i]!;
+  const playRms = Math.sqrt(tSq / harmTimeBuf.length);
+
+  extractLinearBinsAndBands(harmFloatDb, binHz, curPlayBins, curPlayBands);
+  // ~220ms exponential max-hold covers OS output/input audio buffer latency + room acoustic propagation
+  for (let b = 0; b < ECHO_BIN_COUNT; b++) {
+    maxHoldPlayBins[b] = Math.max(curPlayBins[b]!, maxHoldPlayBins[b]! * 0.85);
+  }
+  let holdBandSum = 0;
+  for (let k = 0; k < 8; k++) {
+    maxHoldPlayBands[k] = Math.max(curPlayBands[k]!, maxHoldPlayBands[k]! * 0.85);
+    holdBandSum += maxHoldPlayBands[k]!;
+  }
+
+  // 1. Overall playback energy check (active either now or within the 220ms acoustic echo tail)
   const b60 = Math.max(1, Math.round(60 / binHz));
   const b2500 = Math.min(harmSpecBuf.length - 2, Math.round(2500 / binHz));
   let energySum = 0;
   for (let b = b60; b <= b2500; b++) energySum += harmSpecBuf[b]!;
   const overallLevel = energySum / (Math.max(1, b2500 - b60 + 1) * 255);
-  if (overallLevel < 0.015) {
-    return { available: false, chroma, beatOnset: false, binLevel: 0, overallLevel };
+  if (overallLevel < 0.01 && playRms < 0.002 && holdBandSum < 1e-4) {
+    return {
+      available: false,
+      binHz,
+      playRms,
+      maxHoldBins: maxHoldPlayBins,
+      maxHoldBands: maxHoldPlayBands,
+      chroma,
+      beatOnset: false,
+      binLevel: 0,
+      overallLevel,
+    };
   }
 
   // 2. Peak-picked 12-bin Pitch-Class Chroma across 82 Hz (E2) .. 1320 Hz (E6)
@@ -358,7 +447,6 @@ export function samplePlaybackHarmonics(sungHz: number | null, nowMs = performan
   for (let b = bMin; b <= bMax; b++) {
     const mag = harmSpecBuf[b]!;
     if (mag < 68) continue;
-    // Local spectral peak filter suppresses broadband drum/cymbal wash
     if (mag >= harmSpecBuf[b - 1]! && mag >= harmSpecBuf[b + 1]!) {
       const hz = b * binHz;
       const midi = 69 + 12 * Math.log2(hz / 440);
@@ -386,7 +474,7 @@ export function samplePlaybackHarmonics(sungHz: number | null, nowMs = performan
     flux > Math.max(0.32, rollingFluxMean * 1.65) && nowMs - lastBeatOnsetMs >= 190;
   if (beatOnset) lastBeatOnsetMs = nowMs;
 
-  // 4. Accompaniment energy around sungHz & 2*sungHz (for speaker-bleed rejection)
+  // 4. Accompaniment energy around sungHz & 2*sungHz
   let binLevel = 0;
   if (sungHz !== null && sungHz > 65) {
     const b1 = Math.min(harmSpecBuf.length - 2, Math.max(1, Math.round(sungHz / binHz)));
@@ -397,7 +485,11 @@ export function samplePlaybackHarmonics(sungHz: number | null, nowMs = performan
   }
 
   return {
-    available: chromaSum > 0.02,
+    available: playRms > 0.002 || holdBandSum > 1e-4,
+    binHz,
+    playRms,
+    maxHoldBins: maxHoldPlayBins,
+    maxHoldBands: maxHoldPlayBands,
     chroma,
     beatOnset,
     binLevel,

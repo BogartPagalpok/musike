@@ -1,6 +1,14 @@
 import { create } from "zustand";
 import type { Track } from "../lib/types";
-import { ensurePlaybackAnalyser, samplePlaybackHarmonics } from "../player/equalizer";
+import {
+  ECHO_BIN_COUNT,
+  echoBandForHz,
+  ensurePlaybackAnalyser,
+  extractLinearBinsAndBands,
+  resetPlaybackEchoHold,
+  samplePlaybackHarmonics,
+  type PlaybackHarmonicSnapshot,
+} from "../player/equalizer";
 import { getExactPlaybackTime, playerHooks, usePlayer } from "../player/player";
 import { toast } from "./ui";
 
@@ -146,6 +154,10 @@ export interface TakeTracker {
   recentRawMidis: number[];
   noiseFloor: number;
   peakRms: number;
+  echoGainBands: Float32Array;
+  echoRmsGain: number;
+  echoCalFrames: number;
+  rollingRms: number[];
 }
 
 export function createTake(): TakeTracker {
@@ -188,6 +200,10 @@ export function createTake(): TakeTracker {
     recentRawMidis: [],
     noiseFloor: 0.0012,
     peakRms: 0.028,
+    echoGainBands: new Float32Array(8),
+    echoRmsGain: 0,
+    echoCalFrames: 0,
+    rollingRms: [],
   };
 }
 
@@ -366,6 +382,108 @@ export function detectVocalPitch(
   };
 }
 
+/**
+ * Multi-Band Acoustic Echo Suppressor (AES):
+ * Estimates the 8-band speaker-to-microphone transfer function H_k and cancels speaker accompaniment bleed
+ * across a ~220ms max-hold latency window so sitting silent in front of loud speakers ALWAYS produces 0 voiced frames,
+ * while preserving near-field human vocals without OS telephony ducking.
+ */
+export function filterSpeakerEcho(opts: {
+  detected: { hz: number; clarity: number; rms: number } | null;
+  rawRms: number;
+  micBins: Float32Array;
+  micBands: Float32Array;
+  micBinHz: number;
+  pb: PlaybackHarmonicSnapshot;
+  tracker: TakeTracker;
+}): { accepted: { hz: number; clarity: number; rms: number } | null; effectiveFloor: number } {
+  const { detected, rawRms, micBins, micBands, micBinHz, pb, tracker } = opts;
+
+  // 1. Rolling 3-second (90-frame) 30th-percentile background floor (adapts within ~1s when speaker music starts)
+  tracker.rollingRms.push(rawRms);
+  if (tracker.rollingRms.length > 90) tracker.rollingRms.shift();
+  let p30Rms = tracker.noiseFloor;
+  if (tracker.rollingRms.length >= 12) {
+    const sorted = [...tracker.rollingRms].sort((a, b) => a - b);
+    p30Rms = sorted[Math.floor(sorted.length * 0.3)]!;
+  }
+
+  // 2. Update speaker-to-mic acoustic coupling model when reference playback audio is active
+  if (pb.available && pb.playRms > 0.003) {
+    const curRmsRatio = rawRms / pb.playRms;
+    const isInitialCal = tracker.echoCalFrames < 18;
+    if (isInitialCal) {
+      tracker.echoRmsGain =
+        tracker.echoCalFrames === 0 ? curRmsRatio : tracker.echoRmsGain * 0.65 + curRmsRatio * 0.35;
+    } else if (curRmsRatio <= tracker.echoRmsGain * 1.15) {
+      tracker.echoRmsGain = tracker.echoRmsGain * 0.78 + curRmsRatio * 0.22;
+    } else if (curRmsRatio < tracker.echoRmsGain * 2.1) {
+      // Slow upward drift tracks speaker volume adjustments without learning loud human singing
+      tracker.echoRmsGain = Math.min(2.5, tracker.echoRmsGain * 0.985 + curRmsRatio * 0.015);
+    }
+
+    for (let k = 0; k < 8; k++) {
+      const pBand = pb.maxHoldBands[k]!;
+      if (pBand <= 1e-5) continue;
+      const rBand = micBands[k]! / pBand;
+      const gOld = tracker.echoGainBands[k]!;
+      if (isInitialCal || gOld <= 0) {
+        tracker.echoGainBands[k] = gOld <= 0 ? rBand : gOld * 0.65 + rBand * 0.35;
+      } else if (rBand <= gOld * 1.15) {
+        tracker.echoGainBands[k] = gOld * 0.78 + rBand * 0.22;
+      } else if (rBand < gOld * 2.1) {
+        tracker.echoGainBands[k] = Math.min(3.5, gOld * 0.985 + rBand * 0.015);
+      }
+    }
+    tracker.echoCalFrames++;
+  }
+
+  const predictedEchoRms = pb.available ? tracker.echoRmsGain * pb.playRms : 0;
+  const effectiveFloor = Math.max(tracker.noiseFloor, predictedEchoRms * 1.3, p30Rms * 1.2);
+
+  if (!detected) {
+    tracker.noiseFloor = clamp(tracker.noiseFloor * 0.94 + Math.min(rawRms, p30Rms * 1.4) * 0.06, 0.00025, 0.03);
+    return { accepted: null, effectiveFloor };
+  }
+
+  // 3. Harmonic Echo-Subtraction Verification around candidate vocal pitch (f0, 2*f0, 3*f0, 4*f0)
+  if (pb.available && (pb.playRms > 0.003 || predictedEchoRms > 0.001)) {
+    let micHarmSum = 0;
+    let resHarmSum = 0;
+    for (let h = 1; h <= 4; h++) {
+      const hHz = detected.hz * h;
+      if (hHz > 4100) break;
+      const mBin = Math.min(ECHO_BIN_COUNT - 2, Math.max(1, Math.round(hHz / micBinHz)));
+      const pBin = Math.min(ECHO_BIN_COUNT - 2, Math.max(1, Math.round(hHz / pb.binHz)));
+      const mPeak = Math.max(micBins[mBin - 1]!, micBins[mBin]!, micBins[mBin + 1]!);
+      const pPeak = Math.max(pb.maxHoldBins[pBin - 1]!, pb.maxHoldBins[pBin]!, pb.maxHoldBins[pBin + 1]!);
+      const bandIdx = echoBandForHz(hHz);
+      const echoEst = 2.15 * Math.max(0.01, tracker.echoGainBands[bandIdx]!) * pPeak;
+      const weight = h === 1 ? 1.0 : h === 2 ? 0.85 : 0.65;
+      micHarmSum += mPeak * weight;
+      resHarmSum += Math.max(0, mPeak - echoEst) * weight;
+    }
+
+    const residualRatio = micHarmSum > 1e-6 ? resHarmSum / micHarmSum : 0;
+    const echoBaseline = Math.max(tracker.noiseFloor, predictedEchoRms);
+    const rmsOverEcho = rawRms / Math.max(1e-5, echoBaseline);
+    const speakersAudibleInMic = tracker.echoRmsGain > 0.018 && predictedEchoRms > 0.0018;
+
+    // Pure speaker bleed has residualRatio ~ 0.0..0.25 and rmsOverEcho ~ 0.7..1.65 -> reject!
+    if (
+      (residualRatio < 0.38 && rmsOverEcho < 2.65) ||
+      (speakersAudibleInMic && rmsOverEcho < 1.85 && residualRatio < 0.58)
+    ) {
+      return { accepted: null, effectiveFloor };
+    }
+  } else if (tracker.rollingRms.length >= 12 && p30Rms > 0.003 && rawRms < p30Rms * 2.1) {
+    // Fallback when Web Audio can't tap cross-origin media: reject steady speaker floor lacking human vocal peaks
+    return { accepted: null, effectiveFloor };
+  }
+
+  return { accepted: detected, effectiveFloor };
+}
+
 /** Finalizes a held note segment to measure fine intonation, stability, vibrato, long tones, inflections & live chord match. */
 export function finalizeNoteSegment(
   seg: NoteSegment,
@@ -374,7 +492,7 @@ export function finalizeNoteSegment(
   const durMs = seg.endMs - seg.startMs;
   const durSec = durMs / 1000;
   const n = seg.midis.length;
-  if (n < 4 || durMs < 130) return { hadVibrato: false, inTune: false };
+  if (n < 5 || durMs < 175) return { hadVibrato: false, inTune: false };
 
   const core = n >= 6 ? seg.midis.slice(2) : seg.midis.slice(1);
   const meanMidi = core.reduce((a, b) => a + b, 0) / core.length;
@@ -576,62 +694,62 @@ interface Line {
 
 const SPECIAL_LINES: Record<Exclude<JudgeReason, "normal">, { badge: string; tone: ScoreTone; lines: Line[] }> = {
   silent: {
-    badge: "Ghost Singer",
+    badge: "Certified Statue · 0 Pts",
     tone: "bad",
     lines: [
-      { headline: "Nice Instrumental! Where Were You?", roast: "Sing King worked overtime while you stood there aura farming in complete silence." },
-      { headline: "Mic Check… Hello?", roast: "You held the mic like an ice cream cone and didn't sing a single bar." },
-      { headline: "Paid for the Mic, Used It as a Prop", roast: "0% vocals, 100% staring at the screen waiting for a miracle." },
-      { headline: "John Cage's 4'33\" Cover?", roast: "Bold artistic choice performing a silent tribute at videoke night." },
-      { headline: "Cat Got Your Tongue?", roast: "Even the backing vocalists looked around wondering when you were coming in." },
+      { headline: "Paid Zero Rent, Contributed Zero Vocals", roast: "You stared at the lyrics for three straight minutes like you were proofreading a legal contract. SING SOMETHING!" },
+      { headline: "Professional Oxygen Waster", roast: "The instrumental backing track carried this whole show on its back while you stood there blinking like an NPC." },
+      { headline: "Did Your Soul Leave Your Body?!", roast: "An unplugged rice cooker makes more musical noise than whatever silent ritual you just performed." },
+      { headline: "Lost a Singing Contest to Empty Air", roast: "0.000 points! Even the background static tried harder than you did." },
+      { headline: "Holding the Mic Like an Ice Cream Cone", roast: "Staring at it won't give you points either. Open your mouth and actually sing!" },
     ],
   },
   early: {
-    badge: "Early Bailout",
+    badge: "Cowardly Bailout",
     tone: "bad",
     lines: [
-      { headline: "Rage Quit Before the Chorus?", roast: "You saw that high note coming from a mile away and hit the eject button." },
-      { headline: "One Verse Wonder", roast: "Sang four words, panicked, and asked for a score. Finish the song next time!" },
-      { headline: "Speedrunning Videoke?", roast: "The intro barely finished and you're already asking the judge for a trophy." },
-      { headline: "Stage Fright Hit Fast", roast: "You dipped faster than an uncle when the bill arrives. Sing the whole track!" },
+      { headline: "Fastest Rage-Quit in Videoke History", roast: "Bro heard his own voice for four seconds and immediately filed for early retirement." },
+      { headline: "Folded Before the Chorus Even Started", roast: "You saw one high note coming from a mile away and hit eject like a coward. Finish the song!" },
+      { headline: "All Intro, Zero Stamina", roast: "You didn't even last long enough for the lumpia to cool down. Run it back and sing the whole track!" },
+      { headline: "Four Words and a Panic Attack", roast: "Don't ask the judge for a real score when you bailed before the drummer even warmed up." },
     ],
   },
   monotone: {
-    badge: "Podcast Mode",
+    badge: "Human Microwave Beep",
     tone: "bad",
     lines: [
-      { headline: "Sir, This Is Videoke Not a Podcast", roast: "You read the lyrics on one flat note like a hostage statement. Use some melody!" },
-      { headline: "One-Note Wonder", roast: "The songwriter wrote twelve different notes and you bravely refused eleven of them." },
-      { headline: "Siri Has More Inflection", roast: "Sounded like GPS navigation reading directions through a karaoke mic." },
-      { headline: "Spoken Word Night?", roast: "Great audiobook narration, questionable singing. Try moving your pitch up and down!" },
+      { headline: "Sounded Like a Dying Refrigerator", roast: "The songwriter wrote a whole melody and you stubbornly hummed ONE flat note the entire time." },
+      { headline: "Flatline Alert — Call the ER!", roast: "Your pitch graph looks like a hospital monitor after the patient already left the planet." },
+      { headline: "Allergic to Melody", roast: "Twelve notes on a piano and you guarded that single wrong note with your life." },
+      { headline: "Hostage Statement Delivery", roast: "Blink twice if someone is forcing you to drone on one note against your will!" },
     ],
   },
   talking: {
-    badge: "News Anchor Mode",
+    badge: "Spoken Word Disaster",
     tone: "bad",
     lines: [
-      { headline: "Are You Reporting Evening News?", roast: "You talked through the lyrics like a traffic report! Hold your vowel notes steady." },
-      { headline: "Chismis Session on the Mic?", roast: "Spoken words slide all over the scale — actually sing and sustain the melody!" },
-      { headline: "Zero Sustain Detected", roast: "This is videoke, not an auctioneer tryout. Hold those notes!" },
+      { headline: "Is This Videoke or a Hostage Video?!", roast: "You read the lyrics like a sleep-deprived cashier calling out Order #47. SING A MELODY!" },
+      { headline: "Evening News Traffic Report", roast: "Breaking news: local person refuses to hold a single musical note for more than 0.1 seconds." },
+      { headline: "Even Siri Sings With More Soul", roast: "Sounded like GPS turn-by-turn directions read over a broken intercom. Sustain your vowels!" },
     ],
   },
   screamer: {
-    badge: "RIP Speakers",
+    badge: "Acoustic Terrorism",
     tone: "bad",
     lines: [
-      { headline: "Loud AND Wrong", roast: "Volume: 110%. Key: somewhere in another zip code. Our speakers need therapy." },
-      { headline: "Passionate Chaos", roast: "You attacked every note like it owed you money, and missed all of them." },
-      { headline: "You Suck at This (Loudly)", roast: "Screaming the chorus doesn't make it in tune—the barangay tanod is outside." },
-      { headline: "Pure Decibels, Zero Pitch", roast: "That wasn't a high note, that was a structural stress test on the windows." },
+      { headline: "100% Lung Capacity, 0% Musical Talent", roast: "Screaming louder doesn't make a wrong note right—it just gives the whole barangay tinnitus." },
+      { headline: "Three Dogs Howled & Tita Unplugged the Wi-Fi", roast: "You fought the melody in hand-to-hand combat and somehow our eardrums were the casualties." },
+      { headline: "Loud, Fearless, and Catastrophically Wrong", roast: "That wasn't a chorus, that was a structural stress test on the living room windows." },
+      { headline: "Barangay Noise Complaint Filed", roast: "The tanod is knocking outside—not because it's late, just because of that key change." },
     ],
   },
   "no-mic": {
     badge: "Mic Off · 0 Pts",
     tone: "bad",
     lines: [
-      { headline: "Bluetooth Telepathy?!", roast: "Your mic was OFF! Zero points for lip-syncing — turn Mic On if you want a real score." },
-      { headline: "Milli Vanilli Caught Live", roast: "Air-singing with a muted mic gets 0.000 pts here. Turn the mic on and prove it!" },
-      { headline: "Unplugged & Unscored", roast: "The judge can't grade imaginary vocals! Switch Mic On and run it back." },
+      { headline: "Lip-Syncing Assassin Caught in 4K!", roast: "Your mic was OFF the whole time! What were we supposed to grade, your eyebrow choreography?!" },
+      { headline: "Milli Vanilli's Long-Lost Cousin", roast: "Zero mic, zero shame, zero points. Unmute the microphone and face the judge for real!" },
+      { headline: "Bluetooth Telepathy Failed", roast: "We can't score the imaginary concert inside your head. Turn Mic On, coward!" },
     ],
   },
 };
@@ -639,82 +757,67 @@ const SPECIAL_LINES: Record<Exclude<JudgeReason, "normal">, { badge: string; ton
 const TIER_LINES: { max: number; badge: string; tone: ScoreTone; lines: Line[] }[] = [
   {
     max: 49,
-    badge: "Vocal Crime Scene",
+    badge: "Musical Crime Scene",
     tone: "bad",
     lines: [
-      { headline: "Drop the Mic (Literally)", roast: "Even the instrumental backing track tried to skip itself." },
-      { headline: "Mic Confiscated", roast: "The videoke machine just locked itself in self-defense." },
-      { headline: "Who Hurt You?", roast: "Because whatever happened, you just took it out on our eardrums." },
-      { headline: "Certified Audio Hazard", roast: "The dog left the room, and the dog usually howls along." },
-      { headline: "Call an Ambulance (For the Song)", roast: "That melody didn't survive the first verse." },
+      { headline: "Apologize to the Original Artist Immediately", roast: "If the songwriter heard what you just did to their song, they'd press criminal charges." },
+      { headline: "Even Auto-Tune Would Hand In Its Resignation", roast: "NASA doesn't have enough supercomputers to drag those notes back into the right key." },
+      { headline: "Weaponized Sintunado", roast: "Even the cockroaches packed their tiny suitcases and moved next door. Hand over the mic." },
+      { headline: "The Machine Tried to Unplug Itself", roast: "Pure survival instinct. Put yellow police tape around that microphone immediately." },
+      { headline: "Certified Ear Hazard", roast: "My circuits are begging for mercy. Never pick this song in front of witnesses again." },
     ],
   },
   {
     max: 64,
-    badge: "Emergency Exit",
+    badge: "Brutally Roasted",
     tone: "bad",
     lines: [
-      { headline: "Was That the Same Song?", roast: "You and the backing track were in two completely different time zones." },
-      { headline: "Tita Is Concerned", roast: "She just muted her hearing aid and texted the family group chat." },
-      { headline: "Key? Never Met Her", roast: "You sang in cursive while the song was printed in block letters." },
-      { headline: "Brave. Very Brave.", roast: "Not good, mind you—just impressively fearless in front of witnesses." },
-      { headline: "Neighbors Closed the Windows", roast: "And it's 34°C outside. That tells you everything." },
+      { headline: "Confidence: 100. Pitch: Missing Since 2014.", roast: "Honestly impressive how fearlessly you missed every single note with your whole chest." },
+      { headline: "Tita Just Muted Her Hearing Aid", roast: "And she's typing a three-paragraph prayer for your vocal cords in the family group chat." },
+      { headline: "You and the Key Were Never Introduced", roast: "The backing track was in Manila and your voice was stranded somewhere in Antarctica." },
+      { headline: "Stay in the Shower (With the Door Locked)", roast: "Bathroom tiles have been lying to you for years, friend. This mic tells the ugly truth." },
+      { headline: "Everybody Avoided Eye Contact", roast: "Nobody clapped, the dog left the room, and someone quietly hit 'Next Reserved.'" },
     ],
   },
   {
     max: 74,
-    badge: "Roasted",
+    badge: "Cooked Medium-Well",
     tone: "bad",
     lines: [
-      { headline: "You Suck at This", roast: "The neighbors closed their windows and called the barangay. Please pass the mic." },
-      { headline: "Sintunado Supreme", roast: "Every note in the song was a polite suggestion, and you rejected all of them." },
-      { headline: "Bold of You", roast: "Confidence: 100. Intonation: still buffering since verse one." },
-      { headline: "Back to the Shower", roast: "The bathroom tiles give you way more reverb forgiveness than this judge." },
-      { headline: "Pitch Was Fighting for Its Life", roast: "You had a few moments, mostly between the parts where you sang." },
+      { headline: "Survived the Verses, Died in the Chorus", roast: "The second that high note showed up, your voice cracked like a teenager asking for allowance." },
+      { headline: "Aggressively Mediocre", roast: "Not awful enough to call the police, not good enough for anyone to look up from their phones." },
+      { headline: "Karaoke Participation Trophy", roast: "Enjoy the polite three-clap pity applause while everyone keeps chewing their pancit." },
+      { headline: "You Suck at This (Respectfully)", roast: "You grazed the right note twice by pure accident. Drink some ginger tea and try an easier song!" },
     ],
   },
   {
-    max: 81,
-    badge: "Shower Certified",
+    max: 83,
+    badge: "Backhanded Props",
     tone: "meh",
     lines: [
-      { headline: "Keep Your Day Job (Almost There!)", roast: "A for effort, B- for pitch. Drink some warm salabat and run it back!" },
-      { headline: "Shower Singer Certified", roast: "Respectable! You stayed mostly on pitch and nobody reached for the skip button." },
-      { headline: "Warm-Up Round, Right?", roast: "Nobody booed, nobody cheered—everyone politely chewed their lumpia." },
-      { headline: "Mid, But With Heart", roast: "The verses survived; tighten up those chorus notes and you'll crack the 80s!" },
+      { headline: "Wait… Shockingly Not Terrible?!", roast: "Hold on, nobody covered their ears! Did you secretly practice this in the bathroom all week?" },
+      { headline: "Barely Legal Fiesta Vocals", roast: "A couple sketchy flat notes on the bridge, sure, but the uncles at table 3 are nodding!" },
+      { headline: "Almost Good Enough to Brag About", roast: "You survived without embarrassing your bloodline—fix those shaky endings to hit Rank A!" },
     ],
   },
   {
-    max: 88,
-    badge: "Fiesta Contender",
+    max: 90,
+    badge: "Okay Show-Off!",
     tone: "good",
     lines: [
-      { headline: "Fiesta Contender!", roast: "Real vocals! The titos stopped arguing about politics to listen." },
-      { headline: "Lola Approved", roast: "She put down her plate of pancit to clap. Do you know how rare that is?" },
-      { headline: "Lowkey Signed Artist?", roast: "Steady pitch, solid rhythm—you actually know what you're doing on a mic." },
-      { headline: "Encore Material", roast: "Go ahead and reserve two more, the living room approves!" },
-    ],
-  },
-  {
-    max: 94,
-    badge: "Crowd Favorite",
-    tone: "great",
-    lines: [
-      { headline: "Videoke Superstar!", roast: "Main character vocals! Everybody in the house stopped talking." },
-      { headline: "Are You Secretly Touring?", roast: "Laser-sharp pitch and real stage control—that sounded like a studio cut." },
-      { headline: "Chills. Actual Chills.", roast: "Phone flashlights are waving in the air. This isn't karaoke anymore, it's a concert." },
-      { headline: "Barangay Idol Champion", roast: "The captain is already drafting your invite for the town fiesta finals." },
+      { headline: "Okay Show-Off, Calm Down!", roast: "Who invited an actual singer to videoke night?! Now nobody else wants to touch the mic after you!" },
+      { headline: "Lola Put Down Her Pancit to Clap", roast: "Dead-on pitch and real control—stop pretending you 'don't usually sing'!" },
+      { headline: "Secretly Auditioning for The Voice?", roast: "Clean notes, locked-in rhythm—you just raised the rent in the living room." },
     ],
   },
   {
     max: 100,
-    badge: "Golden Mic Legend",
+    badge: "Golden Mic God",
     tone: "great",
     lines: [
-      { headline: "Golden Mic Legend!", roast: "Did you swallow the original artist?! Flawless pitch, control, and soul!" },
-      { headline: "Wala Kang Kupas!", roast: "Perfection. The videoke machine is asking for YOUR autograph right now." },
-      { headline: "Call the Grammys Immediately", roast: "Nobody wants to touch the microphone after that masterclass." },
-      { headline: "100% Pure Vocal Gold", roast: "Screenshot this and frame it in the family group chat forever!" },
+      { headline: "DID YOU SWALLOW THE STUDIO TRACK?!", roast: "Unfair! Confiscate the mic—nobody can follow that masterclass without embarrassing themselves!" },
+      { headline: "Wala Kang Kupas — Absolute Legend!", roast: "Flawless pitch, filthy vibrato, zero misses. The videoke machine wants YOUR autograph!" },
+      { headline: "Pack It Up, Concert's Over!", roast: "Screenshot this score right now and make it your whole personality for the next six months!" },
     ],
   },
 ];
@@ -907,12 +1010,12 @@ export function evaluateTake(
   const sungSeconds = tracker.voicedFrames / 30;
   const playedSeconds = Math.max(tracker.activeFrames / 30, sungSeconds);
 
-  if (tracker.voicedFrames < 36 || sungSeconds < 1.2 || tracker.segments.length < 2) {
+  if (tracker.voicedFrames < 75 || sungSeconds < 2.5 || tracker.segments.length < 4) {
     return zeroResult(
       "silent",
-      sungSeconds < 0.3
-        ? "0.0s of singing detected while microphone was active."
-        : `Only ${sungSeconds.toFixed(1)}s detected — sing at least a phrase to be scored.`,
+      sungSeconds < 0.4
+        ? "0.0s of human vocals detected (speaker music ignored)."
+        : `Only ${sungSeconds.toFixed(1)}s of vocals detected — sing into the mic!`,
       prevBestDecimal,
       sungSeconds,
     );
@@ -1181,6 +1284,7 @@ export function evaluateTake(
 
 function resetTake() {
   take = createTake();
+  resetPlaybackEchoHold();
 }
 
 /* ------------------------------------------------------------------------------------------------
@@ -1543,16 +1647,15 @@ export const useVideoke = create<VideokeState>((set, get) => ({
     lp2.connect(analyser);
     const timeData = new Float32Array(analyser.fftSize);
 
-    // Parallel Singer's Formant Bandpass (1250 - 3400 Hz) to distinguish human vowels from distant speaker bleed
-    const formantBp = ctx.createBiquadFilter();
-    formantBp.type = "bandpass";
-    formantBp.frequency.value = 2150;
-    formantBp.Q.value = 0.85;
-    const formantAnalyser = ctx.createAnalyser();
-    formantAnalyser.fftSize = 1024;
-    source.connect(formantBp);
-    formantBp.connect(formantAnalyser);
-    const formantData = new Float32Array(formantAnalyser.fftSize);
+    // Matched 4096-point Raw Microphone Spectrum Analyser (~11.7 Hz/bin) for Multi-Band Speaker Echo Cancellation
+    const micFreqAnalyser = ctx.createAnalyser();
+    micFreqAnalyser.fftSize = 4096;
+    micFreqAnalyser.smoothingTimeConstant = 0.35;
+    source.connect(micFreqAnalyser);
+    const micFloatDb = new Float32Array(micFreqAnalyser.frequencyBinCount);
+    const micBins = new Float32Array(ECHO_BIN_COUNT);
+    const micBands = new Float32Array(8);
+    const micBinHz = ctx.sampleRate / micFreqAnalyser.fftSize;
 
     set({ micOn: true });
 
@@ -1565,43 +1668,34 @@ export const useVideoke = create<VideokeState>((set, get) => ({
       if (ctx.state === "suspended") void ctx.resume().catch(() => {});
 
       analyser.getFloatTimeDomainData(timeData);
-      formantAnalyser.getFloatTimeDomainData(formantData);
+      micFreqAnalyser.getFloatFrequencyData(micFloatDb);
+      extractLinearBinsAndBands(micFloatDb, micBinHz, micBins, micBands);
 
       let sumSq = 0;
       for (let i = 0; i < timeData.length; i++) sumSq += timeData[i]! * timeData[i]!;
       const rawRms = Math.sqrt(sumSq / timeData.length);
 
-      let fSq = 0;
-      for (let i = 0; i < formantData.length; i++) fSq += formantData[i]! * formantData[i]!;
-      const formantRms = Math.sqrt(fSq / formantData.length);
-
       const now = performance.now();
-      let detected = detectVocalPitch(timeData, ctx.sampleRate, take.noiseFloor);
-      const pb = samplePlaybackHarmonics(detected ? detected.hz : null, now);
+      const rawDetected = detectVocalPitch(timeData, ctx.sampleRate, take.noiseFloor);
+      const pb = samplePlaybackHarmonics(rawDetected ? rawDetected.hz : null, now);
+
+      const { accepted: detected, effectiveFloor } = filterSpeakerEcho({
+        detected: rawDetected,
+        rawRms,
+        micBins,
+        micBands,
+        micBinHz,
+        pb,
+        tracker: take,
+      });
 
       if (detected) {
-        const formantRatio = formantRms / Math.max(1e-5, rawRms);
-        const snrRatio = rawRms / Math.max(1e-5, take.noiseFloor);
-        // Reject distant speaker accompaniment bleed while keeping near-field human vocals responsive
-        const likelySpeakerBleed =
-          pb.available &&
-          ((pb.binLevel > 0.48 && snrRatio < 3.5 && formantRatio < 0.13) ||
-            (pb.overallLevel > 0.25 && snrRatio < 2.9 && formantRatio < 0.08));
-
-        if (likelySpeakerBleed) {
-          take.noiseFloor = clamp(take.noiseFloor * 0.93 + rawRms * 0.07, 0.00025, 0.028);
-          detected = null;
-        } else {
-          take.peakRms = clamp(Math.max(take.peakRms * 0.995, rawRms), 0.008, 0.35);
-        }
-      } else {
-        // Track ambient + speaker floor during unvoiced frames
-        take.noiseFloor = clamp(take.noiseFloor * 0.94 + rawRms * 0.06, 0.00025, 0.028);
+        take.peakRms = clamp(Math.max(take.peakRms * 0.995, rawRms), 0.008, 0.35);
       }
 
-      // Software-normalized meter level so quiet built-in laptop mics & loud USB mics both show crisp movement
-      const normSignal = Math.max(0, rawRms - take.noiseFloor * 1.15);
-      const level = clamp(normSignal / Math.max(0.008, take.peakRms * 0.72), 0, 1);
+      // Echo-cancelled meter level: stays calm during speaker instrumentals and jumps only on real human singing!
+      const normSignal = Math.max(0, rawRms - effectiveFloor * 1.15);
+      const level = detected ? clamp(normSignal / Math.max(0.008, take.peakRms * 0.72), 0, 1) : Math.min(0.06, normSignal * 2);
 
       let midi: number | null = detected ? 69 + 12 * Math.log2(detected.hz / 440) : null;
 
