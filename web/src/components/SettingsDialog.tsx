@@ -20,6 +20,7 @@ import { ACCENTS, useAppearance } from "../stores/appearance";
 import { SKIN_PACKS, useThemeStore } from "../stores/themeStore";
 import { useSystem } from "../stores/system";
 import { toast, useUi } from "../stores/ui";
+import { isTvMode, toggleTvMode } from "../tv/tvMode";
 import { ThemeStoreContent } from "../views/ThemeStore";
 import { LogoMark } from "./Brand";
 import { CustomColorPicker } from "./CustomizeSection";
@@ -291,26 +292,41 @@ function AccentPage() {
 function LayoutPage() {
   const t = useT();
   const a = useAppearance();
+  const [tv, setTv] = useState(isTvMode());
   return (
-    <Group title={t.settings.workspace} footer={t.settings.workspaceFooter}>
-      {LAYOUTS.map((l) => {
-        const on = a.layoutTemplate === l.id;
-        return (
-          <Row
-            key={l.id}
-            onClick={() => a.set({ layoutTemplate: l.id, ...(l.id !== "default" ? { compactSidebar: false } : {}) })}
-            label={l.title}
-            sub={l.body}
-            right={
-              <span className="flex items-center gap-3">
-                <LayoutGlyph id={l.id} active={on} />
-                <CheckIcon size={18} weight="bold" className={cn("text-accent-text", !on && "invisible")} />
-              </span>
-            }
-          />
-        );
-      })}
-    </Group>
+    <div className="flex flex-col gap-6">
+      <Group title={t.settings.workspace} footer={t.settings.workspaceFooter}>
+        {LAYOUTS.map((l) => {
+          const on = a.layoutTemplate === l.id;
+          return (
+            <Row
+              key={l.id}
+              onClick={() => a.set({ layoutTemplate: l.id, ...(l.id !== "default" ? { compactSidebar: false } : {}) })}
+              label={l.title}
+              sub={l.body}
+              right={
+                <span className="flex items-center gap-3">
+                  <LayoutGlyph id={l.id} active={on} />
+                  <CheckIcon size={18} weight="bold" className={cn("text-accent-text", !on && "invisible")} />
+                </span>
+              }
+            />
+          );
+        })}
+      </Group>
+
+      <Group title="Display & TV" footer="Enables spatial D-pad remote navigation, high-contrast focus rings, and 10-foot TV scaling for living room screens, TVs and projectors.">
+        <ToggleRow
+          label="Android TV Mode (10-Foot UI)"
+          sub="Remote control D-pad navigation and large living room display"
+          checked={tv}
+          onChange={(v) => {
+            setTv(v);
+            toggleTvMode(v);
+          }}
+        />
+      </Group>
+    </div>
   );
 }
 

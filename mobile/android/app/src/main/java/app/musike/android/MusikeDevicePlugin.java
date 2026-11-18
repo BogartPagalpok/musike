@@ -44,10 +44,21 @@ public class MusikeDevicePlugin extends Plugin {
     @PluginMethod
     public void info(PluginCall call) {
         Context context = getContext();
-        UiModeManager uiMode = (UiModeManager) context.getSystemService(Context.UI_MODE_SERVICE);
-        boolean tv =
-            (uiMode != null && uiMode.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION) ||
-            context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_LEANBACK);
+        PackageManager pm = context != null ? context.getPackageManager() : null;
+        UiModeManager uiMode = context != null ? (UiModeManager) context.getSystemService(Context.UI_MODE_SERVICE) : null;
+        boolean isUiModeTv = uiMode != null && uiMode.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION;
+        boolean hasLeanback = pm != null && (
+            pm.hasSystemFeature(PackageManager.FEATURE_LEANBACK) ||
+            pm.hasSystemFeature("android.software.leanback")
+        );
+        boolean hasTvType = pm != null && pm.hasSystemFeature("android.hardware.type.television");
+        boolean hasFireTv = pm != null && (
+            pm.hasSystemFeature("amazon.hardware.fire_tv") ||
+            pm.hasSystemFeature("com.amazon.device.sale.feature.tv")
+        );
+        boolean noTouchscreen = pm != null && !pm.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN);
+
+        boolean tv = isUiModeTv || hasLeanback || hasTvType || hasFireTv || noTouchscreen;
         JSObject result = new JSObject();
         result.put("tv", tv);
         call.resolve(result);

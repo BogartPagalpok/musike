@@ -4,6 +4,7 @@ import { BrowserRouter } from "react-router";
 import { registerSW } from "virtual:pwa-register";
 import App from "./App";
 import { desktop } from "./lib/desktop";
+import "./native/android";
 import "./styles.css";
 import "./tv/tv.css";
 import { installTvMode } from "./tv/tvMode";

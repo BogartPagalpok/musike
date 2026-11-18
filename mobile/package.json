@@ -6,7 +6,9 @@
   "type": "module",
   "scripts": {
     "build": "pnpm --filter @musike/web build:native && node scripts/cap.cjs sync android",
+    "build:tv": "pnpm --filter @musike/web build:tv && node scripts/cap.cjs sync android",
     "apk": "pnpm run build && node scripts/build-apk.mjs",
+    "apk:tv": "pnpm run build:tv && node scripts/build-apk.mjs --tv",
     "ipa": "node scripts/build-ipa.mjs",
     "open": "node scripts/cap.cjs open android",
     "open:ios": "node scripts/cap.cjs open ios"

@@ -7,6 +7,7 @@
     "dev": "vite --host",
     "build": "tsc --noEmit && vite build",
     "build:native": "tsc --noEmit -p tsconfig.native.json && vite build --mode native",
+    "build:tv": "tsc --noEmit -p tsconfig.native.json && vite build --mode native-tv",
     "preview": "vite preview --host",
     "typecheck": "tsc --noEmit && tsc --noEmit -p tsconfig.native.json"
   },

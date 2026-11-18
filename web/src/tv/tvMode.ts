@@ -26,9 +26,26 @@ let lastMove = 0;
 
 export function isTvMode(): boolean {
   if (typeof window === "undefined") return false;
+  const forced = localStorage.getItem("musike:tv-mode");
+  if (forced === "1") return true;
+  if (forced === "0") return false;
   if (new URLSearchParams(window.location.search).has("tv")) return true;
   if (import.meta.env.VITE_TV === "1") return true;
   return document.documentElement.dataset.tv === "1";
+}
+
+export function toggleTvMode(force?: boolean): boolean {
+  const current = isTvMode();
+  const next = force !== undefined ? force : !current;
+  localStorage.setItem("musike:tv-mode", next ? "1" : "0");
+  if (next) {
+    document.documentElement.dataset.tv = "1";
+    installTvMode();
+  } else {
+    delete document.documentElement.dataset.tv;
+    window.location.reload();
+  }
+  return next;
 }
 
 function shown(el: HTMLElement): boolean {
@@ -200,7 +217,13 @@ export function installTvMode() {
       };
 
       if (key === "ArrowLeft" || key === "ArrowRight" || key === "ArrowUp" || key === "ArrowDown") {
-        if (typing) return;
+        if (typing) {
+          if (target instanceof HTMLInputElement && (key === "ArrowDown" || key === "ArrowUp")) {
+            target.blur();
+            if (move(key.replace("Arrow", "").toLowerCase() as "left" | "right" | "up" | "down")) handled();
+          }
+          return;
+        }
         const now = performance.now();
         if (event.repeat && now - lastMove < REPEAT_MS) {
           handled();
@@ -222,7 +245,7 @@ export function installTvMode() {
         return;
       }
 
-      if ((key === "Enter" || key === " ") && !typing) {
+      if ((key === "Enter" || key === " " || key === "Select") && !typing) {
         if (document.activeElement instanceof HTMLButtonElement) return;
         if (activate()) handled();
       }

@@ -46,9 +46,13 @@ function nativeBackend(): Plugin {
 }
 
 export default defineConfig(({ mode }) => {
-  const native = mode === "native";
+  const isTv = mode === "native-tv" || process.env.VITE_TV === "1";
+  const native = mode === "native" || mode === "native-tv";
   return {
-    define: { __APP_VERSION__: JSON.stringify(version) },
+    define: {
+      __APP_VERSION__: JSON.stringify(version),
+      ...(isTv ? { "import.meta.env.VITE_TV": JSON.stringify("1") } : {}),
+    },
     build: native ? { outDir: "dist-native", emptyOutDir: true } : undefined,
     plugins: [
       react(),
