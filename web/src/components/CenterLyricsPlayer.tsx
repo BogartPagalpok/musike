@@ -105,7 +105,7 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
             className="mt-4 flex h-10 items-center gap-2 rounded-lg bg-accent px-5 text-xs font-semibold text-accent-ink transition-[filter,transform] duration-150 hover:brightness-105 active:scale-95"
           >
             <PlayIcon size={15} weight="fill" />
-            <span>Play Music</span>
+            <span>{t.videoke.playMusic}</span>
           </button>
         )}
       </div>
@@ -164,7 +164,7 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
                   type="button"
                   onClick={() => jumpTo(reservedNext.queueIndex)}
                   className="flex min-w-0 max-w-[52%] items-center gap-1.5 rounded-md bg-zinc-800 px-2.5 py-0.5 text-[11px] font-semibold text-white transition-colors duration-150 hover:bg-zinc-700"
-                  title="Skip to next reserved song"
+                  title={t.videoke.skipToNext}
                 >
                   <span className="shrink-0 text-accent-text">NEXT ({reservedNext.count}):</span>
                   <span className="truncate">{reservedNext.track.title}</span>
@@ -264,7 +264,7 @@ export function CenterLyricsPlayer({ mode = "stage" }: { mode?: "stage" | "cinem
                     )}
                   >
                     <MicrophoneStageIcon size={14} weight={micOn ? "fill" : "regular"} />
-                    <span>{micOn ? "Mic On" : "Mic Off"}</span>
+                    <span>{micOn ? t.videoke.micOn : t.videoke.micOff}</span>
                   </button>
                   {showsVideo && (
                     <button

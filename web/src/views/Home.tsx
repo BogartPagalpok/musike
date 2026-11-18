@@ -353,7 +353,7 @@ function Top50Section() {
                 tab === "trending" ? "border-accent text-fg font-semibold" : "border-transparent text-fg-3 hover:text-fg-2",
               )}
             >
-              Trending
+              {t.home.trending}
             </button>
           </div>
         </div>

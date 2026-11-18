@@ -164,22 +164,22 @@ function ThemePage({ go }: { go: (p: Page) => void }) {
   const applyPack = useThemeStore((s) => s.applyPack);
   const setSceneStyle = useThemeStore((s) => s.setSceneStyle);
   const activePackName =
-    SKIN_PACKS.find((p) => p.id === activePackId)?.name ?? (activePackId === "custom-mix" ? "Custom Mix" : undefined);
+    SKIN_PACKS.find((p) => p.id === activePackId)?.name ?? (activePackId === "custom-mix" ? t.settings.customMix : undefined);
   const hardwarePacks = SKIN_PACKS.filter(
     (p) => p.id === "retro-cassette" || p.id === "mirror-flame" || p.id === "sand-topo",
   );
   return (
     <>
-      <Group title="Themes">
+      <Group title={t.settings.themesTitle}>
         <Row
-          label="Themes"
-          sub="Custom player, playhead styles & backdrops"
+          label={t.settings.themesTitle}
+          sub={t.settings.themesSub}
           value={activePackName}
           chevron
           onClick={() => go("store")}
         />
       </Group>
-      <Group title="Signature Player Skins" footer="Full tactile player decks with matching app-wide palettes." className="p-3">
+      <Group title={t.settings.signatureSkins} footer={t.settings.signatureFooter} className="p-3">
         <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
           {hardwarePacks.map((p) => {
             const active = activePackId === p.id;
@@ -204,7 +204,7 @@ function ThemePage({ go }: { go: (p: Page) => void }) {
           })}
         </div>
       </Group>
-      <Group title="Classic" className="p-3">
+      <Group title={t.settings.classic} className="p-3">
         <div role="radiogroup" className="grid grid-cols-3 gap-3 sm:grid-cols-5">
           {CLASSIC_THEMES.map((m) => (
             <ThemeTile
@@ -222,7 +222,7 @@ function ThemePage({ go }: { go: (p: Page) => void }) {
           ))}
         </div>
       </Group>
-      <Group title="Playful" footer="Six-colour themes. Picking one also resets the accent to match." className="p-3">
+      <Group title={t.settings.playful} footer={t.settings.playfulFooter} className="p-3">
         <div role="radiogroup" className="grid grid-cols-3 gap-3 sm:grid-cols-5">
           {PLAYFUL_THEMES.map((m) => (
             <ThemeTile
@@ -289,9 +289,10 @@ function AccentPage() {
 }
 
 function LayoutPage() {
+  const t = useT();
   const a = useAppearance();
   return (
-    <Group title="Workspace" footer="Applies to the desktop and tablet layout.">
+    <Group title={t.settings.workspace} footer={t.settings.workspaceFooter}>
       {LAYOUTS.map((l) => {
         const on = a.layoutTemplate === l.id;
         return (
@@ -501,7 +502,7 @@ function RootPage({ go }: { go: (p: Page) => void }) {
   const engineValue = !info ? "…" : !y?.path ? t.settings.chipMissing : y.updateAvailable ? t.settings.chipUpdate : y.version ?? "";
   const badgeInk = inkFor(a.accent);
   const activePackName =
-    SKIN_PACKS.find((p) => p.id === activePackId)?.name ?? (activePackId === "custom-mix" ? "Custom Mix" : undefined);
+    SKIN_PACKS.find((p) => p.id === activePackId)?.name ?? (activePackId === "custom-mix" ? t.settings.customMix : undefined);
 
   const saveShareUrl = (val: string) => {
     setShareUrl(val);
@@ -536,29 +537,29 @@ function RootPage({ go }: { go: (p: Page) => void }) {
           className="flex h-9 shrink-0 cursor-pointer items-center gap-1.5 rounded-md bg-fg px-3 text-xs font-semibold text-bg transition-opacity duration-150 hover:opacity-90 active:scale-95"
         >
           <ShareNetworkIcon size={14} weight="bold" />
-          <span>Share</span>
+          <span>{t.settings.share}</span>
         </button>
       </div>
 
-      <Group title="Share App" footer="Add your dedicated download or website link anytime — no source repository is exposed.">
+      <Group title={t.settings.shareApp} footer={t.settings.shareAppFooter}>
         <div className="flex items-center gap-2 border-b border-line px-4 py-2.5">
           <label htmlFor="custom-share-url" className="sr-only">
-            Dedicated download link
+            {t.settings.dedicatedLink}
           </label>
           <input
             id="custom-share-url"
             type="url"
             value={shareUrl}
             onChange={(e) => saveShareUrl(e.target.value)}
-            placeholder="Paste your dedicated download link (optional)…"
+            placeholder={t.settings.dedicatedPlaceholder}
             className="h-9 min-w-0 flex-1 rounded-md bg-surface-3 px-3 text-xs text-fg placeholder:text-fg-3 focus:outline-none"
           />
           {shareUrl.trim() && (
             <button
               type="button"
               onClick={() => window.open(shareUrl.trim(), "_blank", "noopener,noreferrer")}
-              aria-label="Open dedicated download link"
-              title="Open link"
+              aria-label={t.settings.openLink}
+              title={t.settings.openLink}
               className="grid size-9 shrink-0 cursor-pointer place-items-center rounded-md bg-surface-3 text-fg-2 transition-colors duration-150 hover:bg-surface-4 hover:text-fg"
             >
               <ArrowSquareOutIcon size={16} />
@@ -566,14 +567,14 @@ function RootPage({ go }: { go: (p: Page) => void }) {
           )}
         </div>
         <Row
-          label="Share Release"
-          sub={shareUrl.trim() ? `Shares ${shareUrl.trim()}` : "Share Illusive Sounds invite"}
+          label={t.settings.shareRelease}
+          sub={shareUrl.trim() ? t.settings.sharesLink(shareUrl.trim()) : t.settings.shareInvite}
           right={<ShareNetworkIcon size={17} className="shrink-0 text-fg-2" />}
           onClick={() => void shareAppInvite(shareUrl.trim())}
         />
         <Row
-          label="Copy Share Link"
-          sub={shareUrl.trim() || "Copies app invite text until a dedicated link is set"}
+          label={t.settings.copyShareLink}
+          sub={shareUrl.trim() || t.settings.copyShareSub}
           right={<CopyIcon size={17} className="shrink-0 text-fg-2" />}
           onClick={() => void copyShareText(shareUrl.trim())}
         />
@@ -581,7 +582,7 @@ function RootPage({ go }: { go: (p: Page) => void }) {
 
       <Group title={t.settings.appearance}>
         <Row
-          label="Themes"
+          label={t.settings.themesTitle}
           value={activePackName}
           chevron
           onClick={() => go("store")}
@@ -599,7 +600,7 @@ function RootPage({ go }: { go: (p: Page) => void }) {
       {isMd && (
         <Group title={t.customize.layout}>
           <Row
-            label="Workspace"
+            label={t.settings.workspace}
             value={LAYOUTS.find((l) => l.id === a.layoutTemplate)?.title}
             chevron
             onClick={() => go("layout")}
@@ -684,7 +685,7 @@ export function SettingsDialog() {
 
   const titles: Record<Page, string> = {
     root: t.settings.title,
-    store: "Themes",
+    store: t.settings.themesTitle,
     theme: t.settings.theme,
     accent: t.customize.accent,
     layout: t.customize.layout,
@@ -736,7 +737,7 @@ export function SettingsDialog() {
               <h2 className="truncate text-[16px] font-semibold tracking-tight">{titles[page]}</h2>
               <div className="flex w-28 justify-end">
                 <button type="button" onClick={close} className="h-10 rounded-lg px-3 text-[16px] font-semibold text-accent-text active:opacity-60">
-                  Done
+                  {t.settings.done}
                 </button>
               </div>
             </header>

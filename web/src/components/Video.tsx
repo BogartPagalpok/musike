@@ -90,6 +90,7 @@ export function VideoSlot({
 
 /** Android native Picture-in-Picture display surface with a direct Listen (minimize-to-audio) button. */
 export function PipVideoSlot() {
+  const t = useT();
   const isVideo = usePlayer((s) => s.mediaKind === "video");
   const setPreferVideo = usePlayer((s) => s.setPreferVideo);
   const [isPip, setIsPip] = useState(() => typeof document !== "undefined" && document.documentElement.dataset.pip === "1");
@@ -118,7 +119,7 @@ export function PipVideoSlot() {
           className="flex items-center gap-1.5 rounded-lg border border-white/25 bg-black/90 px-3 py-1.5 text-xs font-semibold text-accent shadow-2xl transition-colors duration-150 hover:bg-black active:scale-95"
         >
           <HeadphonesIcon size={15} weight="fill" />
-          <span>Listen</span>
+          <span>{t.videoke.listen}</span>
         </button>
       </div>
     </div>
@@ -258,7 +259,7 @@ export function Theater() {
                       )}
                     >
                       <MicrophoneStageIcon size={15} weight={micOn ? "fill" : "regular"} />
-                      <span>{micOn ? "Mic On" : "Mic Off"}</span>
+                      <span>{micOn ? t.videoke.micOn : t.videoke.micOff}</span>
                     </button>
                     <button
                       type="button"
@@ -284,7 +285,7 @@ export function Theater() {
                     className="flex h-9 items-center gap-1.5 rounded-lg border border-white/25 bg-zinc-900/90 px-3 text-xs font-semibold text-white transition-colors duration-150 hover:bg-zinc-800 active:scale-95"
                   >
                     <HeadphonesIcon size={15} weight="fill" />
-                    <span>Listen</span>
+                    <span>{t.videoke.listen}</span>
                   </button>
                 )}
                 <IconButton

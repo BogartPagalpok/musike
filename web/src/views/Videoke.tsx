@@ -258,7 +258,7 @@ export default function Videoke() {
               className="inline-flex cursor-pointer items-center gap-1 rounded-sm bg-fg px-2 py-0.5 text-[11px] font-semibold text-bg transition-opacity duration-150 hover:opacity-90"
             >
               <SkipForwardIcon size={10} weight="fill" />
-              <span>Play Next</span>
+              <span>{t.videoke.playNext}</span>
             </button>
           )}
           {upNext.length > 0 && (
@@ -327,10 +327,10 @@ export default function Videoke() {
                   ? "bg-accent-soft text-accent-text font-semibold"
                   : "bg-surface-2 text-fg-2 hover:bg-surface-3 hover:text-fg",
               )}
-              title={micOn ? "Live Microphone Active — Click to Mute" : "Turn On Live Microphone for Vocal Scoring"}
+              title={micOn ? t.videoke.micOnTitle : t.videoke.micOffTitle}
             >
               <MicrophoneStageIcon size={14} weight={micOn ? "fill" : "regular"} />
-              <span>{micOn ? "Mic On" : "Mic Off"}</span>
+              <span>{micOn ? t.videoke.micOn : t.videoke.micOff}</span>
               {micOn && (
                 <>
                   <span className="h-1.5 w-10 overflow-hidden rounded-full bg-surface-3" aria-hidden="true">
@@ -382,7 +382,7 @@ export default function Videoke() {
                     className="flex h-7 shrink-0 cursor-pointer items-center gap-1 rounded-md bg-surface-3 px-2.5 text-xs font-medium text-fg-2 hover:bg-surface-4 hover:text-fg"
                   >
                     <SkipForwardIcon size={12} weight="fill" />
-                    <span>Next</span>
+                    <span>{t.videoke.next}</span>
                   </button>
                 )}
               </div>
@@ -411,14 +411,14 @@ export default function Videoke() {
                         />
                         <div className="relative z-10 flex flex-col items-center gap-2.5 px-4">
                           <span className="rounded-md bg-black/80 px-3 py-1 text-xs font-medium text-white">
-                            {statusText ?? "Loading karaoke screen…"}
+                            {statusText ?? t.videoke.loadingKaraoke}
                           </span>
                           <button
                             type="button"
                             onClick={() => setPreferVideo(true)}
                             className="cursor-pointer rounded-md bg-fg px-4 py-1.5 text-xs font-semibold text-bg"
                           >
-                            Show Video
+                            {t.videoke.showVideo}
                           </button>
                         </div>
                       </div>
@@ -440,7 +440,7 @@ export default function Videoke() {
                           className="flex h-8 cursor-pointer items-center gap-1 rounded-md bg-surface-3 px-2.5 text-xs font-medium text-fg-2 transition-colors duration-150 hover:bg-surface-4 hover:text-fg"
                         >
                           <SkipForwardIcon size={12} weight="fill" />
-                          <span>Next</span>
+                          <span>{t.videoke.next}</span>
                         </button>
                       )}
                       {showsVideo && (
@@ -590,7 +590,7 @@ export default function Videoke() {
             <div className="flex flex-col items-center gap-2 rounded-lg bg-surface-2 px-4 py-8 text-center">
               <p className="text-sm font-medium text-fg">
                 {channelObj.id !== "all"
-                  ? `No uploads found on ${channelObj.name}`
+                  ? t.videoke.noUploads(channelObj.name)
                   : t.search.nothingFound}
               </p>
               {channelObj.id !== "all" && (
@@ -599,7 +599,7 @@ export default function Videoke() {
                   onClick={() => setActiveChannel("all")}
                   className="mt-1 cursor-pointer rounded-md bg-fg px-3.5 py-1.5 text-xs font-semibold text-bg hover:opacity-90"
                 >
-                  Search All Channels
+                  {t.videoke.searchAllChannels}
                 </button>
               )}
             </div>
@@ -673,7 +673,7 @@ export default function Videoke() {
                       >
                         {reservedIdx >= 0 ? <ListPlusIcon size={13} /> : <PlusIcon size={13} />}
                         <span className="hidden sm:inline">
-                          {reservedIdx >= 0 ? `#${reservedIdx + 1}` : isCurrent ? "Singing" : t.videoke.reserve}
+                          {reservedIdx >= 0 ? `#${reservedIdx + 1}` : isCurrent ? t.videoke.singing : t.videoke.reserve}
                         </span>
                       </button>
                       <button
@@ -682,7 +682,7 @@ export default function Videoke() {
                         className="flex h-8 cursor-pointer items-center gap-1 rounded-md bg-fg px-3 text-xs font-semibold text-bg transition-opacity duration-150 hover:opacity-90"
                       >
                         <PlayIcon size={11} weight="fill" />
-                        <span>{isCurrent ? "Restart" : "Sing"}</span>
+                        <span>{isCurrent ? t.videoke.restart : t.videoke.sing}</span>
                       </button>
                     </div>
                   </li>
