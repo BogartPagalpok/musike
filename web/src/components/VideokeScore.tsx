@@ -13,7 +13,7 @@ import {
 } from "../stores/videoke";
 import { ArrowsOutIcon, MicrophoneStageIcon, PlayIcon, SkipForwardIcon, XIcon } from "./icons";
 
-const ROLL_SECONDS = 1.35;
+const ROLL_SECONDS = 1.1;
 
 const TONE_TEXT: Record<ScoreTone, string> = {
   bad: "text-danger",
@@ -23,10 +23,10 @@ const TONE_TEXT: Record<ScoreTone, string> = {
 };
 
 const TONE_BADGE: Record<ScoreTone, string> = {
-  bad: "border-danger/50 bg-danger/12 text-danger",
-  meh: "border-amber-400/50 bg-amber-400/12 text-amber-300",
-  good: "border-sky-400/50 bg-sky-400/12 text-sky-300",
-  great: "border-accent/60 bg-accent-soft text-accent-text",
+  bad: "border-danger bg-surface-2 text-danger",
+  meh: "border-amber-400 bg-surface-2 text-amber-400",
+  good: "border-sky-400 bg-surface-2 text-sky-400",
+  great: "border-accent bg-accent-soft text-accent-text",
 };
 
 /** 5-Axis Pentagon Radar Chart (Pitch · Stability · Expression · Rhythm · Vibrato & Long). */
@@ -57,16 +57,15 @@ function PentagonRadar({ axes }: { axes: ScoreAxis[] }) {
     axes.length === 5
       ? axes
       : [
-          { label: "Pitch", value: 75 },
-          { label: "Stability", value: 75 },
-          { label: "Expression", value: 75 },
-          { label: "Rhythm", value: 75 },
-          { label: "Vibrato & Long", value: 75 },
+          { label: "Pitch", value: 0 },
+          { label: "Stability", value: 0 },
+          { label: "Expression", value: 0 },
+          { label: "Rhythm", value: 0 },
+          { label: "Vibrato & Long", value: 0 },
         ];
 
-  const avgPolygon = polyPoints([82, 80, 78, 81, 76]);
+  const refPolygon = polyPoints([80, 80, 80, 80, 80]);
   const userPolygon = polyPoints(safeAxes.map((a) => a.value));
-
   const shortLabels = ["Pitch", "Stability", "Expression", "Rhythm", "Vib & Long"];
 
   return (
@@ -75,10 +74,10 @@ function PentagonRadar({ axes }: { axes: ScoreAxis[] }) {
         <span className="font-semibold text-fg">5-Axis Vocal Balance</span>
         <span className="flex items-center gap-2.5 text-[10px] text-fg-3">
           <span className="inline-flex items-center gap-1">
-            <span className="size-2 rounded-full bg-emerald-400" /> You
+            <span className="size-2 rounded-full bg-emerald-400" /> Measured
           </span>
           <span className="inline-flex items-center gap-1">
-            <span className="h-0.5 w-2.5 bg-fg-3" /> Avg
+            <span className="h-0.5 w-2.5 bg-fg-3" /> 80 Target
           </span>
         </span>
       </div>
@@ -113,18 +112,18 @@ function PentagonRadar({ axes }: { axes: ScoreAxis[] }) {
           );
         })}
 
-        {/* Average Reference Pentagon */}
+        {/* 80-pt Target Reference Ring */}
         <polygon
-          points={avgPolygon}
+          points={refPolygon}
           fill="none"
           stroke="currentColor"
-          strokeOpacity={0.4}
-          strokeWidth="1.2"
+          strokeOpacity={0.35}
+          strokeWidth="1.1"
           strokeDasharray="3 3"
           className="text-fg-2"
         />
 
-        {/* Singer's 5-Axis Polygon */}
+        {/* Singer's Measured 5-Axis Polygon */}
         <polygon
           points={userPolygon}
           fill="rgba(30, 215, 96, 0.22)"
@@ -165,24 +164,26 @@ function PentagonRadar({ axes }: { axes: ScoreAxis[] }) {
   );
 }
 
-/** Section-by-Section Pitch Graph (5 song parts) + Rhythm Ahead/Behind Tendency Gauge. */
+/** Section-by-Section Measured Pitch Graph (5 segments) + Beat Timing Tendency Gauge. */
 function SectionPitchAndRhythm({
   sections,
   pitchHitPct,
   rhythmOffsetMs,
+  hasBeatTiming,
 }: {
-  sections: [number, number, number, number, number];
+  sections: [number | null, number | null, number | null, number | null, number | null];
   pitchHitPct: number;
   rhythmOffsetMs: number;
+  hasBeatTiming: boolean;
 }) {
-  // Map -160ms..+160ms to 8%..92% along gauge (50% = Dead On Beat)
-  const gaugePct = Math.max(8, Math.min(92, 50 + (rhythmOffsetMs / 160) * 42));
-  const rhythmLabel =
-    Math.abs(rhythmOffsetMs) <= 28
-      ? "Just On Beat"
+  const gaugePct = hasBeatTiming ? Math.max(8, Math.min(92, 50 + (rhythmOffsetMs / 160) * 42)) : 50;
+  const rhythmLabel = !hasBeatTiming
+    ? "No beat attacks"
+    : Math.abs(rhythmOffsetMs) <= 28
+      ? `On Beat (${rhythmOffsetMs >= 0 ? "+" : ""}${rhythmOffsetMs}ms)`
       : rhythmOffsetMs < 0
-        ? `Ahead ${Math.abs(rhythmOffsetMs)}ms`
-        : `Laid-back +${rhythmOffsetMs}ms`;
+        ? `Early ${rhythmOffsetMs}ms`
+        : `Late +${rhythmOffsetMs}ms`;
 
   const w = 220;
   const h = 76;
@@ -190,17 +191,30 @@ function SectionPitchAndRhythm({
   const padY = 12;
   const pts = sections.map((val, idx) => {
     const x = padX + (idx / 4) * (w - padX * 2);
-    const y = h - padY - (Math.max(0, Math.min(100, val)) / 100) * (h - padY * 2);
+    const num = val ?? 0;
+    const y = h - padY - (Math.max(0, Math.min(100, num)) / 100) * (h - padY * 2);
     return { x, y, val };
   });
-  const linePath = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ");
+
+  // Connect only contiguous segments where actual singing occurred
+  const pathSegments: string[] = [];
+  let penDown = false;
+  for (const p of pts) {
+    if (p.val === null) {
+      penDown = false;
+      continue;
+    }
+    pathSegments.push(`${penDown ? "L" : "M"} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`);
+    penDown = true;
+  }
+  const linePath = pathSegments.join(" ");
 
   return (
     <div className="flex flex-col justify-between gap-3 rounded-lg border border-line bg-surface-2 p-3">
       <div>
         <div className="mb-1.5 flex items-center justify-between text-[11px]">
-          <span className="font-semibold text-fg">Pitch Accuracy Graph</span>
-          <span className="font-mono font-bold text-accent-text tabular-nums">{pitchHitPct}% Hit</span>
+          <span className="font-semibold text-fg">In-Key Pitch Graph</span>
+          <span className="font-mono font-bold text-accent-text tabular-nums">{pitchHitPct}% In-Key</span>
         </div>
 
         <svg viewBox={`0 0 ${w} ${h}`} className="h-[82px] w-full rounded-md bg-bg px-1" aria-label="Section pitch accuracy graph">
@@ -220,36 +234,44 @@ function SectionPitchAndRhythm({
               />
             );
           })}
-          <path d={linePath} fill="none" stroke="#38bdf8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          {linePath && (
+            <path d={linePath} fill="none" stroke="#38bdf8" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          )}
           {pts.map((p, idx) => (
             <g key={idx}>
-              <circle cx={p.x} cy={p.y} r="3.5" fill="#38bdf8" />
+              {p.val !== null ? (
+                <circle cx={p.x} cy={p.y} r="3.5" fill="#38bdf8" />
+              ) : (
+                <circle cx={p.x} cy={h - padY} r="2.2" className="fill-fg-3" fillOpacity={0.45} />
+              )}
               <text x={p.x} y={h - 2} textAnchor="middle" className="fill-fg-3 font-mono text-[8.5px]">
-                P{idx + 1}
+                {p.val !== null ? `S${idx + 1}` : "—"}
               </text>
             </g>
           ))}
         </svg>
       </div>
 
-      {/* Rhythm Timing Gauge (Rushing / Ahead <-> Just <-> Behind / Late) */}
+      {/* Rhythm Timing Gauge */}
       <div className="border-t border-line pt-2.5">
         <div className="mb-1.5 flex items-center justify-between text-[11px]">
-          <span className="font-semibold text-fg">Rhythm Timing</span>
+          <span className="font-semibold text-fg">Beat Entry Timing</span>
           <span className="font-mono text-[10.5px] font-semibold text-fg-2 tabular-nums">{rhythmLabel}</span>
         </div>
         <div className="relative flex h-5 items-center">
           <div className="h-1.5 w-full rounded-full bg-bg" />
-          <span className="absolute top-1/2 left-1/2 h-3.5 w-0.5 -translate-x-1/2 -translate-y-1/2 bg-fg-3/60" />
-          <span
-            className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-bg bg-accent shadow-xs"
-            style={{ left: `${gaugePct}%` }}
-          />
+          <span className="absolute top-1/2 left-1/2 h-3.5 w-0.5 -translate-x-1/2 -translate-y-1/2 bg-fg-3" />
+          {hasBeatTiming && (
+            <span
+              className="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-bg bg-accent shadow-xs"
+              style={{ left: `${gaugePct}%` }}
+            />
+          )}
         </div>
         <div className="flex justify-between text-[9.5px] font-medium text-fg-3">
-          <span>Rush (Fast)</span>
+          <span>Rush (Early)</span>
           <span>On Beat</span>
-          <span>Drag (Slow)</span>
+          <span>Drag (Late)</span>
         </div>
       </div>
     </div>
@@ -281,11 +303,7 @@ function VibratoAndTechniqueCard({
   falls: number;
 }) {
   const waveSamples =
-    vibratoWave.length >= 8
-      ? vibratoWave
-      : vibratoCount > 0
-        ? Array.from({ length: 28 }, (_, i) => Math.sin((i / 27) * Math.PI * 5) * 0.72)
-        : Array.from({ length: 28 }, () => 0);
+    vibratoWave.length >= 8 ? vibratoWave : Array.from({ length: 28 }, () => 0);
 
   const wavePath = waveSamples
     .map((v, idx) => {
@@ -355,21 +373,19 @@ function VibratoAndTechniqueCard({
   );
 }
 
-/** In-App Visual Piano Keyboard Vocal Range Map (Lowest to Highest Note vs Song Range). */
+/** Real Measured Piano Keyboard Vocal Range Map (F2 to C6, lighting up exact sung notes). */
 function VocalRangeKeyboard({
   singerMin,
   singerMax,
-  songMin,
-  songMax,
+  sungMidis,
 }: {
   singerMin: number | null;
   singerMax: number | null;
-  songMin: number | null;
-  songMax: number | null;
+  sungMidis: number[];
 }) {
-  // Render 3 octaves: C3 (48) to B5 (83) -> 21 white keys + black sharps
-  const startMidi = 48; // C3
-  const endMidi = 83; // B5
+  // 3.5 octaves: F2 (41) to C6 (84) -> covers bass/baritone male vocals through soprano female vocals
+  const startMidi = 41; // F2
+  const endMidi = 84; // C6
   const whiteNotes: number[] = [];
   const isBlack = (m: number) => [1, 3, 6, 8, 10].includes(((m % 12) + 12) % 12);
 
@@ -377,22 +393,23 @@ function VocalRangeKeyboard({
     if (!isBlack(m)) whiteNotes.push(m);
   }
 
-  const inSinger = (m: number) => singerMin !== null && singerMax !== null && m >= singerMin && m <= singerMax;
-  const inSong = (m: number) => songMin !== null && songMax !== null && m >= songMin && m <= songMax;
+  const sungSet = new Set(sungMidis);
+  const inSpan = (m: number) => singerMin !== null && singerMax !== null && m >= singerMin && m <= singerMax;
+  const spanSemitones = singerMin !== null && singerMax !== null ? singerMax - singerMin : 0;
 
   return (
     <div className="rounded-lg border border-line bg-surface-2 p-3">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-[11px]">
-        <span className="font-semibold text-fg">Vocal Range Keyboard</span>
+        <span className="font-semibold text-fg">Measured Vocal Range</span>
         <div className="flex items-center gap-3 font-mono text-[10.5px] tabular-nums">
           <span className="text-fg-2">
-            You:{" "}
+            Range:{" "}
             <strong className="text-accent-text">
               {singerMin !== null && singerMax !== null ? `${noteName(singerMin)} – ${noteName(singerMax)}` : "—"}
             </strong>
           </span>
           <span className="text-fg-3">
-            Song: {songMin !== null && songMax !== null ? `${noteName(songMin)} – ${noteName(songMax)}` : "C4 – D5"}
+            {sungMidis.length > 0 ? `${sungMidis.length} distinct notes (${spanSemitones} st)` : "0 notes sung"}
           </span>
         </div>
       </div>
@@ -400,15 +417,19 @@ function VocalRangeKeyboard({
       <div className="relative h-12 w-full overflow-hidden rounded-md border border-line bg-bg select-none">
         <div className="grid h-full" style={{ gridTemplateColumns: `repeat(${whiteNotes.length}, minmax(0, 1fr))` }}>
           {whiteNotes.map((m) => {
-            const sung = inSinger(m);
-            const ref = inSong(m);
+            const exactHit = sungSet.has(m);
+            const span = inSpan(m);
             const isC = m % 12 === 0;
             return (
               <div
                 key={m}
                 className={cn(
-                  "relative flex items-end justify-center border-r border-black/20 pb-0.5 last:border-r-0",
-                  sung ? "bg-emerald-400 text-[#050a06]" : ref ? "bg-sky-200 text-zinc-900" : "bg-zinc-100 text-zinc-500",
+                  "relative flex items-end justify-center border-r border-zinc-400 pb-0.5 last:border-r-0",
+                  exactHit
+                    ? "bg-emerald-400 text-zinc-950"
+                    : span
+                      ? "bg-emerald-100 text-zinc-800"
+                      : "bg-zinc-100 text-zinc-500",
                 )}
               >
                 {isC && <span className="font-mono text-[8px] font-bold">{noteName(m)}</span>}
@@ -423,15 +444,15 @@ function VocalRangeKeyboard({
           if (sharpMidi > endMidi || !isBlack(sharpMidi)) return null;
           const leftPct = ((idx + 1) / whiteNotes.length) * 100;
           const widthPct = (0.62 / whiteNotes.length) * 100;
-          const sung = inSinger(sharpMidi);
-          const ref = inSong(sharpMidi);
+          const exactHit = sungSet.has(sharpMidi);
+          const span = inSpan(sharpMidi);
           return (
             <span
               key={sharpMidi}
               style={{ left: `${leftPct}%`, width: `${widthPct}%` }}
               className={cn(
-                "pointer-events-none absolute top-0 h-[60%] -translate-x-1/2 rounded-b-[2px] border border-black/50",
-                sung ? "bg-emerald-600" : ref ? "bg-sky-600" : "bg-zinc-900",
+                "pointer-events-none absolute top-0 h-[60%] -translate-x-1/2 rounded-b-[2px] border border-zinc-950",
+                exactHit ? "bg-emerald-600" : span ? "bg-zinc-700" : "bg-zinc-900",
               )}
             />
           );
@@ -441,7 +462,7 @@ function VocalRangeKeyboard({
   );
 }
 
-/** My Music Karaoke Score (com.ezcompany.karaokemike) Precision Vocal Scoring Screen. */
+/** Zero-Randomness Real Vocal Performance Report. */
 export function VideokeScore() {
   const score = useVideoke((v) => v.score);
   const minimize = useVideoke((v) => v.minimize);
@@ -460,18 +481,34 @@ export function VideokeScore() {
   useEffect(() => {
     if (!score || played.current === score.id) return;
     played.current = score.id;
+    const target = score.telemetry.scoreDecimal;
+
+    // Zero score (Mic Off or Silent): reveal 0.000 immediately with zero fake number spinning
+    if (target <= 0) {
+      setShownDecimal(0);
+      setRevealed(true);
+      const stopSound = playScoreSounds(score.tone, 0);
+      return () => {
+        if (useVideoke.getState().score?.id !== score.id) stopSound();
+      };
+    }
+
+    setShownDecimal(0);
     setRevealed(false);
     const stopSound = playScoreSounds(score.tone, ROLL_SECONDS);
     const started = performance.now();
     const spin = setInterval(() => {
-      if (performance.now() - started >= ROLL_SECONDS * 1000) {
+      const elapsed = performance.now() - started;
+      const p = Math.min(1, elapsed / (ROLL_SECONDS * 1000));
+      if (p >= 1) {
         clearInterval(spin);
-        setShownDecimal(score.telemetry.scoreDecimal);
+        setShownDecimal(target);
         setRevealed(true);
       } else {
-        setShownDecimal(Number((55 + Math.random() * 44.999).toFixed(3)));
+        const eased = 1 - Math.pow(1 - p, 3);
+        setShownDecimal(Number((target * eased).toFixed(3)));
       }
-    }, 45);
+    }, 32);
     return () => {
       clearInterval(spin);
       if (useVideoke.getState().score?.id !== score.id) stopSound();
@@ -501,7 +538,10 @@ export function VideokeScore() {
 
   const formattedScore = shownDecimal.toFixed(3);
   const [intPart, decPart] = formattedScore.split(".");
-  const diffFromAvg = Number((tel.scoreDecimal - tel.avgScoreDecimal).toFixed(3));
+  const bestDiff =
+    tel.prevBestDecimal !== null && tel.scoreDecimal > 0
+      ? Number((tel.scoreDecimal - tel.prevBestDecimal).toFixed(3))
+      : null;
 
   return createPortal(
     <AnimatePresence>
@@ -531,9 +571,14 @@ export function VideokeScore() {
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="inline-flex items-center gap-1 rounded-sm bg-accent-soft px-2 py-0.5 text-[11px] font-bold text-accent-text">
                     <MicrophoneStageIcon size={13} weight="fill" />
-                    <span>{revealed ? "Karaoke Vocal Report" : "Analyzing Vocal Take…"}</span>
+                    <span>{revealed ? score.badge : "Tallying Measured Vocals…"}</span>
                   </span>
                   <span className="font-mono text-[11px] font-medium text-fg-3">#{code}</span>
+                  {tel.detectedKeyLabel && (
+                    <span className="rounded-sm bg-surface-2 px-1.5 py-0.5 font-mono text-[10.5px] font-semibold text-fg-2">
+                      {tel.detectedKeyLabel}
+                    </span>
+                  )}
                 </div>
                 <h2 className="mt-1 truncate text-base font-bold tracking-tight text-fg md:text-lg">
                   {score.track.title}
@@ -553,7 +598,7 @@ export function VideokeScore() {
               </button>
             </div>
 
-            {/* Precision 00.000 pts Score Banner + Rank + Song Average Delta */}
+            {/* Precision 00.000 pts Score Banner + Real Take Telemetry + Rank */}
             <div className="mt-3.5 flex flex-wrap items-center justify-between gap-4 rounded-xl border border-line bg-bg px-4 py-3.5 md:px-6 md:py-4">
               <div className="flex items-baseline gap-1 font-mono tabular-nums">
                 <span className={cn("text-5xl leading-none font-black tracking-tight sm:text-6xl md:text-7xl", revealed ? toneText : "text-fg")}>
@@ -568,12 +613,20 @@ export function VideokeScore() {
               <div className="flex items-center gap-3">
                 {revealed && (
                   <div className="text-right text-xs tabular-nums">
-                    <p className="text-fg-3">
-                      Average <span className="font-mono font-semibold text-fg-2">{tel.avgScoreDecimal.toFixed(3)}</span>
+                    <p className="font-mono font-semibold text-fg-2">
+                      {tel.sungSeconds.toFixed(1)}s sung · {tel.notesHit} notes
                     </p>
-                    <p className={cn("mt-0.5 font-mono font-bold", diffFromAvg >= 0 ? "text-emerald-400" : "text-amber-400")}>
-                      {diffFromAvg >= 0 ? `+${diffFromAvg.toFixed(3)}` : diffFromAvg.toFixed(3)} pts
-                    </p>
+                    {bestDiff !== null && tel.prevBestDecimal !== null ? (
+                      <p className={cn("mt-0.5 font-mono font-bold", bestDiff >= 0 ? "text-emerald-400" : "text-fg-3")}>
+                        {bestDiff > 0
+                          ? `New Best! (+${bestDiff.toFixed(3)})`
+                          : `Best ${tel.prevBestDecimal.toFixed(3)}`}
+                      </p>
+                    ) : (
+                      <p className="mt-0.5 text-[11px] text-fg-3">
+                        {score.heard ? "Live Mic Verified" : "Microphone Off"}
+                      </p>
+                    )}
                   </div>
                 )}
 
@@ -598,11 +651,11 @@ export function VideokeScore() {
                   <strong className={cn("font-semibold", toneText)}>{score.headline}</strong> — {score.judgeNote}
                 </>
               ) : (
-                "Calculating reference pitch accuracy, sustained stability, rhythm timing, vibrato waveform & vocal range…"
+                "Calculating cent intonation, backing-key consonance, note stability, beat timing & vocal range…"
               )}
             </p>
 
-            {/* Detailed Item-by-Item Analytics (Shown once 1.35s tally finishes) */}
+            {/* Detailed Item-by-Item Analytics */}
             {revealed && (
               <div className="mt-3.5 flex flex-col gap-3">
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -611,6 +664,7 @@ export function VideokeScore() {
                     sections={tel.sectionPitch}
                     pitchHitPct={tel.pitchHitPct}
                     rhythmOffsetMs={tel.rhythmOffsetMs}
+                    hasBeatTiming={tel.hasBeatTiming}
                   />
                 </div>
 
@@ -630,8 +684,7 @@ export function VideokeScore() {
                 <VocalRangeKeyboard
                   singerMin={tel.singerMinMidi}
                   singerMax={tel.singerMaxMidi}
-                  songMin={tel.songMinMidi}
-                  songMax={tel.songMaxMidi}
+                  sungMidis={tel.sungMidis}
                 />
               </div>
             )}
@@ -648,7 +701,7 @@ export function VideokeScore() {
                   className="flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-md bg-accent-soft px-4 text-xs font-semibold text-accent-text transition-colors duration-150 hover:bg-surface-3 active:scale-[0.98]"
                 >
                   <MicrophoneStageIcon size={15} weight="fill" />
-                  <span>Turn On Live Mic &amp; Sing for Real Precision Score</span>
+                  <span>Turn On Live Mic &amp; Sing Again</span>
                 </button>
               )}
               <button

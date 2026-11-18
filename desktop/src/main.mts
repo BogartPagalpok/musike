@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { app, BrowserWindow, globalShortcut, ipcMain, Menu, screen, shell } from "electron";
+import { app, BrowserWindow, globalShortcut, ipcMain, Menu, screen, session, shell, systemPreferences } from "electron";
 import type { RunningServer } from "../../server/src/app.js";
 import { backupLibraryOnUpdate } from "./backup.js";
 
@@ -363,6 +363,33 @@ function registerMediaShortcuts() {
 }
 
 void app.whenReady().then(() => {
+  // Allow Web Audio / getUserMedia microphone access for live Videoke vocal scoring.
+  session.defaultSession.setPermissionCheckHandler((_webContents, permission) => {
+    if (permission === "media" || (permission as string) === "audioCapture") return true;
+    return false;
+  });
+  session.defaultSession.setPermissionRequestHandler((_webContents, permission, callback) => {
+    if (permission === "media" || (permission as string) === "audioCapture") {
+      if (isMac) {
+        const status = systemPreferences.getMediaAccessStatus("microphone");
+        if (status === "granted") {
+          callback(true);
+          return;
+        }
+        if (status === "not-determined") {
+          void systemPreferences
+            .askForMediaAccess("microphone")
+            .then((granted) => callback(granted))
+            .catch(() => callback(false));
+          return;
+        }
+      }
+      callback(true);
+      return;
+    }
+    callback(false);
+  });
+
   // macOS needs an app menu: without the Edit menu, Cmd+C/V/A don't reach text fields, and Cmd+Q has no home.
   rebuildPlaybackMenus();
   registerMediaShortcuts();

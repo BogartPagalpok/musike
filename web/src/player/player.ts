@@ -222,7 +222,10 @@ export const usePlayer = create<PlayerState>((set, get) => {
   const activeMedia = (): HTMLMediaElement | null => (loaded ? mediaFor(loaded.kind) : null);
 
   function play(media: HTMLMediaElement) {
-    if (useEqualizer.getState().enabled) attachEqualizer(media);
+    const curTrack = get().queue[get().index];
+    if (useEqualizer.getState().enabled || (curTrack && playerHooks.forceVideo?.(curTrack))) {
+      attachEqualizer(media);
+    }
     media.play().catch((err: DOMException) => {
       if (err.name === "AbortError") return; // src changed mid-start
       if (err.name === "NotAllowedError") set({ status: "paused" }); // autoplay blocked
@@ -476,7 +479,10 @@ export const usePlayer = create<PlayerState>((set, get) => {
     media.addEventListener("playing", () => {
       if (!isActive()) return;
       if (media === videoEl) lastVideoPlayAt = Date.now();
-      if (useEqualizer.getState().enabled) attachEqualizer(media);
+      const curTrack = get().queue[get().index];
+      if (useEqualizer.getState().enabled || (curTrack && playerHooks.forceVideo?.(curTrack))) {
+        attachEqualizer(media);
+      }
       set({ status: "playing", statusText: null });
       onStarted();
       syncPlaybackState();

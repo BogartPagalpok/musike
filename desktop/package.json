@@ -1,7 +1,7 @@
 {
   "name": "musike-desktop",
   "productName": "Illusive Sounds",
-  "version": "1.6.7",
+  "version": "1.6.8",
   "description": "Your music, uninterrupted.",
   "author": "Ian Lester Eclevia",
   "homepage": "https://illusivesounds.app",
@@ -65,7 +65,11 @@
       "darkModeSupport": true,
       "identity": "-",
       "hardenedRuntime": false,
-      "gatekeeperAssess": false
+      "gatekeeperAssess": false,
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "Illusive Sounds uses your microphone for real-time vocal pitch, rhythm, and vibrato scoring in Videoke mode.",
+        "NSAudioCaptureUsageDescription": "Illusive Sounds uses audio input for real-time vocal scoring in Videoke mode."
+      }
     },
     "linux": {
       "target": [

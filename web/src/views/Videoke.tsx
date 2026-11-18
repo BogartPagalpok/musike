@@ -108,6 +108,8 @@ export default function Videoke() {
 
   const videokeIds = useVideoke((v) => v.ids);
   const micOn = useVideoke((v) => v.micOn);
+  const micLevel = useVideoke((v) => v.micLevel);
+  const liveStats = useVideoke((v) => v.liveStats);
   const startMic = useVideoke((v) => v.startMic);
   const stopMic = useVideoke((v) => v.stopMic);
   const singNow = useVideoke((v) => v.singNow);
@@ -318,16 +320,32 @@ export default function Videoke() {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => (micOn ? stopMic() : void startMic())}
+              onClick={() => (micOn ? stopMic(true) : void startMic())}
               className={cn(
-                "flex h-8 cursor-pointer items-center gap-1.5 rounded-md px-3 text-xs font-medium transition-colors duration-150",
+                "flex h-8 cursor-pointer items-center gap-2 rounded-md px-3 text-xs font-medium transition-colors duration-150",
                 micOn
                   ? "bg-accent-soft text-accent-text font-semibold"
                   : "bg-surface-2 text-fg-2 hover:bg-surface-3 hover:text-fg",
               )}
+              title={micOn ? "Live Microphone Active — Click to Mute" : "Turn On Live Microphone for Vocal Scoring"}
             >
               <MicrophoneStageIcon size={14} weight={micOn ? "fill" : "regular"} />
               <span>{micOn ? "Mic On" : "Mic Off"}</span>
+              {micOn && (
+                <>
+                  <span className="h-1.5 w-10 overflow-hidden rounded-full bg-surface-3" aria-hidden="true">
+                    <span
+                      className="block h-full bg-emerald-500 transition-[width] duration-75"
+                      style={{ width: `${Math.max(6, Math.round(micLevel * 100))}%` }}
+                    />
+                  </span>
+                  <span className="hidden font-mono text-[11px] tabular-nums sm:inline">
+                    {liveStats.currentNoteLabel
+                      ? `${liveStats.currentNoteLabel} · ${liveStats.sungSeconds.toFixed(0)}s`
+                      : `${liveStats.sungSeconds.toFixed(0)}s`}
+                  </span>
+                </>
+              )}
             </button>
             {currentTrack && (
               <button

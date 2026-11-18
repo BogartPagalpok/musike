@@ -125,6 +125,7 @@ interface EqGraph {
   dryGain: GainNode;
   wetGain: GainNode;
   analyser: AnalyserNode;
+  harmonicAnalyser: AnalyserNode;
 }
 
 const eqHost = globalThis as {
@@ -178,6 +179,11 @@ function getOrCreateGraph(): EqGraph | null {
     analyser.fftSize = 128;
     analyser.smoothingTimeConstant = 0.82;
 
+    // High-resolution passive harmonic & beat analyser (~11.7 Hz/bin at 48 kHz) for Videoke key/chord & onset scoring
+    const harmonicAnalyser = ctx.createAnalyser();
+    harmonicAnalyser.fftSize = 4096;
+    harmonicAnalyser.smoothingTimeConstant = 0.5;
+
     // Connect chain: preamp -> bass -> clarity -> band[0..9] -> (dryGain + compressor->wetGain) -> analyser -> destination
     preampNode.connect(bassNode);
     bassNode.connect(clarityNode);
@@ -192,6 +198,8 @@ function getOrCreateGraph(): EqGraph | null {
 
     dryGain.connect(analyser);
     wetGain.connect(analyser);
+    dryGain.connect(harmonicAnalyser);
+    wetGain.connect(harmonicAnalyser);
     analyser.connect(ctx.destination);
 
     const graph: EqGraph = {
@@ -205,6 +213,7 @@ function getOrCreateGraph(): EqGraph | null {
       dryGain,
       wetGain,
       analyser,
+      harmonicAnalyser,
     };
     eqHost.__musikeEqGraph = graph;
     return graph;
@@ -295,29 +304,114 @@ export function readEqSpectrum(target: Uint8Array<ArrayBuffer>): boolean {
   return true;
 }
 
-const playbackSpecBuf = new Uint8Array(64);
+/** Ensures the passive playback analyser is attached to active same-origin media even when EQ is disabled. */
+export function ensurePlaybackAnalyser() {
+  getOrCreateGraph();
+  for (const el of eqHost.__musikeEqElements ?? []) {
+    if (el.getAttribute("src") || el.src || el.currentSrc) {
+      attachEqualizer(el);
+    }
+  }
+}
+
+const harmSpecBuf = new Uint8Array(2048);
+const prevLowMidBins = new Float32Array(40);
+let rollingFluxMean = 0;
+let lastBeatOnsetMs = 0;
+
+export interface PlaybackHarmonicSnapshot {
+  available: boolean;
+  chroma: Float32Array;
+  beatOnset: boolean;
+  binLevel: number;
+  overallLevel: number;
+}
+
+/**
+ * Extracts real-time 12-bin pitch-class chroma, bass/snare beat onsets, and accompaniment pitch dominance
+ * from the high-resolution 4096-point `harmonicAnalyser` (~11.7 Hz/bin).
+ */
+export function samplePlaybackHarmonics(sungHz: number | null, nowMs = performance.now()): PlaybackHarmonicSnapshot {
+  const chroma = new Float32Array(12);
+  const graph = eqHost.__musikeEqGraph;
+  if (!graph || graph.ctx.state !== "running") {
+    return { available: false, chroma, beatOnset: false, binLevel: 0, overallLevel: 0 };
+  }
+
+  graph.harmonicAnalyser.getByteFrequencyData(harmSpecBuf);
+  const binHz = graph.ctx.sampleRate / graph.harmonicAnalyser.fftSize;
+
+  // 1. Overall playback energy check (60 Hz .. 2500 Hz)
+  const b60 = Math.max(1, Math.round(60 / binHz));
+  const b2500 = Math.min(harmSpecBuf.length - 2, Math.round(2500 / binHz));
+  let energySum = 0;
+  for (let b = b60; b <= b2500; b++) energySum += harmSpecBuf[b]!;
+  const overallLevel = energySum / (Math.max(1, b2500 - b60 + 1) * 255);
+  if (overallLevel < 0.015) {
+    return { available: false, chroma, beatOnset: false, binLevel: 0, overallLevel };
+  }
+
+  // 2. Peak-picked 12-bin Pitch-Class Chroma across 82 Hz (E2) .. 1320 Hz (E6)
+  const bMin = Math.max(2, Math.round(82 / binHz));
+  const bMax = Math.min(harmSpecBuf.length - 3, Math.round(1320 / binHz));
+  let chromaSum = 0;
+  for (let b = bMin; b <= bMax; b++) {
+    const mag = harmSpecBuf[b]!;
+    if (mag < 68) continue;
+    // Local spectral peak filter suppresses broadband drum/cymbal wash
+    if (mag >= harmSpecBuf[b - 1]! && mag >= harmSpecBuf[b + 1]!) {
+      const hz = b * binHz;
+      const midi = 69 + 12 * Math.log2(hz / 440);
+      const pc = ((Math.round(midi) % 12) + 12) % 12;
+      const w = Math.pow((mag - 60) / 195, 1.8);
+      chroma[pc] += w;
+      chromaSum += w;
+    }
+  }
+  if (chromaSum > 0) {
+    for (let i = 0; i < 12; i++) chroma[i] /= chromaSum;
+  }
+
+  // 3. Real-time half-wave rectified spectral flux across 65 Hz .. 420 Hz for beat/chord onset detection
+  const fluxEnd = Math.min(bMin + prevLowMidBins.length - 1, Math.round(420 / binHz));
+  let flux = 0;
+  for (let b = bMin, idx = 0; b <= fluxEnd && idx < prevLowMidBins.length; b++, idx++) {
+    const cur = harmSpecBuf[b]! / 255;
+    const diff = cur - prevLowMidBins[idx]!;
+    if (diff > 0) flux += diff;
+    prevLowMidBins[idx] = cur;
+  }
+  rollingFluxMean = rollingFluxMean * 0.88 + flux * 0.12;
+  const beatOnset =
+    flux > Math.max(0.32, rollingFluxMean * 1.65) && nowMs - lastBeatOnsetMs >= 190;
+  if (beatOnset) lastBeatOnsetMs = nowMs;
+
+  // 4. Accompaniment energy around sungHz & 2*sungHz (for speaker-bleed rejection)
+  let binLevel = 0;
+  if (sungHz !== null && sungHz > 65) {
+    const b1 = Math.min(harmSpecBuf.length - 2, Math.max(1, Math.round(sungHz / binHz)));
+    const b2 = Math.min(harmSpecBuf.length - 2, Math.max(1, Math.round((sungHz * 2) / binHz)));
+    const p1 = Math.max(harmSpecBuf[b1 - 1]!, harmSpecBuf[b1]!, harmSpecBuf[b1 + 1]!) / 255;
+    const p2 = Math.max(harmSpecBuf[b2 - 1]!, harmSpecBuf[b2]!, harmSpecBuf[b2 + 1]!) / 255;
+    binLevel = p1 * 0.7 + p2 * 0.3;
+  }
+
+  return {
+    available: chromaSum > 0.02,
+    chroma,
+    beatOnset,
+    binLevel,
+    overallLevel,
+  };
+}
 
 /**
  * Returns 0..1 indicating how strongly the active music/karaoke playback is currently outputting energy
- * around `hz` (used by Videoke mic analyzer to reject speaker piano/accompaniment bleed without OS voice ducking).
+ * around `hz`.
  */
 export function getPlaybackPitchDominance(hz: number): { binLevel: number; overallLevel: number } {
-  const graph = eqHost.__musikeEqGraph;
-  if (!graph || graph.ctx.state !== "running") return { binLevel: 0, overallLevel: 0 };
-  graph.analyser.getByteFrequencyData(playbackSpecBuf);
-  const binHz = graph.ctx.sampleRate / graph.analyser.fftSize;
-  const bin = Math.min(playbackSpecBuf.length - 1, Math.max(0, Math.round(hz / binHz)));
-  const peak = Math.max(
-    playbackSpecBuf[Math.max(0, bin - 1)] ?? 0,
-    playbackSpecBuf[bin] ?? 0,
-    playbackSpecBuf[Math.min(playbackSpecBuf.length - 1, bin + 1)] ?? 0,
-  );
-  let sum = 0;
-  for (let i = 1; i < 32; i++) sum += playbackSpecBuf[i]!;
-  return {
-    binLevel: peak / 255,
-    overallLevel: sum / (31 * 255),
-  };
+  const snap = samplePlaybackHarmonics(hz);
+  return { binLevel: snap.binLevel, overallLevel: snap.overallLevel };
 }
 
 /** Computes the composite dB response across a set of frequencies for the interactive curve visualizer. */
